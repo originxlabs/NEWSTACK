@@ -1,12 +1,27 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useEffect } from "react";
+import { Header } from "@/components/Header";
+import { HeroSection } from "@/components/HeroSection";
+import { NewsFeed } from "@/components/NewsFeed";
+import { PlacesSection } from "@/components/PlacesSection";
+import { PricingSection } from "@/components/PricingSection";
+import { Footer } from "@/components/Footer";
 
 const Index = () => {
+  // Enable dark mode by default
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <main>
+        <HeroSection />
+        <NewsFeed />
+        <PlacesSection />
+        <PricingSection />
+      </main>
+      <Footer />
     </div>
   );
 };
