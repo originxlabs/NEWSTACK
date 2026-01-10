@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PreferencesProvider } from "@/contexts/PreferencesContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { StackBot } from "@/components/StackBot";
 import { useEffect } from "react";
 import Index from "./pages/Index";
 import News from "./pages/News";
@@ -52,6 +53,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <ScrollToTop />
+              <StackBot />
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/news" element={<News />} />

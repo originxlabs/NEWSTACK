@@ -88,14 +88,9 @@ export function Header() {
                   ) : user ? (
                     <UserMenu />
                   ) : (
-                    <>
-                      <Button variant="ghost" size="sm" onClick={() => setShowAuthModal(true)}>
-                        Sign In
-                      </Button>
-                      <Button size="sm" onClick={() => setShowAuthModal(true)}>
-                        Get Started
-                      </Button>
-                    </>
+                    <Button size="sm" onClick={() => setShowAuthModal(true)}>
+                      Get Started
+                    </Button>
                   )}
                 </div>
 
@@ -142,16 +137,6 @@ export function Header() {
                 
                 {!user && (
                   <div className="flex gap-2 mt-4 pt-4 border-t border-border/50">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        setIsOpen(false);
-                        setShowAuthModal(true);
-                      }}
-                    >
-                      Sign In
-                    </Button>
                     <Button
                       className="flex-1"
                       onClick={() => {
