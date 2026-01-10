@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Navigation, Clock, Car, Train, Footprints, ExternalLink, Maximize2 } from "lucide-react";
+import { Navigation, Car, Train, Footprints, ExternalLink, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PlaceData } from "@/hooks/use-places";
@@ -12,8 +11,6 @@ interface InteractiveMapProps {
 }
 
 export function InteractiveMap({ placeData }: InteractiveMapProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [travelEstimates, setTravelEstimates] = useState<{
@@ -29,105 +26,26 @@ export function InteractiveMap({ placeData }: InteractiveMapProps) {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
+          const loc = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          });
+          };
+          setUserLocation(loc);
+          
+          // Calculate rough travel estimates if place exists
+          if (place) {
+            const distance = calculateDistance(loc.lat, loc.lng, place.lat, place.lng);
+            setTravelEstimates({
+              driving: formatTime(distance / 50), // ~50 km/h average
+              transit: formatTime(distance / 30), // ~30 km/h average
+              walking: formatTime(distance / 5), // ~5 km/h average
+            });
+          }
         },
         () => console.log("Location access denied")
       );
     }
-  }, []);
-
-  useEffect(() => {
-    if (!place || !mapRef.current) return;
-
-    const initMap = async () => {
-      const L = await import("leaflet");
-
-      // Clean up previous instance
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-      }
-
-      // Initialize map
-      const map = L.map(mapRef.current!, {
-        center: [place.lat, place.lng],
-        zoom: 14,
-        zoomControl: false,
-      });
-
-      // Add OpenStreetMap tiles
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
-
-      // Add zoom control to bottom right
-      L.control.zoom({ position: "bottomright" }).addTo(map);
-
-      // Custom marker icon
-      const mainIcon = L.divIcon({
-        className: "custom-marker",
-        html: `<div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);"><span style="color: white; font-size: 16px;">📍</span></div>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
-      });
-
-      // Main place marker
-      L.marker([place.lat, place.lng], { icon: mainIcon })
-        .addTo(map)
-        .bindPopup(`<strong>${place.name}</strong><br/>${place.formatted_address || ""}`);
-
-      // Add nearby attraction markers
-      nearbyAttractions.slice(0, 8).forEach((attraction) => {
-        if (attraction.lat && attraction.lng) {
-          const attractionIcon = L.divIcon({
-            className: "custom-marker",
-            html: `<div style="background: #10b981; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);"><span style="color: white; font-size: 10px;">⭐</span></div>`,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12],
-          });
-
-          L.marker([attraction.lat, attraction.lng], { icon: attractionIcon })
-            .addTo(map)
-            .bindPopup(`<strong>${attraction.name}</strong><br/>${attraction.vicinity || ""}`);
-        }
-      });
-
-      // Add user location if available
-      if (userLocation) {
-        const userIcon = L.divIcon({
-          className: "custom-marker",
-          html: `<div style="background: #3b82f6; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);"></div>`,
-          iconSize: [20, 20],
-          iconAnchor: [10, 10],
-        });
-
-        L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
-          .addTo(map)
-          .bindPopup("Your location");
-
-        // Calculate rough travel estimates
-        const distance = calculateDistance(userLocation.lat, userLocation.lng, place.lat, place.lng);
-        setTravelEstimates({
-          driving: formatTime(distance / 50), // ~50 km/h average
-          transit: formatTime(distance / 30), // ~30 km/h average
-          walking: formatTime(distance / 5), // ~5 km/h average
-        });
-      }
-
-      mapInstanceRef.current = map;
-    };
-
-    initMap();
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [place, nearbyAttractions, userLocation]);
+  }, [place]);
 
   const openInMaps = (provider: string) => {
     if (!place) return;
@@ -143,6 +61,10 @@ export function InteractiveMap({ placeData }: InteractiveMapProps) {
 
   if (!place) return null;
 
+  // Build OpenStreetMap embed URL with marker
+  const mapEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${place.lng - 0.01},${place.lat - 0.008},${place.lng + 0.01},${place.lat + 0.008}&layer=mapnik&marker=${place.lat},${place.lng}`;
+  const fullscreenMapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${place.lng - 0.05},${place.lat - 0.03},${place.lng + 0.05},${place.lat + 0.03}&layer=mapnik&marker=${place.lat},${place.lng}`;
+
   return (
     <>
       <motion.div
@@ -152,7 +74,12 @@ export function InteractiveMap({ placeData }: InteractiveMapProps) {
       >
         {/* Map Container */}
         <div className="relative h-64">
-          <div ref={mapRef} className="w-full h-full z-0" />
+          <iframe
+            src={mapEmbedUrl}
+            className="w-full h-full border-0"
+            title={`Map of ${place.name}`}
+            loading="lazy"
+          />
           
           {/* Fullscreen button */}
           <Button
@@ -163,6 +90,16 @@ export function InteractiveMap({ placeData }: InteractiveMapProps) {
           >
             <Maximize2 className="h-4 w-4" />
           </Button>
+
+          {/* Location info overlay */}
+          <div className="absolute bottom-3 left-3 right-3 z-10">
+            <div className="bg-background/90 backdrop-blur-sm rounded-lg p-2 text-xs">
+              <p className="font-medium truncate">{place.name}</p>
+              {place.formatted_address && (
+                <p className="text-muted-foreground truncate">{place.formatted_address}</p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Travel Estimates */}
@@ -209,7 +146,7 @@ export function InteractiveMap({ placeData }: InteractiveMapProps) {
           </DialogHeader>
           <div className="flex-1 min-h-[500px] rounded-lg overflow-hidden">
             <iframe
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${place.lng - 0.05},${place.lat - 0.03},${place.lng + 0.05},${place.lat + 0.03}&layer=mapnik&marker=${place.lat},${place.lng}`}
+              src={fullscreenMapUrl}
               className="w-full h-full border-0"
               title="Map"
             />
