@@ -12,6 +12,7 @@ import World from "./pages/World";
 import Places from "./pages/Places";
 import Topics from "./pages/Topics";
 import Support from "./pages/Support";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/topics" element={<Topics />} />
               <Route path="/support" element={<Support />} />
               <Route path="/pricing" element={<Support />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
