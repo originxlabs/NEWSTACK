@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 
 // Version bump triggers cache refresh for installed PWA
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `newstack-${CACHE_VERSION}`;
 const OFFLINE_CACHE_NAME = `newstack-offline-${CACHE_VERSION}`;
 const ARTICLES_CACHE_NAME = `newstack-articles-${CACHE_VERSION}`;
@@ -16,17 +16,17 @@ const CORE_ASSETS = [
 ];
 
 // Install event - cache core assets
-self.addEventListener('install', (event: ExtendableEvent) => {
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(CORE_ASSETS);
     })
   );
-  (self as any).skipWaiting();
+  self.skipWaiting();
 });
 
 // Activate event - clean up old caches
-self.addEventListener('activate', (event: ExtendableEvent) => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -36,11 +36,11 @@ self.addEventListener('activate', (event: ExtendableEvent) => {
       );
     })
   );
-  (self as any).clients.claim();
+  self.clients.claim();
 });
 
 // Fetch event - network first with cache fallback
-self.addEventListener('fetch', (event: FetchEvent) => {
+self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
@@ -136,7 +136,7 @@ self.addEventListener('fetch', (event: FetchEvent) => {
 });
 
 // Handle messages for saving articles offline
-self.addEventListener('message', (event: MessageEvent) => {
+self.addEventListener('message', (event) => {
   if (event.data.type === 'SAVE_ARTICLE_OFFLINE') {
     const { article } = event.data;
     caches.open(ARTICLES_CACHE_NAME).then((cache) => {
@@ -169,10 +169,83 @@ self.addEventListener('message', (event: MessageEvent) => {
       event.ports[0].postMessage({ articles: articles.filter(Boolean) });
     });
   }
+
+  // Handle skip waiting message
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Push notification handler - works on both iOS (Safari 16.4+) and Android
+self.addEventListener('push', (event) => {
+  let data = { title: 'NEWSTACK', body: 'New stories available!' };
+  
+  try {
+    if (event.data) {
+      data = event.data.json();
+    }
+  } catch (e) {
+    console.error('Error parsing push data:', e);
+  }
+
+  const options = {
+    body: data.body || 'Check out the latest news!',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-72x72.png',
+    vibrate: [100, 50, 100, 50, 100],
+    tag: data.tag || 'newstack-notification',
+    renotify: true,
+    requireInteraction: false,
+    silent: false,
+    data: {
+      url: data.url || '/',
+      dateOfArrival: Date.now(),
+    },
+    actions: [
+      { action: 'open', title: 'Read Now' },
+      { action: 'dismiss', title: 'Dismiss' },
+    ],
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'NEWSTACK', options)
+  );
+});
+
+// Notification click handler
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const action = event.action;
+  const notificationData = event.notification.data || {};
+
+  if (action === 'dismiss') {
+    return;
+  }
+
+  // Open or focus the app
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Check if there's already a window open
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.focus();
+          if (notificationData.url && notificationData.url !== '/') {
+            client.navigate(notificationData.url);
+          }
+          return;
+        }
+      }
+      // Open new window if none exists
+      if (clients.openWindow) {
+        return clients.openWindow(notificationData.url || '/');
+      }
+    })
+  );
 });
 
 // Background sync for bookmarks
-self.addEventListener('sync', (event: any) => {
+self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-bookmarks') {
     event.waitUntil(syncBookmarks());
   }
@@ -187,4 +260,22 @@ async function syncBookmarks() {
   console.log('Syncing', keys.length, 'offline articles');
 }
 
-export {};
+// Periodic background sync for fresh content (if supported)
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'update-news') {
+    event.waitUntil(updateNewsCache());
+  }
+});
+
+async function updateNewsCache() {
+  try {
+    // Fetch latest news and cache it
+    const response = await fetch('/api/news?limit=20');
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put('/api/news?limit=20', response);
+    }
+  } catch (e) {
+    console.log('Background sync failed:', e);
+  }
+}

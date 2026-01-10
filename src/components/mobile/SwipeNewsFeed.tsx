@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useInfiniteNews } from "@/hooks/use-news";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useOfflineCache } from "@/hooks/use-offline-cache";
@@ -17,14 +17,30 @@ interface SwipeNewsFeedProps {
   className?: string;
 }
 
+interface TouchState {
+  startX: number;
+  startY: number;
+  startTime: number;
+  isDragging: boolean;
+  direction: "horizontal" | "vertical" | null;
+}
+
 export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
   const { country, language } = usePreferences();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [direction, setDirection] = useState(0);
+  const [slideDirection, setSlideDirection] = useState<"up" | "down">("up");
   const [categoryIndex, setCategoryIndex] = useState(0);
   const [showCategoryHint, setShowCategoryHint] = useState(true);
+  const [isAnimating, setIsAnimating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const categoryContainerRef = useRef<HTMLDivElement>(null);
+  const touchRef = useRef<TouchState>({
+    startX: 0,
+    startY: 0,
+    startTime: 0,
+    isDragging: false,
+    direction: null,
+  });
   
   const { 
     cachedStories, 
@@ -44,7 +60,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
     language: language?.code || "en",
     pageSize: 20,
     feedType: "trending" as const,
-    topic: currentCategory.id === "all" ? undefined : currentCategory.id,
+    topic: currentCategory?.id === "all" ? undefined : currentCategory?.id,
   };
 
   const {
@@ -94,7 +110,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
 
   // Hide category hint after a few seconds
   useEffect(() => {
-    const timer = setTimeout(() => setShowCategoryHint(false), 5000);
+    const timer = setTimeout(() => setShowCategoryHint(false), 4000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -110,49 +126,110 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
     }
   }, [currentIndex, displayItems.length, hasNextPage, isFetchingNextPage, fetchNextPage, isOffline]);
 
-  const handleVerticalSwipe = useCallback((swipeDirection: "up" | "down") => {
-    if (swipeDirection === "up" && currentIndex < displayItems.length - 1) {
-      setDirection(1);
+  const goToNext = useCallback(() => {
+    if (currentIndex < displayItems.length - 1 && !isAnimating) {
+      setIsAnimating(true);
+      setSlideDirection("up");
       setCurrentIndex((prev) => prev + 1);
       if (hapticEnabled) haptic("light");
-    } else if (swipeDirection === "down" && currentIndex > 0) {
-      setDirection(-1);
+      setTimeout(() => setIsAnimating(false), 300);
+    }
+  }, [currentIndex, displayItems.length, isAnimating, hapticEnabled, haptic]);
+
+  const goToPrev = useCallback(() => {
+    if (currentIndex > 0 && !isAnimating) {
+      setIsAnimating(true);
+      setSlideDirection("down");
       setCurrentIndex((prev) => prev - 1);
       if (hapticEnabled) haptic("light");
+      setTimeout(() => setIsAnimating(false), 300);
     }
-  }, [currentIndex, displayItems.length, hapticEnabled, haptic]);
+  }, [currentIndex, isAnimating, hapticEnabled, haptic]);
 
-  const handleCategorySwipe = useCallback((swipeDirection: "left" | "right") => {
-    if (swipeDirection === "left" && categoryIndex < enabledCategories.length - 1) {
+  const goToNextCategory = useCallback(() => {
+    if (categoryIndex < enabledCategories.length - 1 && !isAnimating) {
       setCategoryIndex((prev) => prev + 1);
       if (hapticEnabled) haptic("medium");
-    } else if (swipeDirection === "right" && categoryIndex > 0) {
+    }
+  }, [categoryIndex, enabledCategories.length, isAnimating, hapticEnabled, haptic]);
+
+  const goToPrevCategory = useCallback(() => {
+    if (categoryIndex > 0 && !isAnimating) {
       setCategoryIndex((prev) => prev - 1);
       if (hapticEnabled) haptic("medium");
     }
-  }, [categoryIndex, enabledCategories.length, hapticEnabled, haptic]);
+  }, [categoryIndex, isAnimating, hapticEnabled, haptic]);
 
-  const handleDragEnd = useCallback((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const threshold = 50;
-    const velocity = 500;
+  // Native touch handling for instant swipe response
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchRef.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startTime: Date.now(),
+      isDragging: true,
+      direction: null,
+    };
+  }, []);
 
-    // Vertical swipe (up/down) - change story
-    if (Math.abs(info.offset.y) > Math.abs(info.offset.x)) {
-      if (info.offset.y < -threshold || info.velocity.y < -velocity) {
-        handleVerticalSwipe("up");
-      } else if (info.offset.y > threshold || info.velocity.y > velocity) {
-        handleVerticalSwipe("down");
-      }
-    } 
-    // Horizontal swipe (left/right) - change category
-    else {
-      if (info.offset.x < -threshold || info.velocity.x < -velocity) {
-        handleCategorySwipe("left");
-      } else if (info.offset.x > threshold || info.velocity.x > velocity) {
-        handleCategorySwipe("right");
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchRef.current.isDragging) return;
+    
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchRef.current.startX;
+    const deltaY = touch.clientY - touchRef.current.startY;
+    
+    // Lock direction on first significant move
+    if (!touchRef.current.direction) {
+      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+        touchRef.current.direction = Math.abs(deltaX) > Math.abs(deltaY) ? "horizontal" : "vertical";
       }
     }
-  }, [handleVerticalSwipe, handleCategorySwipe]);
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchRef.current.isDragging) return;
+    
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchRef.current.startX;
+    const deltaY = touch.clientY - touchRef.current.startY;
+    const deltaTime = Date.now() - touchRef.current.startTime;
+    
+    // Calculate velocity for quick swipes
+    const velocityX = Math.abs(deltaX) / deltaTime;
+    const velocityY = Math.abs(deltaY) / deltaTime;
+    
+    const minSwipeDistance = 50;
+    const minVelocity = 0.3;
+    
+    // Determine swipe based on direction lock
+    if (touchRef.current.direction === "vertical") {
+      const isQuickSwipe = velocityY > minVelocity;
+      const isFarEnough = Math.abs(deltaY) > minSwipeDistance;
+      
+      if (isQuickSwipe || isFarEnough) {
+        if (deltaY < 0) {
+          goToNext();
+        } else {
+          goToPrev();
+        }
+      }
+    } else if (touchRef.current.direction === "horizontal") {
+      const isQuickSwipe = velocityX > minVelocity;
+      const isFarEnough = Math.abs(deltaX) > minSwipeDistance;
+      
+      if (isQuickSwipe || isFarEnough) {
+        if (deltaX < 0) {
+          goToNextCategory();
+        } else {
+          goToPrevCategory();
+        }
+      }
+    }
+    
+    touchRef.current.isDragging = false;
+    touchRef.current.direction = null;
+  }, [goToNext, goToPrev, goToNextCategory, goToPrevCategory]);
 
   const handleRefresh = async () => {
     setCurrentIndex(0);
@@ -163,19 +240,20 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowUp" || e.key === "k") {
-        handleVerticalSwipe("down");
+        goToPrev();
       } else if (e.key === "ArrowDown" || e.key === "j" || e.key === " ") {
-        handleVerticalSwipe("up");
+        e.preventDefault();
+        goToNext();
       } else if (e.key === "ArrowLeft") {
-        handleCategorySwipe("right");
+        goToPrevCategory();
       } else if (e.key === "ArrowRight") {
-        handleCategorySwipe("left");
+        goToNextCategory();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleVerticalSwipe, handleCategorySwipe]);
+  }, [goToNext, goToPrev, goToNextCategory, goToPrevCategory]);
 
   // Scroll category into view
   useEffect(() => {
@@ -188,7 +266,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
     }
   }, [categoryIndex]);
 
-  if (isLoading && !hasCachedStories) {
+  if (!categoriesLoaded || (isLoading && !hasCachedStories)) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-background">
         <motion.div
@@ -239,11 +317,30 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
 
   const currentNews = displayItems[currentIndex];
 
+  // Slide animation variants
+  const slideVariants = {
+    enter: (direction: "up" | "down") => ({
+      y: direction === "up" ? "100%" : "-100%",
+      opacity: 0,
+    }),
+    center: {
+      y: 0,
+      opacity: 1,
+    },
+    exit: (direction: "up" | "down") => ({
+      y: direction === "up" ? "-100%" : "100%",
+      opacity: 0,
+    }),
+  };
+
   return (
     <PullToRefresh onRefresh={handleRefresh} className={`fixed inset-0 ${className}`}>
       <div 
         ref={containerRef}
-        className="h-full w-full overflow-hidden"
+        className="h-full w-full overflow-hidden touch-none select-none"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Offline indicator */}
         <AnimatePresence>
@@ -266,12 +363,12 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
             className="h-full bg-primary"
             initial={{ width: 0 }}
             animate={{ width: `${((currentIndex + 1) / displayItems.length) * 100}%` }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
           />
         </div>
 
         {/* Category bar */}
-        <div className="fixed top-2 left-0 right-0 z-40 px-2">
+        <div className="fixed top-2 left-0 right-0 z-40 px-2 safe-area-top">
           <div className="flex items-center gap-2">
             <div 
               ref={categoryContainerRef}
@@ -281,21 +378,22 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
                 const Icon = cat.icon;
                 const isActive = idx === categoryIndex;
                 return (
-                  <button
+                  <motion.button
                     key={cat.id}
                     onClick={() => {
                       setCategoryIndex(idx);
                       if (hapticEnabled) haptic("light");
                     }}
-                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    whileTap={{ scale: 0.95 }}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
                       isActive 
-                        ? "bg-primary text-primary-foreground shadow-lg" 
-                        : "bg-black/40 backdrop-blur-sm text-white/80 hover:bg-black/60"
+                        ? "bg-primary text-primary-foreground shadow-lg scale-105" 
+                        : "bg-black/40 backdrop-blur-sm text-white/80 active:bg-black/60"
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
                     {cat.name}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
@@ -303,7 +401,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
             {/* Settings button */}
             <Link 
               to="/settings"
-              className="flex-shrink-0 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-black/60"
+              className="flex-shrink-0 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 active:bg-black/60"
             >
               <Settings className="w-4 h-4" />
             </Link>
@@ -333,44 +431,55 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
           </span>
         </div>
 
-        {/* Category navigation arrows (visible on screen edges) */}
+        {/* Category navigation arrows */}
         {categoryIndex > 0 && (
-          <button
-            onClick={() => handleCategorySwipe("right")}
-            className="fixed left-2 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 hover:bg-black/50"
+          <motion.button
+            onClick={goToPrevCategory}
+            whileTap={{ scale: 0.9 }}
+            className="fixed left-2 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 active:bg-black/50"
           >
             <ChevronLeft className="w-6 h-6" />
-          </button>
+          </motion.button>
         )}
         {categoryIndex < enabledCategories.length - 1 && (
-          <button
-            onClick={() => handleCategorySwipe("left")}
-            className="fixed right-2 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 hover:bg-black/50"
+          <motion.button
+            onClick={goToNextCategory}
+            whileTap={{ scale: 0.9 }}
+            className="fixed right-2 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 active:bg-black/50"
           >
             <ChevronRight className="w-6 h-6" />
-          </button>
+          </motion.button>
         )}
 
-        {/* Swipe container */}
-        <motion.div
-          className="h-full w-full relative touch-pan-y"
-          drag
-          dragConstraints={{ top: 0, bottom: 0, left: 0, right: 0 }}
-          dragElastic={0.2}
-          onDragEnd={handleDragEnd}
-        >
-          <AnimatePresence mode="wait" custom={direction}>
-            <SwipeNewsCard
-              key={`${currentCategory.id}-${currentNews.id}`}
-              news={currentNews}
-              isActive={true}
-              onSwipeUp={() => handleVerticalSwipe("up")}
-              onSwipeDown={() => handleVerticalSwipe("down")}
-              hasNext={currentIndex < displayItems.length - 1}
-              hasPrev={currentIndex > 0}
-            />
+        {/* Swipe container with native-like animations */}
+        <div className="h-full w-full relative">
+          <AnimatePresence mode="popLayout" custom={slideDirection}>
+            <motion.div
+              key={`${currentCategory?.id}-${currentNews.id}`}
+              custom={slideDirection}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                type: "spring",
+                stiffness: 400,
+                damping: 35,
+                mass: 0.8,
+              }}
+              className="absolute inset-0"
+            >
+              <SwipeNewsCard
+                news={currentNews}
+                isActive={true}
+                onSwipeUp={goToNext}
+                onSwipeDown={goToPrev}
+                hasNext={currentIndex < displayItems.length - 1}
+                hasPrev={currentIndex > 0}
+              />
+            </motion.div>
           </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* Loading more indicator */}
         {isFetchingNextPage && (
