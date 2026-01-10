@@ -1,16 +1,14 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Headphones, Play, Pause, Clock, SkipBack, SkipForward, Volume2, Loader2, AlertCircle } from "lucide-react";
+import { Headphones, Play, Pause, Clock, SkipBack, SkipForward, Volume2, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useNews } from "@/hooks/use-news";
+import { useTTS } from "@/hooks/use-tts";
 import { toast } from "sonner";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 interface Playlist {
   id: string;
@@ -32,185 +30,101 @@ const playlists: Playlist[] = [
 const Listen = () => {
   const { country, language } = usePreferences();
   const [currentPlaylist, setCurrentPlaylist] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState([75]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [stories, setStories] = useState<string[]>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
+  const [volume, setVolume] = useState([75]);
+  const isPlayingRef = useRef(false);
+  
+  const tts = useTTS({ 
+    language: language?.code || "en",
+    maxLength: 300 
+  });
 
   // Fetch news for the selected topic
   const selectedPlaylist = playlists.find((p) => p.id === currentPlaylist);
-  const { data: newsData } = useNews({
+  const { data: newsData, isLoading: newsLoading } = useNews({
     topic: selectedPlaylist?.topic,
     country: selectedPlaylist?.id === "local" ? country?.code : undefined,
-    language: language?.code === "en" ? "eng" : language?.code,
+    language: language?.code || "en",
     pageSize: 5,
   });
 
+  // Play next story when current one ends
   useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
-
-  // Update volume
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume[0] / 100;
-    }
-  }, [volume]);
-
-  const cleanup = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-      audioRef.current = null;
-    }
-    if (audioUrlRef.current) {
-      URL.revokeObjectURL(audioUrlRef.current);
-      audioUrlRef.current = null;
-    }
-  }, []);
-
-  const generateAudio = useCallback(async (text: string) => {
-    cleanup();
-    setIsLoading(true);
-    
-    try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/text-to-speech`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-        },
-        body: JSON.stringify({
-          text,
-          language: language?.code || "en",
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to generate audio");
+    if (tts.progress >= 100 && !tts.isPlaying && isPlayingRef.current && stories.length > 0) {
+      if (currentStoryIndex < stories.length - 1) {
+        setCurrentStoryIndex((prev) => prev + 1);
+      } else {
+        isPlayingRef.current = false;
+        toast.success("Playlist finished!");
       }
-
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      audioUrlRef.current = audioUrl;
-
-      const audio = new Audio(audioUrl);
-      audio.volume = volume[0] / 100;
-      audioRef.current = audio;
-
-      audio.addEventListener("loadedmetadata", () => {
-        setDuration(audio.duration);
-      });
-
-      audio.addEventListener("timeupdate", () => {
-        if (audio.duration) {
-          setProgress((audio.currentTime / audio.duration) * 100);
-        }
-      });
-
-      audio.addEventListener("ended", () => {
-        // Play next story
-        if (currentStoryIndex < stories.length - 1) {
-          setCurrentStoryIndex((prev) => prev + 1);
-        } else {
-          setIsPlaying(false);
-          setProgress(100);
-        }
-      });
-
-      await audio.play();
-      setIsPlaying(true);
-    } catch (error) {
-      console.error("TTS Error:", error);
-      toast.error("Failed to generate audio. Please try again.");
-    } finally {
-      setIsLoading(false);
     }
-  }, [cleanup, language?.code, volume, currentStoryIndex, stories.length]);
+  }, [tts.progress, tts.isPlaying, currentStoryIndex, stories.length]);
 
-  // Play next story when index changes
+  // Play story when index changes
   useEffect(() => {
-    if (stories.length > 0 && currentStoryIndex < stories.length && isPlaying) {
-      generateAudio(stories[currentStoryIndex]);
+    if (stories.length > 0 && currentStoryIndex < stories.length && isPlayingRef.current) {
+      tts.speak(stories[currentStoryIndex]);
     }
-  }, [currentStoryIndex, stories, isPlaying, generateAudio]);
+  }, [currentStoryIndex, stories]);
 
   const handlePlay = async (playlistId: string) => {
-    if (currentPlaylist === playlistId && isPlaying) {
-      // Pause current
-      if (audioRef.current) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      }
+    if (currentPlaylist === playlistId && tts.isPlaying) {
+      tts.pause();
+      isPlayingRef.current = false;
       return;
     }
 
-    if (currentPlaylist === playlistId && !isPlaying && audioRef.current) {
-      // Resume
-      audioRef.current.play();
-      setIsPlaying(true);
+    if (currentPlaylist === playlistId && !tts.isPlaying && stories.length > 0) {
+      tts.resume();
+      isPlayingRef.current = true;
       return;
     }
 
-    // Start new playlist
-    cleanup();
+    tts.stop();
     setCurrentPlaylist(playlistId);
     setCurrentStoryIndex(0);
-    setProgress(0);
 
-    // Build stories from news data
-    const articles = newsData?.articles || [];
-    if (articles.length === 0) {
-      toast.error("No news available for this playlist. Please try again later.");
+    if (!newsData?.articles || newsData.articles.length === 0) {
+      toast.error("No news available. Please try again later.");
       return;
     }
 
-    const storyTexts = articles.map((article) => 
-      `${article.headline}. ${article.summary || article.ai_analysis || ""}`
+    const storyTexts = newsData.articles.map((article) => 
+      `${article.headline}. ${article.summary || ""}`
     );
     
     setStories(storyTexts);
-    
-    // Start playing first story
-    setIsLoading(true);
-    await generateAudio(storyTexts[0]);
+    isPlayingRef.current = true;
+    tts.speak(storyTexts[0]);
   };
 
   const handlePlayPause = () => {
-    if (!audioRef.current) return;
-    
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
+    if (tts.isPlaying) {
+      tts.pause();
+      isPlayingRef.current = false;
     } else {
-      audioRef.current.play();
-      setIsPlaying(true);
+      tts.resume();
+      isPlayingRef.current = true;
     }
   };
 
   const handleSkipBack = () => {
     if (currentStoryIndex > 0) {
+      tts.stop();
       setCurrentStoryIndex((prev) => prev - 1);
     }
   };
 
   const handleSkipForward = () => {
     if (currentStoryIndex < stories.length - 1) {
+      tts.stop();
       setCurrentStoryIndex((prev) => prev + 1);
     }
   };
 
   const handleSeek = (value: number[]) => {
-    if (audioRef.current && audioRef.current.duration) {
-      audioRef.current.currentTime = (value[0] / 100) * audioRef.current.duration;
-      setProgress(value[0]);
-    }
+    tts.seek(value[0]);
   };
 
   const formatTime = (seconds: number) => {
@@ -219,7 +133,8 @@ const Listen = () => {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const currentTime = duration * (progress / 100);
+  const currentTime = tts.duration * (tts.progress / 100);
+  const isLoading = tts.isLoading || newsLoading;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -240,8 +155,9 @@ const Listen = () => {
               Listen to the World
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              AI-powered audio news briefings with ElevenLabs voices.
+              AI-powered audio news briefings.
               {country && ` Personalized for ${country.flag_emoji} ${country.name}`}
+              {tts.usingFallback && " (Browser voice)"}
             </p>
           </motion.div>
 
@@ -260,11 +176,11 @@ const Listen = () => {
                       key={i}
                       className="w-1 bg-primary rounded-full"
                       animate={{
-                        height: isPlaying ? [8, 24, 16, 32, 12][i % 5] : 8,
+                        height: tts.isPlaying ? [8, 24, 16, 32, 12][i % 5] : 8,
                       }}
                       transition={{
                         duration: 0.5,
-                        repeat: isPlaying ? Infinity : 0,
+                        repeat: tts.isPlaying ? Infinity : 0,
                         repeatType: "reverse",
                         delay: i * 0.1,
                       }}
@@ -300,7 +216,7 @@ const Listen = () => {
                   >
                     {isLoading ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : isPlaying ? (
+                    ) : tts.isPlaying ? (
                       <Pause className="h-5 w-5" />
                     ) : (
                       <Play className="h-5 w-5 ml-0.5" />
@@ -332,14 +248,14 @@ const Listen = () => {
               {/* Progress Bar */}
               <div className="mt-4">
                 <Slider
-                  value={[progress]}
+                  value={[tts.progress]}
                   onValueChange={handleSeek}
                   max={100}
                   step={0.1}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
                   <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration)}</span>
+                  <span>{formatTime(tts.duration)}</span>
                 </div>
               </div>
             </motion.div>
@@ -374,7 +290,7 @@ const Listen = () => {
                     </div>
                   </div>
                   <Button
-                    variant={currentPlaylist === playlist.id && isPlaying ? "default" : "outline"}
+                    variant={currentPlaylist === playlist.id && tts.isPlaying ? "default" : "outline"}
                     size="icon"
                     className="shrink-0"
                     disabled={isLoading && currentPlaylist === playlist.id}
@@ -385,7 +301,7 @@ const Listen = () => {
                   >
                     {isLoading && currentPlaylist === playlist.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : currentPlaylist === playlist.id && isPlaying ? (
+                    ) : currentPlaylist === playlist.id && tts.isPlaying ? (
                       <Pause className="h-4 w-4" />
                     ) : (
                       <Play className="h-4 w-4 ml-0.5" />

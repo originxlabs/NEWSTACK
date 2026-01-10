@@ -1,33 +1,33 @@
-import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Twitter, Github, Linkedin, Mail, Globe, ExternalLink } from "lucide-react";
+import { Twitter, Github, Linkedin, Mail, Globe, ExternalLink, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 
 const footerLinks = {
   Product: [
     { name: "Feed", href: "/" },
     { name: "Listen", href: "/listen" },
     { name: "Places", href: "/places" },
-    { name: "Pricing", href: "/pricing" },
+    { name: "World", href: "/world" },
   ],
   Explore: [
     { name: "World News", href: "/world" },
     { name: "Topics", href: "/topics" },
     { name: "Places", href: "/places" },
-    { name: "AI Insights", href: "/places" },
+    { name: "Profile", href: "/profile" },
   ],
-  Company: [
-    { name: "About Us", href: "#about" },
-    { name: "Careers", href: "#careers" },
-    { name: "Press", href: "#press" },
-    { name: "Contact", href: "#contact" },
+  Support: [
+    { name: "Support Us", href: "/support" },
+    { name: "Donate", href: "/support" },
+    { name: "Help Center", href: "/support" },
+    { name: "Contact", href: "/support" },
   ],
   Legal: [
-    { name: "Privacy Policy", href: "#privacy" },
-    { name: "Terms of Service", href: "#terms" },
-    { name: "Cookie Policy", href: "#cookies" },
-    { name: "Licenses", href: "#licenses" },
+    { name: "Privacy Policy", href: "/privacy" },
+    { name: "Terms of Service", href: "/terms" },
+    { name: "Cookie Policy", href: "/cookies" },
+    { name: "Licenses", href: "/licenses" },
   ],
 };
 
@@ -42,6 +42,17 @@ export function Footer() {
   return (
     <footer className="border-t border-border/50 bg-muted/20">
       <div className="container mx-auto px-4 py-16">
+        {/* Newsletter Section */}
+        <div className="mb-12 pb-12 border-b border-border/50">
+          <div className="max-w-xl mx-auto text-center">
+            <h3 className="font-display text-2xl font-bold mb-2">Stay Informed</h3>
+            <p className="text-muted-foreground mb-6">
+              Get the latest news and updates delivered to your inbox.
+            </p>
+            <NewsletterSignup />
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 md:grid-cols-6 gap-8 mb-12">
           {/* Brand */}
           <div className="col-span-2">
@@ -49,7 +60,7 @@ export function Footer() {
             <p className="text-sm text-muted-foreground mb-4 max-w-xs">
               The world's most intelligent news and place intelligence platform. AI-powered, personalized, and always up to date.
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-4">
               {socialLinks.map((social) => (
                 <Button key={social.label} variant="ghost" size="icon" asChild>
                   <a href={social.href} aria-label={social.label} target="_blank" rel="noopener noreferrer">
@@ -58,6 +69,13 @@ export function Footer() {
                 </Button>
               ))}
             </div>
+            <Link 
+              to="/support" 
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-full text-sm font-medium transition-colors"
+            >
+              <Heart className="w-4 h-4" />
+              Support NEWSTACK
+            </Link>
           </div>
 
           {/* Links */}
@@ -67,21 +85,12 @@ export function Footer() {
               <ul className="space-y-2">
                 {links.map((link) => (
                   <li key={link.name}>
-                    {link.href.startsWith("#") ? (
-                      <a
-                        href={link.href}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {link.name}
-                      </a>
-                    ) : (
-                      <Link
-                        to={link.href}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {link.name}
-                      </Link>
-                    )}
+                    <Link
+                      to={link.href}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link.name}
+                    </Link>
                   </li>
                 ))}
               </ul>

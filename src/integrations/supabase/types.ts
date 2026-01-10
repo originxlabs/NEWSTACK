@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      breaking_news: {
+        Row: {
+          country_code: string | null
+          created_at: string
+          expires_at: string
+          headline: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          source_name: string | null
+          source_url: string | null
+          summary: string | null
+          topic_slug: string | null
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string
+          expires_at?: string
+          headline: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          source_name?: string | null
+          source_url?: string | null
+          summary?: string | null
+          topic_slug?: string | null
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string
+          expires_at?: string
+          headline?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          source_name?: string | null
+          source_url?: string | null
+          summary?: string | null
+          topic_slug?: string | null
+        }
+        Relationships: []
+      }
+      cached_news: {
+        Row: {
+          articles: Json
+          cache_key: string
+          created_at: string
+          expires_at: string
+          id: string
+          source: string
+          total: number
+        }
+        Insert: {
+          articles: Json
+          cache_key: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          source?: string
+          total?: number
+        }
+        Update: {
+          articles?: Json
+          cache_key?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          source?: string
+          total?: number
+        }
+        Relationships: []
+      }
       countries: {
         Row: {
           code: string
