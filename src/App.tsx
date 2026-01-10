@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PreferencesProvider } from "@/contexts/PreferencesContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -10,7 +10,8 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { StackBot } from "@/components/StackBot";
 import { NewsletterPopup } from "@/components/NewsletterPopup";
 import { MobileAppWrapper } from "@/components/mobile/MobileAppWrapper";
-import { useEffect } from "react";
+import { SplashScreen } from "@/components/SplashScreen";
+import { useEffect, useState, useRef } from "react";
 import Index from "./pages/Index";
 import News from "./pages/News";
 import Listen from "./pages/Listen";
@@ -49,6 +50,90 @@ function ThemeInitializer() {
   return null;
 }
 
+// Splash screen manager component
+function SplashManager() {
+  const location = useLocation();
+  const [showSplash, setShowSplash] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const previousPath = useRef<string | null>(null);
+  const hasShownInitial = useRef(false);
+
+  // Show splash on initial page load
+  useEffect(() => {
+    if (!hasShownInitial.current) {
+      setShowSplash(true);
+      hasShownInitial.current = true;
+      setIsInitialLoad(true);
+    }
+  }, []);
+
+  // Show splash on route changes (navigation)
+  useEffect(() => {
+    if (previousPath.current !== null && previousPath.current !== location.pathname) {
+      // Only show splash for major navigation (different base paths)
+      const prevBase = previousPath.current.split('/')[1] || '';
+      const currBase = location.pathname.split('/')[1] || '';
+      
+      if (prevBase !== currBase) {
+        setShowSplash(true);
+        setIsInitialLoad(false);
+      }
+    }
+    previousPath.current = location.pathname;
+  }, [location.pathname]);
+
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
+
+  return (
+    <>
+      {showSplash && (
+        <SplashScreen 
+          onComplete={handleSplashComplete} 
+          duration={isInitialLoad ? 2000 : 1200} 
+        />
+      )}
+    </>
+  );
+}
+
+function AppContent() {
+  return (
+    <>
+      <ScrollToTop />
+      <SplashManager />
+      <StackBot />
+      <NewsletterPopup />
+      <MobileAppWrapper>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/news" element={<News />} />
+          <Route path="/listen" element={<Listen />} />
+          <Route path="/world" element={<World />} />
+          <Route path="/places" element={<Places />} />
+          <Route path="/topics" element={<Topics />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/compare" element={<Features />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/saved" element={<SavedArticles />} />
+          <Route path="/settings" element={<Profile />} />
+          <Route path="/admin" element={<Admin />} />
+          {/* Legal pages */}
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/refund" element={<RefundPolicy />} />
+          <Route path="/cookies" element={<PrivacyPolicy />} />
+          <Route path="/licenses" element={<TermsOfService />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </MobileAppWrapper>
+    </>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -59,34 +144,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <ScrollToTop />
-              <StackBot />
-              <NewsletterPopup />
-              <MobileAppWrapper>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/news" element={<News />} />
-                  <Route path="/listen" element={<Listen />} />
-                  <Route path="/world" element={<World />} />
-                  <Route path="/places" element={<Places />} />
-                  <Route path="/topics" element={<Topics />} />
-                  <Route path="/features" element={<Features />} />
-                  <Route path="/compare" element={<Features />} />
-                  <Route path="/support" element={<Support />} />
-                  <Route path="/pricing" element={<Pricing />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/saved" element={<SavedArticles />} />
-                  <Route path="/settings" element={<Profile />} />
-                  <Route path="/admin" element={<Admin />} />
-                  {/* Legal pages */}
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/terms" element={<TermsOfService />} />
-                  <Route path="/refund" element={<RefundPolicy />} />
-                  <Route path="/cookies" element={<PrivacyPolicy />} />
-                  <Route path="/licenses" element={<TermsOfService />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </MobileAppWrapper>
+              <AppContent />
             </BrowserRouter>
           </TooltipProvider>
         </ThemeProvider>
