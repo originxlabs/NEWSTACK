@@ -8,7 +8,7 @@ const corsHeaders = {
 interface NearbyRequest {
   lat: number;
   lng: number;
-  type?: string; // tourist_attraction, restaurant, lodging, cafe, hospital, airport, station
+  type?: string; // tourist_attraction, restaurant, lodging, cafe, hospital, airport, railway_station, bus_station
   radius?: number;
 }
 
@@ -61,12 +61,14 @@ serve(async (req) => {
           lat: placeLat,
           lng: placeLng,
           distance_km,
-          category: el.tags.tourism || el.tags.amenity || el.tags.leisure || el.tags.historic || type,
+          category: determineCategory(el.tags, type),
           rating: el.tags.stars ? parseFloat(el.tags.stars) : undefined,
           website: el.tags.website,
           phone: el.tags.phone,
           cuisine: el.tags.cuisine,
           opening_hours: el.tags.opening_hours,
+          operator: el.tags.operator,
+          network: el.tags.network,
         };
       })
       .sort((a: any, b: any) => (a.distance_km ?? 999) - (b.distance_km ?? 999));
@@ -109,11 +111,52 @@ function getOSMTags(type: string): string[] {
       "tourism=apartment",
     ],
     hospital: ["amenity=hospital", "amenity=clinic", "amenity=doctors"],
-    airport: ["aeroway=aerodrome"],
-    station: ["railway=station", "public_transport=station", "amenity=bus_station"],
+    airport: ["aeroway=aerodrome", "aeroway=terminal"],
+    // Separated railway stations
+    railway_station: [
+      "railway=station",
+      "railway=halt",
+      "public_transport=station",
+    ],
+    // Separated bus stations
+    bus_station: [
+      "amenity=bus_station",
+      "highway=bus_stop",
+      "public_transport=platform",
+    ],
+    // Legacy combined type for backwards compatibility
+    station: [
+      "railway=station",
+      "railway=halt",
+      "public_transport=station",
+      "amenity=bus_station",
+      "highway=bus_stop",
+    ],
   };
 
   return tagMap[type] || [`tourism=${type}`, `amenity=${type}`];
+}
+
+function determineCategory(tags: Record<string, string>, requestedType: string): string {
+  // More specific categorization
+  if (tags.railway === "station" || tags.railway === "halt") {
+    return "Railway Station";
+  }
+  if (tags.amenity === "bus_station" || tags.highway === "bus_stop") {
+    return "Bus Station";
+  }
+  if (tags.public_transport === "station") {
+    // Try to determine if it's rail or bus
+    if (tags.train === "yes" || tags.subway === "yes" || tags.light_rail === "yes") {
+      return "Railway Station";
+    }
+    if (tags.bus === "yes") {
+      return "Bus Station";
+    }
+    return "Transit Station";
+  }
+  
+  return tags.tourism || tags.amenity || tags.leisure || tags.historic || requestedType;
 }
 
 function buildOverpassQuery(lat: number, lng: number, tags: string[], radius: number): string {
@@ -152,5 +195,11 @@ function formatVicinity(tags: Record<string, string>): string {
   const street = tags["addr:street"];
   const city = tags["addr:city"] || tags["addr:town"] || tags["addr:village"];
   const suburb = tags["addr:suburb"];
-  return [street, suburb, city].filter(Boolean).join(", ");
+  const operator = tags.operator;
+  
+  const parts = [street, suburb, city].filter(Boolean);
+  if (parts.length === 0 && operator) {
+    return operator;
+  }
+  return parts.join(", ");
 }

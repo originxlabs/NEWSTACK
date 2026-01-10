@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Bookmark, MapPin, MessageCircle, Settings, LogOut, Edit, Camera, Loader2 } from "lucide-react";
+import { User, Bookmark, MapPin, MessageCircle, Settings, LogOut, Edit, Camera, Loader2, Trash2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -432,6 +432,42 @@ const Profile = () => {
                           setSettings({ ...settings, autoPlay: checked })
                         }
                       />
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Cache Management */}
+                <Card className="p-6">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <Trash2 className="h-4 w-4" />
+                    Cache Management
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Clear All Cached Data</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Refresh all places, weather, and news data
+                        </p>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          // Clear all localStorage cache
+                          const keysToRemove: string[] = [];
+                          for (let i = 0; i < localStorage.length; i++) {
+                            const key = localStorage.key(i);
+                            if (key && (key.startsWith("places_") || key.startsWith("news_") || key.startsWith("tts_"))) {
+                              keysToRemove.push(key);
+                            }
+                          }
+                          keysToRemove.forEach(key => localStorage.removeItem(key));
+                          toast.success(`Cleared ${keysToRemove.length} cached items`);
+                        }}
+                      >
+                        Clear Cache
+                      </Button>
                     </div>
                   </div>
                 </Card>
