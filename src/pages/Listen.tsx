@@ -34,6 +34,7 @@ const Listen = () => {
   const [stories, setStories] = useState<string[]>([]);
   const [volume, setVolume] = useState([75]);
   const isPlayingRef = useRef(false);
+  const isSpeakingRef = useRef(false); // Track if we're currently speaking to prevent double-plays
   
   const tts = useTTS({ 
     language: language?.code || "en",
@@ -51,7 +52,7 @@ const Listen = () => {
 
   // Play next story when current one ends
   useEffect(() => {
-    if (tts.progress >= 100 && !tts.isPlaying && isPlayingRef.current && stories.length > 0) {
+    if (tts.progress >= 100 && !tts.isPlaying && isPlayingRef.current && stories.length > 0 && !isSpeakingRef.current) {
       if (currentStoryIndex < stories.length - 1) {
         setCurrentStoryIndex((prev) => prev + 1);
       } else {
@@ -63,25 +64,36 @@ const Listen = () => {
 
   // Play story when index changes
   useEffect(() => {
-    if (stories.length > 0 && currentStoryIndex < stories.length && isPlayingRef.current) {
-      tts.speak(stories[currentStoryIndex]);
+    if (stories.length > 0 && currentStoryIndex < stories.length && isPlayingRef.current && !isSpeakingRef.current) {
+      isSpeakingRef.current = true;
+      // Add small delay before speaking to prevent overlap
+      setTimeout(() => {
+        tts.speak(stories[currentStoryIndex]).finally(() => {
+          isSpeakingRef.current = false;
+        });
+      }, 200);
     }
   }, [currentStoryIndex, stories]);
 
   const handlePlay = async (playlistId: string) => {
+    // If clicking on same playlist that's playing, pause
     if (currentPlaylist === playlistId && tts.isPlaying) {
       tts.pause();
       isPlayingRef.current = false;
       return;
     }
 
+    // If clicking on same playlist that's paused, resume
     if (currentPlaylist === playlistId && !tts.isPlaying && stories.length > 0) {
       tts.resume();
       isPlayingRef.current = true;
       return;
     }
 
+    // Stop any current playback first
     tts.stop();
+    isSpeakingRef.current = false;
+    
     setCurrentPlaylist(playlistId);
     setCurrentStoryIndex(0);
 
@@ -96,7 +108,14 @@ const Listen = () => {
     
     setStories(storyTexts);
     isPlayingRef.current = true;
-    tts.speak(storyTexts[0]);
+    
+    // Start speaking with a small delay
+    isSpeakingRef.current = true;
+    setTimeout(() => {
+      tts.speak(storyTexts[0]).finally(() => {
+        isSpeakingRef.current = false;
+      });
+    }, 200);
   };
 
   const handlePlayPause = () => {
@@ -112,6 +131,7 @@ const Listen = () => {
   const handleSkipBack = () => {
     if (currentStoryIndex > 0) {
       tts.stop();
+      isSpeakingRef.current = false;
       setCurrentStoryIndex((prev) => prev - 1);
     }
   };
@@ -119,6 +139,7 @@ const Listen = () => {
   const handleSkipForward = () => {
     if (currentStoryIndex < stories.length - 1) {
       tts.stop();
+      isSpeakingRef.current = false;
       setCurrentStoryIndex((prev) => prev + 1);
     }
   };

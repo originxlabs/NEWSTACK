@@ -1,17 +1,10 @@
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Play, Sparkles, ArrowRight, Zap, Globe, Headphones, Newspaper, TrendingUp } from "lucide-react";
+import { Play, Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useRef } from "react";
 
 const words = ["News", "Summaries", "Insights", "Audio", "Local"];
-
-const floatingIcons = [
-  { Icon: Globe, delay: 0, x: -120, y: -80 },
-  { Icon: Newspaper, delay: 0.5, x: 150, y: -60 },
-  { Icon: Headphones, delay: 1, x: -100, y: 100 },
-  { Icon: TrendingUp, delay: 1.5, x: 130, y: 80 },
-];
 
 export function HeroSection() {
   const navigate = useNavigate();
@@ -38,101 +31,8 @@ export function HeroSection() {
       ref={containerRef}
       className="relative min-h-[90vh] sm:min-h-screen flex items-center justify-center overflow-hidden gradient-hero-bg px-4"
     >
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Primary glow */}
-        <motion.div 
-          className="absolute top-1/4 left-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-primary/10 rounded-full blur-3xl"
-          animate={{ 
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-            x: [0, 20, 0],
-            y: [0, -20, 0],
-          }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        />
-        
-        {/* Secondary glow */}
-        <motion.div 
-          className="absolute bottom-1/4 right-1/4 w-56 sm:w-80 h-56 sm:h-80 bg-accent/10 rounded-full blur-3xl"
-          animate={{ 
-            scale: [1.2, 1, 1.2],
-            opacity: [0.2, 0.4, 0.2],
-            x: [0, -30, 0],
-            y: [0, 30, 0],
-          }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        />
-        
-        {/* Center glow */}
-        <motion.div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-primary/5 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        />
-
-        {/* Floating particles */}
-        {[...Array(15)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-primary/40 rounded-full"
-            style={{
-              left: `${10 + (i * 6)}%`,
-              top: `${20 + (i % 4) * 20}%`,
-            }}
-            animate={{
-              y: [0, -20, 0],
-              opacity: [0.2, 0.8, 0.2],
-              scale: [0.5, 1, 0.5],
-            }}
-            transition={{
-              duration: 3 + (i % 3),
-              repeat: Infinity,
-              delay: i * 0.3,
-              ease: "easeInOut",
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Grid pattern overlay */}
-      <motion.div 
-        className="absolute inset-0 opacity-[0.02]"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px'
-        }}
-        animate={{ opacity: [0.02, 0.04, 0.02] }}
-        transition={{ duration: 4, repeat: Infinity }}
-      />
-
-      {/* Floating icons */}
-      <div className="absolute inset-0 hidden lg:block">
-        {floatingIcons.map(({ Icon, delay, x, y: yPos }, index) => (
-          <motion.div
-            key={index}
-            className="absolute top-1/2 left-1/2 w-14 h-14 rounded-2xl glass-card flex items-center justify-center shadow-lg"
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ 
-              opacity: [0.7, 1, 0.7],
-              scale: 1,
-              x: x,
-              y: [yPos, yPos - 15, yPos],
-            }}
-            transition={{
-              opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-              scale: { duration: 0.6, delay: delay, type: "spring", stiffness: 200 },
-              x: { duration: 0.6, delay: delay, type: "spring", stiffness: 200 },
-              y: { duration: 5, repeat: Infinity, ease: "easeInOut", delay },
-            }}
-          >
-            <Icon className="w-7 h-7 text-primary" />
-          </motion.div>
-        ))}
-      </div>
+      {/* Simple gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
 
       <motion.div style={{ y, opacity }} className="container mx-auto relative z-10">
         <motion.div

@@ -57,19 +57,25 @@ export function useTTS(options: UseTTSOptions = {}) {
   const maxLength = options.maxLength ?? 250;
 
   const cleanup = useCallback(() => {
+    // Stop any playing audio element
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = "";
       audioRef.current = null;
     }
+    // Revoke any audio URL
     if (audioUrlRef.current) {
       URL.revokeObjectURL(audioUrlRef.current);
       audioUrlRef.current = null;
     }
+    // Cancel browser speech synthesis - this prevents overlapping voices
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
     utteranceRef.current = null;
+    // Reset playing state
+    setIsPlaying(false);
+    setProgress(0);
   }, []);
 
   const speakWithBrowser = useCallback(async (text: string): Promise<void> => {
@@ -132,7 +138,12 @@ export function useTTS(options: UseTTSOptions = {}) {
   }, []);
 
   const speak = useCallback(async (text: string) => {
+    // First, stop any ongoing speech to prevent overlapping
     cleanup();
+    
+    // Small delay to ensure previous speech is fully stopped
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     setIsLoading(true);
     setError(null);
     setUsingFallback(false);
