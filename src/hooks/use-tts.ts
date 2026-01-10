@@ -6,10 +6,11 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 interface UseTTSOptions {
   language?: string;
-  voiceId?: string;
   maxLength?: number;
-  preferBrowser?: boolean; // Use browser TTS as primary (free)
 }
+
+// Indian languages that use Sarvam API
+const indianLanguages = ["hi", "ta", "te", "kn", "ml", "mr", "gu", "bn", "pa", "or"];
 
 // Language codes for browser speech synthesis
 const browserVoiceLangs: Record<string, string> = {
@@ -49,7 +50,6 @@ export function useTTS(options: UseTTSOptions = {}) {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const optionsRef = useRef(options);
 
-  // Keep options ref updated
   useEffect(() => {
     optionsRef.current = options;
   }, [options]);
@@ -83,9 +83,10 @@ export function useTTS(options: UseTTSOptions = {}) {
       const utterance = new SpeechSynthesisUtterance(text);
       const lang = optionsRef.current.language || "en";
       utterance.lang = browserVoiceLangs[lang] || "en-US";
-      utterance.rate = 1.0;
+      utterance.rate = 0.9; // Slightly slower for calm voice
       utterance.pitch = 1.0;
 
+      // Get voices and prefer high-quality ones
       const voices = window.speechSynthesis.getVoices();
       const preferredVoice = voices.find(
         (v) => v.lang.startsWith(lang) && !v.localService
@@ -96,7 +97,7 @@ export function useTTS(options: UseTTSOptions = {}) {
       }
 
       const wordCount = text.split(/\s+/).length;
-      const estimatedDuration = Math.max((wordCount / 150) * 60, 1);
+      const estimatedDuration = Math.max((wordCount / 130) * 60, 1); // Slower reading
 
       utterance.onstart = () => {
         setIsPlaying(true);
@@ -142,21 +143,24 @@ export function useTTS(options: UseTTSOptions = {}) {
       : text;
 
     const currentLang = optionsRef.current.language || "en";
-    const preferBrowser = optionsRef.current.preferBrowser ?? false;
+    const isIndianLanguage = indianLanguages.includes(currentLang);
 
-    // If preferBrowser is true, use browser TTS directly (it's free)
-    if (preferBrowser) {
+    // For non-Indian languages, use browser TTS directly (it's free and works well)
+    if (!isIndianLanguage) {
       try {
         setUsingFallback(true);
+        setIsLoading(false);
         await speakWithBrowser(truncatedText);
         return;
       } catch (err) {
         console.log("Browser TTS failed:", err);
-        // Fall through to API
+        setError("Speech synthesis not available");
+        setIsLoading(false);
+        return;
       }
     }
 
-    // Check cache first
+    // For Indian languages, check cache first
     try {
       const cachedBlob = await getCachedAudio(truncatedText, currentLang);
       if (cachedBlob) {
@@ -191,6 +195,7 @@ export function useTTS(options: UseTTSOptions = {}) {
       console.log("Cache check failed:", cacheErr);
     }
 
+    // Call Sarvam API for Indian languages
     try {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/text-to-speech`, {
         method: "POST",
@@ -202,41 +207,34 @@ export function useTTS(options: UseTTSOptions = {}) {
         body: JSON.stringify({
           text: truncatedText,
           language: currentLang,
-          voiceId: optionsRef.current.voiceId,
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMsg = errorData.error || `TTS failed: ${response.status}`;
+      const contentType = response.headers.get("content-type") || "";
 
-        // Check for quota exceeded or API errors - fallback to browser TTS
-        const shouldFallback = 
-          errorMsg.toLowerCase().includes("quota") ||
-          errorMsg.toLowerCase().includes("exceeded") ||
-          errorMsg.includes("401") ||
-          errorMsg.includes("429") ||
-          response.status === 401 || 
-          response.status === 429 ||
-          response.status === 500;
-
-        if (shouldFallback) {
-          console.log("API TTS failed, using browser fallback:", errorMsg);
+      // Check if server says to use browser fallback
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        if (data.useBrowserFallback) {
           setUsingFallback(true);
           setIsLoading(false);
           await speakWithBrowser(truncatedText);
           return;
         }
+        if (data.error) {
+          throw new Error(data.error);
+        }
+      }
 
-        throw new Error(errorMsg);
+      if (!response.ok) {
+        throw new Error(`TTS failed: ${response.status}`);
       }
 
       const audioBlob = await response.blob();
-      const contentType = response.headers.get("content-type") || "audio/mpeg";
 
-      // Cache the audio for future use
+      // Cache the audio
       try {
-        await setCachedAudio(truncatedText, currentLang, audioBlob, contentType);
+        await setCachedAudio(truncatedText, currentLang, audioBlob, "audio/wav");
       } catch (cacheErr) {
         console.log("Failed to cache audio:", cacheErr);
       }
@@ -265,7 +263,7 @@ export function useTTS(options: UseTTSOptions = {}) {
       await audio.play();
       setIsPlaying(true);
     } catch (err) {
-      console.log("API TTS failed, trying browser fallback");
+      console.log("Sarvam TTS failed, trying browser fallback");
       try {
         setUsingFallback(true);
         await speakWithBrowser(truncatedText);
@@ -325,7 +323,6 @@ export function useTTS(options: UseTTSOptions = {}) {
     }
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       cleanup();
