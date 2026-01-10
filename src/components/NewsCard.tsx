@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { useTTS } from "@/hooks/use-tts";
 import { useTTSLimit } from "@/hooks/use-tts-limit";
 import { usePreferences } from "@/contexts/PreferencesContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthModal } from "@/components/auth/AuthModal";
 import { toast } from "sonner";
 import { TTSLimitModal } from "@/components/TTSLimitModal";
 import { DiscussionButton } from "@/components/discussions/DiscussionButton";
@@ -66,6 +68,8 @@ const locationBadgeConfig = {
 
 export function NewsCard({ news, index, onClick, onReadMore, isActive, compact = false }: NewsCardProps) {
   const { language, country } = usePreferences();
+  const { user } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const { speak, toggle, isLoading, isPlaying, progress, stop } = useTTS({
     language: language?.code || "en",
   });
@@ -111,12 +115,20 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
 
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     setIsSaved(!isSaved);
     toast.success(isSaved ? "Removed from saved" : "Saved for later");
   };
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     setIsLiked(!isLiked);
   };
 
@@ -336,6 +348,8 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
         usedCount={usedCount}
         maxCount={maxCount}
       />
+
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Headphones, Play, Pause, Clock, SkipBack, SkipForward, Volume2, Loader2 } from "lucide-react";
+import { Headphones, Play, Pause, Clock, SkipBack, SkipForward, Volume2, Loader2, Lock } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Slider } from "@/components/ui/slider";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useNews } from "@/hooks/use-news";
 import { useTTS } from "@/hooks/use-tts";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthModal } from "@/components/auth/AuthModal";
 import { toast } from "sonner";
 
 interface Playlist {
@@ -28,6 +30,8 @@ const playlists: Playlist[] = [
 ];
 
 const Listen = () => {
+  const { user } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const { country, language } = usePreferences();
   const [currentPlaylist, setCurrentPlaylist] = useState<string | null>(null);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -76,6 +80,12 @@ const Listen = () => {
   }, [currentStoryIndex, stories]);
 
   const handlePlay = async (playlistId: string) => {
+    // Require authentication for listening
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
     // If clicking on same playlist that's playing, pause
     if (currentPlaylist === playlistId && tts.isPlaying) {
       tts.pause();
@@ -181,6 +191,30 @@ const Listen = () => {
               {tts.usingFallback && " (Browser voice)"}
             </p>
           </motion.div>
+
+          {/* Sign in required banner */}
+          {!user && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card rounded-xl p-4 mb-8 border-primary/20"
+            >
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm">Sign in to listen</h3>
+                    <p className="text-xs text-muted-foreground">Create a free account to enjoy audio news</p>
+                  </div>
+                </div>
+                <Button onClick={() => setShowAuthModal(true)} size="sm">
+                  Get Started
+                </Button>
+              </div>
+            </motion.div>
+          )}
 
           {/* Audio Player */}
           {currentPlaylist && (
@@ -335,6 +369,9 @@ const Listen = () => {
         </div>
       </main>
       <Footer />
+
+      {/* Auth Modal */}
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 };

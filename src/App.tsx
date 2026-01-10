@@ -8,6 +8,7 @@ import { PreferencesProvider } from "@/contexts/PreferencesContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { StackBot } from "@/components/StackBot";
+import { NewsletterPopup } from "@/components/NewsletterPopup";
 import { useEffect } from "react";
 import Index from "./pages/Index";
 import News from "./pages/News";
@@ -54,6 +55,7 @@ const App = () => (
             <BrowserRouter>
               <ScrollToTop />
               <StackBot />
+              <NewsletterPopup />
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/news" element={<News />} />
@@ -67,6 +69,11 @@ const App = () => (
                 <Route path="/pricing" element={<Support />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/saved" element={<SavedArticles />} />
+                {/* Legal pages - redirect to support for now */}
+                <Route path="/privacy" element={<Support />} />
+                <Route path="/terms" element={<Support />} />
+                <Route path="/cookies" element={<Support />} />
+                <Route path="/licenses" element={<Support />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
