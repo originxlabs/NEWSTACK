@@ -4,14 +4,15 @@ import { usePWAMode } from "@/hooks/use-pwa-mode";
 import { SwipeNewsFeed } from "./SwipeNewsFeed";
 import { MobileSettings } from "./MobileSettings";
 import { 
-  Home, Newspaper, Headphones, MapPin, User, Menu, X, 
-  Globe, Bookmark, Settings, LogIn
+  Home, Newspaper, Headphones, MapPin, User, Menu,
+  Globe, Bookmark, Settings, LogIn, Crown, Star
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { Separator } from "@/components/ui/separator";
 
 interface MobileAppWrapperProps {
   children: ReactNode;
@@ -26,11 +27,11 @@ const navItems = [
 ];
 
 const menuItems = [
-  { path: "/world", icon: Globe, label: "World News" },
-  { path: "/topics", icon: Newspaper, label: "Topics" },
-  { path: "/saved", icon: Bookmark, label: "Saved Articles" },
-  { path: "/settings", icon: Settings, label: "Settings" },
-  { path: "/pricing", icon: Bookmark, label: "Premium" },
+  { path: "/world", icon: Globe, label: "World News", description: "Global headlines" },
+  { path: "/topics", icon: Newspaper, label: "Topics", description: "Browse categories" },
+  { path: "/saved", icon: Bookmark, label: "Saved Articles", description: "Your bookmarks" },
+  { path: "/settings", icon: Settings, label: "Settings", description: "Preferences" },
+  { path: "/pricing", icon: Crown, label: "Premium", description: "Upgrade your experience" },
 ];
 
 export function MobileAppWrapper({ children }: MobileAppWrapperProps) {
@@ -151,6 +152,7 @@ export function MobileAppWrapper({ children }: MobileAppWrapperProps) {
                       variant="ghost"
                       size="icon"
                       onClick={() => setShowAuthModal(true)}
+                      className="rounded-full"
                     >
                       <LogIn className="w-5 h-5" />
                     </Button>
@@ -158,23 +160,52 @@ export function MobileAppWrapper({ children }: MobileAppWrapperProps) {
                   
                   <Sheet>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" className="rounded-full">
                         <Menu className="w-5 h-5" />
                       </Button>
                     </SheetTrigger>
-                    <SheetContent side="right" className="w-72">
-                      <nav className="flex flex-col gap-2 mt-8">
+                    <SheetContent side="right" className="w-80 bg-background/95 backdrop-blur-xl p-0">
+                      <SheetHeader className="p-4 pb-2">
+                        <SheetTitle className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                            <span className="text-sm font-bold text-primary-foreground font-display">N</span>
+                          </div>
+                          <span className="font-display font-bold">NEWSTACK</span>
+                        </SheetTitle>
+                      </SheetHeader>
+                      <Separator />
+                      <nav className="flex flex-col gap-1 p-3">
                         {menuItems.map((item) => (
                           <Link
                             key={item.path}
                             to={item.path}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
+                            className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors"
                           >
-                            <item.icon className="w-5 h-5" />
-                            <span>{item.label}</span>
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <item.icon className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <span className="font-medium block">{item.label}</span>
+                              <span className="text-xs text-muted-foreground">{item.description}</span>
+                            </div>
                           </Link>
                         ))}
                       </nav>
+                      
+                      {!user && (
+                        <>
+                          <Separator />
+                          <div className="p-4">
+                            <Button 
+                              className="w-full gap-2" 
+                              onClick={() => setShowAuthModal(true)}
+                            >
+                              <LogIn className="w-4 h-4" />
+                              Sign In / Sign Up
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </SheetContent>
                   </Sheet>
                 </div>
@@ -190,37 +221,38 @@ export function MobileAppWrapper({ children }: MobileAppWrapperProps) {
 
         {/* Bottom Navigation */}
         {!shouldShowSwipe && (
-          <nav className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-lg border-t safe-area-bottom">
-            <div className="flex items-center justify-around py-2">
+          <nav className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border/50 safe-area-bottom">
+            <div className="flex items-center justify-around py-2 px-2">
               {navItems.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
-                      isActive ? "text-primary" : "text-muted-foreground"
-                    }`}
+                    className="flex flex-col items-center gap-0.5 min-w-[56px] py-1"
                   >
-                    <item.icon className={`w-5 h-5 ${isActive ? "fill-current" : ""}`} />
-                    <span className="text-[10px] font-medium">{item.label}</span>
+                    <motion.div
+                      whileTap={{ scale: 0.9 }}
+                      className={`p-2 rounded-xl transition-colors ${
+                        isActive 
+                          ? "bg-primary/15" 
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      <item.icon className={`w-5 h-5 transition-colors ${
+                        isActive ? "text-primary" : "text-muted-foreground"
+                      }`} />
+                    </motion.div>
+                    <span className={`text-[10px] font-medium transition-colors ${
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    }`}>
+                      {item.label}
+                    </span>
                   </Link>
                 );
               })}
             </div>
           </nav>
-        )}
-
-        {/* Floating action to switch views (for swipe mode) */}
-        {shouldShowSwipe && (
-          <motion.button
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center"
-            onClick={() => navigate("/news?view=list")}
-          >
-            <Menu className="w-6 h-6" />
-          </motion.button>
         )}
       </div>
 
