@@ -1,8 +1,28 @@
 import { motion } from "framer-motion";
 import { Play, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export function HeroSection() {
+  const navigate = useNavigate();
+
+  const handleGetNews = () => {
+    // Scroll to news feed section
+    const newsSection = document.getElementById("news-feed");
+    if (newsSection) {
+      newsSection.scrollIntoView({ behavior: "smooth" });
+    } else {
+      // If no news section, navigate to home and scroll
+      navigate("/");
+      setTimeout(() => {
+        window.scrollTo({ top: window.innerHeight, behavior: "smooth" });
+      }, 100);
+    }
+  };
+
+  const handlePlayBriefing = () => {
+    navigate("/listen");
+  };
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-hero-bg">
       {/* Animated background elements */}
@@ -79,11 +99,21 @@ export function HeroSection() {
             transition={{ delay: 0.6, duration: 0.6 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Button variant="hero" size="xl" className="w-full sm:w-auto">
+            <Button 
+              variant="hero" 
+              size="xl" 
+              className="w-full sm:w-auto"
+              onClick={handleGetNews}
+            >
               <Sparkles className="w-5 h-5 mr-2" />
               Get Personalized News
             </Button>
-            <Button variant="heroOutline" size="xl" className="w-full sm:w-auto">
+            <Button 
+              variant="heroOutline" 
+              size="xl" 
+              className="w-full sm:w-auto"
+              onClick={handlePlayBriefing}
+            >
               <Play className="w-5 h-5 mr-2" />
               Play Today's Briefing
             </Button>
