@@ -51,8 +51,19 @@ serve(async (req) => {
 
     console.log("Fetching stories:", { feedType, category, country, page, sortBy, source, dateFrom, dateTo });
 
-    // Calculate cutoff for stories - use dateFrom if provided, otherwise 7 days ago for more results
-    const defaultCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    // Calculate cutoff for stories
+    // For "recent" feed without date filter, only show last 24 hours for fresh news
+    // For other feeds or with date filter, use 7 days
+    const now = new Date();
+    let defaultCutoff: string;
+    
+    if (feedType === "recent" && !dateFrom) {
+      // Show fresh news from last 24 hours by default for "recent" feed
+      defaultCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+    } else {
+      // 7 days for other feeds
+      defaultCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    }
     const cutoffTime = dateFrom || defaultCutoff;
 
     // Build query
@@ -109,20 +120,20 @@ serve(async (req) => {
       query = query
         .gte("source_count", 2)
         .order("source_count", { ascending: false })
-        .order("last_updated_at", { ascending: false });
+        .order("first_published_at", { ascending: false });
     } else if (feedType === "foryou") {
       // Mix of trending and recent for personalized feel
       query = query
         .order("source_count", { ascending: false })
-        .order("last_updated_at", { ascending: false });
+        .order("first_published_at", { ascending: false });
     } else if (sortBy === "relevance") {
       // Order by locality first, then country, then global
       query = query
         .order("city", { ascending: false, nullsFirst: false })
-        .order("last_updated_at", { ascending: false });
+        .order("first_published_at", { ascending: false });
     } else {
-      // Default: recent (latest first)
-      query = query.order("last_updated_at", { ascending: false });
+      // Default: recent (latest first) - sort by first_published_at for fresh news
+      query = query.order("first_published_at", { ascending: false });
     }
 
     // Pagination
