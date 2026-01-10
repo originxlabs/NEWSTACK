@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo, lazy, Suspense } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Globe, TrendingUp, AlertTriangle, Thermometer, DollarSign, Leaf, MapPin, Newspaper, ExternalLink, Clock, Loader2 } from "lucide-react";
+import { Globe, TrendingUp, AlertTriangle, Thermometer, DollarSign, Leaf, MapPin, Newspaper, ExternalLink, Clock } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +46,6 @@ const globalStats = [
   { label: "Carbon", value: "418 ppm", icon: Leaf, color: "text-green-500" },
 ];
 
-// Mock news events with locations
 const newsEvents: NewsEvent[] = [
   { id: "1", headline: "Tech Giants Report Q4 Earnings", location: "San Francisco, USA", lat: 37.7749, lng: -122.4194, category: "Business", timestamp: "2h ago", source: "Reuters" },
   { id: "2", headline: "EU Energy Ministers Meet on Crisis", location: "Brussels, Belgium", lat: 50.8503, lng: 4.3517, category: "Politics", timestamp: "3h ago", source: "BBC" },
@@ -58,13 +57,9 @@ const newsEvents: NewsEvent[] = [
   { id: "8", headline: "G20 Finance Ministers Discuss Global Economy", location: "New Delhi, India", lat: 28.6139, lng: 77.2090, category: "Finance", timestamp: "3h ago", source: "NDTV" },
 ];
 
-// Lazy load the map component to avoid SSR issues
-const WorldMap = lazy(() => import("@/components/WorldMap"));
-
 const World = () => {
   const { country } = usePreferences();
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([20, 0]);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -72,7 +67,6 @@ const World = () => {
 
   const handleRegionClick = (region: Region) => {
     setSelectedRegion(region);
-    setMapCenter([region.lat, region.lng]);
   };
 
   const filteredEvents = useMemo(() => {
@@ -82,6 +76,14 @@ const World = () => {
       const lngDiff = Math.abs(event.lng - selectedRegion.lng);
       return latDiff < 30 && lngDiff < 60;
     });
+  }, [selectedRegion]);
+
+  // Generate OpenStreetMap embed URL
+  const mapUrl = useMemo(() => {
+    if (selectedRegion) {
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${selectedRegion.lng - 20}%2C${selectedRegion.lat - 15}%2C${selectedRegion.lng + 20}%2C${selectedRegion.lat + 15}&layer=mapnik`;
+    }
+    return "https://www.openstreetmap.org/export/embed.html?bbox=-180%2C-60%2C180%2C75&layer=mapnik";
   }, [selectedRegion]);
 
   return (
@@ -143,10 +145,7 @@ const World = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setSelectedRegion(null);
-                      setMapCenter([20, 0]);
-                    }}
+                    onClick={() => setSelectedRegion(null)}
                   >
                     Show All Regions
                   </Button>
@@ -160,20 +159,37 @@ const World = () => {
             </div>
             
             <div className="h-[400px] md:h-[500px] relative">
-              <Suspense fallback={
-                <div className="w-full h-full flex items-center justify-center bg-muted/20">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Loading map...</span>
+              <iframe
+                key={mapUrl}
+                src={mapUrl}
+                className="w-full h-full border-0"
+                title="World Map"
+                loading="lazy"
+                allowFullScreen
+              />
+              
+              {/* Overlay markers for news events */}
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute bottom-4 left-4 right-4 pointer-events-auto">
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {filteredEvents.slice(0, 5).map((event) => (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex-shrink-0 bg-background/95 backdrop-blur-sm rounded-lg p-3 shadow-lg border border-border max-w-[250px]"
+                      >
+                        <Badge className="mb-1 text-[10px]">{event.category}</Badge>
+                        <h4 className="text-xs font-medium line-clamp-2">{event.headline}</h4>
+                        <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
+                          <MapPin className="w-2.5 h-2.5" />
+                          <span className="truncate">{event.location}</span>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
-              }>
-                <WorldMap 
-                  center={mapCenter} 
-                  events={filteredEvents}
-                  onCenterChange={setMapCenter}
-                />
-              </Suspense>
+              </div>
             </div>
           </motion.div>
 
