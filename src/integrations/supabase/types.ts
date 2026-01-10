@@ -646,6 +646,39 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          is_active: boolean | null
+          p256dh: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          is_active?: boolean | null
+          p256dh: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          is_active?: boolean | null
+          p256dh?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       rss_feeds: {
         Row: {
           category: string | null
