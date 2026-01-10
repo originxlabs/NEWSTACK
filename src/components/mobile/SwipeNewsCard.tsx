@@ -155,19 +155,35 @@ export function SwipeNewsCard({
 
   return (
     <>
-      <div className="absolute inset-0 flex flex-col">
+      <div className="absolute inset-0 flex flex-col overflow-hidden">
         {/* Full-screen Image Background */}
         <div className="absolute inset-0">
           {news.imageUrl ? (
             <>
               {/* Placeholder while loading */}
               {!imageLoaded && (
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-background animate-pulse" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-background">
+                  <motion.div
+                    animate={{ opacity: [0.3, 0.6, 0.3] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="absolute inset-0 bg-gradient-to-t from-background to-transparent"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="w-12 h-12 rounded-xl bg-primary/30 flex items-center justify-center"
+                    >
+                      <span className="text-lg font-bold text-primary font-display">N</span>
+                    </motion.div>
+                  </div>
+                </div>
               )}
               <img
                 src={news.imageUrl}
                 alt={news.headline}
-                className={`w-full h-full object-cover transition-opacity duration-300 ${
+                loading="eager"
+                className={`w-full h-full object-cover transition-opacity duration-500 ${
                   imageLoaded ? "opacity-100" : "opacity-0"
                 }`}
                 onLoad={() => setImageLoaded(true)}
@@ -178,11 +194,17 @@ export function SwipeNewsCard({
               />
             </>
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary/30 via-primary/10 to-background" />
+            <div className="w-full h-full bg-gradient-to-br from-primary/30 via-primary/10 to-background">
+              <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                <div className="w-32 h-32 rounded-3xl bg-primary/20 flex items-center justify-center">
+                  <span className="text-5xl font-bold text-primary font-display">N</span>
+                </div>
+              </div>
+            </div>
           )}
-          {/* Gradient overlay for better text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent h-32" />
+          {/* Enhanced gradient overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent h-40" />
         </div>
 
         {/* Content */}
@@ -298,57 +320,66 @@ export function SwipeNewsCard({
               </span>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-between pt-2">
-              <div className="flex items-center gap-1.5">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleListen}
-                  className="gap-1.5 h-9 px-3 bg-white/10 backdrop-blur-sm border-0 text-foreground hover:bg-white/20 active:scale-95 transition-transform"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : isPlaying ? (
-                    <>
-                      <Pause className="w-4 h-4" />
-                      <AudioWave />
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-4 h-4" />
-                      <span className="text-xs">Listen</span>
-                    </>
-                  )}
-                </Button>
+            {/* Actions - Native app style */}
+            <div className="flex items-center justify-between pt-3 gap-2">
+              {/* Left side action buttons */}
+              <div className="flex items-center gap-0.5">
+                <motion.div whileTap={{ scale: 0.9 }}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleListen}
+                    className="gap-1.5 h-10 px-4 bg-white/15 backdrop-blur-md border-0 text-foreground hover:bg-white/25 rounded-full shadow-lg"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isPlaying ? (
+                      <>
+                        <Pause className="w-4 h-4" />
+                        <AudioWave />
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4" />
+                        <span className="text-xs font-medium">Listen</span>
+                      </>
+                    )}
+                  </Button>
+                </motion.div>
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSave}
-                  className={`h-9 w-9 active:scale-95 transition-transform ${isSaved ? "text-primary" : "text-foreground"}`}
-                >
-                  <Bookmark className={`w-5 h-5 ${isSaved ? "fill-current" : ""}`} />
-                </Button>
+                <motion.div whileTap={{ scale: 0.85 }}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleSave}
+                    className={`h-10 w-10 rounded-full bg-white/10 backdrop-blur-sm ${isSaved ? "text-primary bg-primary/20" : "text-foreground"}`}
+                  >
+                    <Bookmark className={`w-5 h-5 ${isSaved ? "fill-current" : ""}`} />
+                  </Button>
+                </motion.div>
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleLike}
-                  className={`h-9 w-9 active:scale-95 transition-transform ${isLiked ? "text-destructive" : "text-foreground"}`}
-                >
-                  <Heart className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`} />
-                </Button>
+                <motion.div whileTap={{ scale: 0.85 }}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleLike}
+                    className={`h-10 w-10 rounded-full bg-white/10 backdrop-blur-sm ${isLiked ? "text-red-500 bg-red-500/20" : "text-foreground"}`}
+                  >
+                    <Heart className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`} />
+                  </Button>
+                </motion.div>
 
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={handleShare}
-                  className="h-9 w-9 active:scale-95 transition-transform text-foreground"
-                >
-                  <Share2 className="w-5 h-5" />
-                </Button>
+                <motion.div whileTap={{ scale: 0.85 }}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={handleShare}
+                    className="h-10 w-10 rounded-full bg-white/10 backdrop-blur-sm text-foreground"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </Button>
+                </motion.div>
 
                 <DiscussionButton
                   contentType="news"
@@ -358,15 +389,18 @@ export function SwipeNewsCard({
                 />
               </div>
 
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleReadMore}
-                className="gap-1.5 h-9 shadow-lg active:scale-95 transition-transform"
-              >
-                Read More
-                <ChevronUp className="w-4 h-4" />
-              </Button>
+              {/* Read More button */}
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleReadMore}
+                  className="gap-1.5 h-10 px-5 shadow-xl rounded-full font-semibold"
+                >
+                  Read More
+                  <ChevronUp className="w-4 h-4" />
+                </Button>
+              </motion.div>
             </div>
           </div>
 

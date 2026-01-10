@@ -6,9 +6,8 @@ import { useOfflineCache } from "@/hooks/use-offline-cache";
 import { useCategoryPreferences } from "@/hooks/use-category-preferences";
 import { useHaptic } from "@/hooks/use-haptic";
 import { SwipeNewsCard } from "./SwipeNewsCard";
-import { PullToRefresh } from "./PullToRefresh";
 import { 
-  Loader2, Wifi, WifiOff, ChevronLeft, ChevronRight, Settings
+  Loader2, Wifi, WifiOff, ChevronLeft, ChevronRight, Settings, RefreshCw
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { NewsItem } from "@/components/NewsCard";
@@ -33,8 +32,10 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
   const [showCategoryHint, setShowCategoryHint] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const categoryContainerRef = useRef<HTMLDivElement>(null);
+  const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const touchRef = useRef<TouchState>({
     startX: 0,
     startY: 0,
@@ -163,6 +164,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
 
   // Native touch handling for instant swipe response
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    // Don't start tracking if we're at the top and pulling down
     const touch = e.touches[0];
     touchRef.current = {
       startX: touch.clientX,
@@ -180,11 +182,16 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
     const deltaX = touch.clientX - touchRef.current.startX;
     const deltaY = touch.clientY - touchRef.current.startY;
     
-    // Lock direction on first significant move
+    // Lock direction on first significant move (lowered threshold for faster response)
     if (!touchRef.current.direction) {
-      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+      if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
         touchRef.current.direction = Math.abs(deltaX) > Math.abs(deltaY) ? "horizontal" : "vertical";
       }
+    }
+    
+    // Prevent default scrolling for vertical swipes to enable smooth card transitions
+    if (touchRef.current.direction === "vertical") {
+      e.preventDefault();
     }
   }, []);
 
@@ -200,8 +207,9 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
     const velocityX = Math.abs(deltaX) / deltaTime;
     const velocityY = Math.abs(deltaY) / deltaTime;
     
-    const minSwipeDistance = 50;
-    const minVelocity = 0.3;
+    // Lowered thresholds for more responsive swipes
+    const minSwipeDistance = 40;
+    const minVelocity = 0.25;
     
     // Determine swipe based on direction lock
     if (touchRef.current.direction === "vertical") {
@@ -210,8 +218,10 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
       
       if (isQuickSwipe || isFarEnough) {
         if (deltaY < 0) {
+          // Swipe up - go to next
           goToNext();
         } else {
+          // Swipe down - go to previous
           goToPrev();
         }
       }
@@ -232,11 +242,36 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
     touchRef.current.direction = null;
   }, [goToNext, goToPrev, goToNextCategory, goToPrevCategory]);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setCurrentIndex(0);
     await refetch();
     setLastRefreshed(new Date());
-  };
+  }, [refetch]);
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+    
+    const performAutoRefresh = async () => {
+      if (!isOffline && !isLoading && !isFetchingNextPage) {
+        setIsAutoRefreshing(true);
+        try {
+          await refetch();
+          setLastRefreshed(new Date());
+        } finally {
+          setIsAutoRefreshing(false);
+        }
+      }
+    };
+
+    autoRefreshIntervalRef.current = setInterval(performAutoRefresh, AUTO_REFRESH_INTERVAL);
+
+    return () => {
+      if (autoRefreshIntervalRef.current) {
+        clearInterval(autoRefreshIntervalRef.current);
+      }
+    };
+  }, [isOffline, isLoading, isFetchingNextPage, refetch]);
 
   // Format last refreshed time
   const getLastRefreshedText = () => {
@@ -282,19 +317,120 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
 
   if (!categoriesLoaded || (isLoading && !hasCachedStories)) {
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-background">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center mb-4"
-        >
-          <span className="text-2xl font-bold text-primary-foreground font-display">N</span>
-        </motion.div>
-        <h2 className="text-xl font-display font-bold mb-2">NEWSTACK</h2>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Loading stories...</span>
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <motion.div
+            animate={{ 
+              scale: [1, 1.2, 1],
+              opacity: [0.1, 0.2, 0.1]
+            }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-primary/20 blur-3xl"
+          />
+          <motion.div
+            animate={{ 
+              scale: [1.2, 1, 1.2],
+              opacity: [0.1, 0.15, 0.1]
+            }}
+            transition={{ duration: 4, repeat: Infinity }}
+            className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full bg-primary/15 blur-3xl"
+          />
         </div>
+
+        {/* Main Content */}
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 20 }}
+          className="relative z-10 flex flex-col items-center"
+        >
+          {/* Logo */}
+          <motion.div
+            animate={{ 
+              rotateY: [0, 360],
+            }}
+            transition={{ 
+              duration: 2, 
+              repeat: Infinity, 
+              ease: "easeInOut",
+              repeatDelay: 0.5
+            }}
+            className="relative mb-6"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/80 flex items-center justify-center shadow-2xl shadow-primary/30">
+              <span className="text-3xl font-bold text-primary-foreground font-display">N</span>
+            </div>
+            {/* Glow ring */}
+            <motion.div
+              animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute inset-0 rounded-2xl border-2 border-primary/50"
+            />
+          </motion.div>
+
+          {/* Brand Name */}
+          <motion.h1
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-2xl font-bold font-display bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent mb-2"
+          >
+            NEWSTACK
+          </motion.h1>
+          
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-sm text-muted-foreground mb-6"
+          >
+            Global News Intelligence
+          </motion.p>
+
+          {/* Loading Indicator */}
+          <motion.div 
+            className="flex items-center gap-3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <div className="flex gap-1">
+              {[0, 1, 2, 3].map((i) => (
+                <motion.div
+                  key={i}
+                  animate={{ 
+                    scaleY: [1, 2, 1],
+                    backgroundColor: ["hsl(var(--primary))", "hsl(var(--primary) / 0.5)", "hsl(var(--primary))"]
+                  }}
+                  transition={{ 
+                    duration: 0.8, 
+                    repeat: Infinity, 
+                    delay: i * 0.15,
+                    ease: "easeInOut"
+                  }}
+                  className="w-1 h-4 rounded-full bg-primary"
+                />
+              ))}
+            </div>
+            <span className="text-sm text-muted-foreground">Loading stories...</span>
+          </motion.div>
+
+          {/* Progress bar */}
+          <motion.div 
+            className="w-48 h-1 bg-muted rounded-full mt-6 overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <motion.div
+              className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full"
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </motion.div>
+        </motion.div>
       </div>
     );
   }
@@ -348,10 +484,12 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
   };
 
   return (
-    <PullToRefresh onRefresh={handleRefresh} className={`fixed inset-0 ${className}`}>
+    <div className={`fixed inset-0 ${className}`}>
+      {/* Main swipe container */}
       <div 
         ref={containerRef}
-        className="h-full w-full overflow-hidden touch-none select-none"
+        className="h-full w-full overflow-hidden select-none"
+        style={{ touchAction: "none" }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -438,18 +576,26 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
           </AnimatePresence>
         </div>
 
-        {/* Story counter with last refresh time */}
+        {/* Story counter with last refresh time and manual refresh button */}
         <div className="fixed top-12 right-3 z-40 flex flex-col items-end gap-1">
-          <div className="bg-black/40 backdrop-blur-sm rounded-full px-3 py-1">
-            <span className="text-xs text-white font-medium">
+          <div className="bg-black/50 backdrop-blur-md rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg">
+            <span className="text-xs text-white font-semibold">
               {currentIndex + 1} / {displayItems.length}
             </span>
           </div>
-          <div className="bg-black/30 backdrop-blur-sm rounded-full px-2 py-0.5">
-            <span className="text-[10px] text-white/70">
-              ↻ {getLastRefreshedText()}
+          <motion.button 
+            onClick={handleRefresh}
+            disabled={isAutoRefreshing}
+            className="bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1.5 shadow-md active:bg-black/60"
+            whileTap={{ scale: 0.95 }}
+            animate={isAutoRefreshing ? { scale: [1, 1.05, 1] } : {}}
+            transition={{ duration: 0.5, repeat: isAutoRefreshing ? Infinity : 0 }}
+          >
+            <RefreshCw className={`w-3 h-3 text-white/80 ${isAutoRefreshing ? 'animate-spin' : ''}`} />
+            <span className="text-[10px] text-white/80 font-medium">
+              {isAutoRefreshing ? 'Refreshing...' : getLastRefreshedText()}
             </span>
-          </div>
+          </motion.button>
         </div>
 
         {/* Category navigation arrows */}
@@ -512,7 +658,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
           </div>
         )}
       </div>
-    </PullToRefresh>
+    </div>
   );
 }
 
