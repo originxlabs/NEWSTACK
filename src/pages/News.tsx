@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
 import { 
   Loader2, TrendingUp, Clock, Sparkles, AlertCircle, RefreshCw, 
   Flame, Globe, MapPin, Filter, ChevronDown, X, Calendar, Newspaper,
-  Grid3X3, List, LayoutGrid, Search, SlidersHorizontal, Zap, Scale,
+  Grid3X3, List, LayoutGrid, Search, SlidersHorizontal, Scale,
   Radio, Rss, History
 } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -374,99 +374,33 @@ export default function News() {
       <Header />
       
       <main className="pt-20 pb-12" ref={containerRef}>
-        {/* Hero Banner with Dynamic Animations */}
+        {/* Hero Banner - Clean Typography Focus */}
         <motion.section 
           ref={heroRef}
           style={{ y: heroY, opacity: heroOpacity }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="relative bg-gradient-to-br from-primary/5 via-background to-accent/5 border-b border-border/50 overflow-hidden"
+          className="relative bg-gradient-to-br from-primary/5 via-background to-accent/5 border-b border-border/50"
         >
-          {/* Animated Background Elements */}
-          <div className="absolute inset-0 pointer-events-none">
-            {/* Glowing orbs */}
-            <motion.div
-              className="absolute top-10 left-1/4 w-32 h-32 bg-primary/10 rounded-full blur-3xl"
-              animate={{
-                scale: [1, 1.3, 1],
-                opacity: [0.3, 0.6, 0.3],
-              }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div
-              className="absolute bottom-10 right-1/4 w-40 h-40 bg-accent/10 rounded-full blur-3xl"
-              animate={{
-                scale: [1.2, 1, 1.2],
-                opacity: [0.2, 0.5, 0.2],
-              }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            />
-            
-            {/* Floating particles */}
-            {[...Array(12)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-1.5 h-1.5 bg-primary/40 rounded-full"
-                style={{
-                  left: `${10 + (i * 8)}%`,
-                  top: `${20 + (i % 3) * 25}%`,
-                }}
-                animate={{
-                  y: [0, -15, 0],
-                  opacity: [0.2, 0.8, 0.2],
-                  scale: [0.8, 1.2, 0.8],
-                }}
-                transition={{
-                  duration: 2 + (i % 3),
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                  ease: "easeInOut",
-                }}
-              />
-            ))}
-
-            {/* Animated grid lines */}
-            <motion.div
-              className="absolute inset-0 opacity-[0.02]"
-              style={{
-                backgroundImage: `linear-gradient(hsl(var(--primary) / 0.3) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / 0.3) 1px, transparent 1px)`,
-                backgroundSize: '60px 60px'
-              }}
-              animate={{
-                opacity: [0.02, 0.04, 0.02],
-              }}
-              transition={{ duration: 3, repeat: Infinity }}
-            />
-          </div>
-
           <div className="container mx-auto px-4 py-10 md:py-16 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
-              {/* Live Badge with pulse */}
+              {/* Live Badge */}
               <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, type: "spring", damping: 20 }}
                 className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full glass-card mb-6"
               >
-                <motion.div
-                  className="flex items-center gap-2"
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
+                <div className="flex items-center gap-2">
                   <Radio className="w-4 h-4 text-green-500" />
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                </motion.div>
+                </div>
                 <span className="text-sm font-medium text-foreground">Live from 20+ verified sources</span>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                >
-                  <Rss className="w-4 h-4 text-primary" />
-                </motion.div>
+                <Rss className="w-4 h-4 text-primary" />
               </motion.div>
               
-              {/* Main Headline with letter spacing animation */}
+              {/* Main Headline with Typography Animation */}
               <motion.h1 
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -491,23 +425,16 @@ export default function News() {
                 </motion.span>
                 <br className="sm:hidden" />
                 <motion.span 
-                  className="gradient-text inline-block relative"
+                  className="gradient-text inline-block"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.5, type: "spring", damping: 15 }}
                 >
                   News Hub
-                  <motion.span
-                    className="absolute -right-6 -top-2"
-                    animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    <Zap className="w-5 h-5 text-yellow-500" />
-                  </motion.span>
                 </motion.span>
               </motion.h1>
               
-              {/* Subtitle with staggered words */}
+              {/* Subtitle */}
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -515,27 +442,19 @@ export default function News() {
                 className="text-muted-foreground text-base md:text-lg lg:text-xl max-w-2xl mx-auto mb-8 leading-relaxed"
               >
                 Curated news from{" "}
-                <motion.span 
-                  className="text-foreground font-medium"
-                  whileHover={{ color: "hsl(var(--primary))" }}
-                >
+                <span className="text-foreground font-medium">
                   BBC, Reuters, The Guardian, NYT
-                </motion.span>
+                </span>
                 {" "}and more — with smart summaries, audio listening, and real-time updates.
               </motion.p>
 
-              {/* Search Bar with animated focus */}
+              {/* Search Bar */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
                 className="max-w-xl mx-auto relative group"
               >
-                <motion.div
-                  className="absolute inset-0 bg-primary/20 rounded-full blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity"
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                   type="text"
@@ -561,7 +480,6 @@ export default function News() {
                   <motion.div
                     key={stat.label}
                     className="flex items-center gap-2 text-sm text-muted-foreground"
-                    whileHover={{ scale: 1.05 }}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.7 + i * 0.1 }}
@@ -952,10 +870,14 @@ export default function News() {
           setSelectedArticle(null);
         }}
         onCompare={(headline, id) => {
+          setIsPanelOpen(false);
+          setSelectedArticle(null);
           setComparisonStory({ headline, id });
           setComparisonOpen(true);
         }}
         onViewTimeline={(id, headline) => {
+          setIsPanelOpen(false);
+          setSelectedArticle(null);
           setTimelineStory({ id, headline });
           setTimelineOpen(true);
         }}
