@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { Thermometer, Cloud, Wind, Droplets } from "lucide-react";
+import { Thermometer, Cloud, Wind, Droplets, RefreshCw } from "lucide-react";
 import { PlaceData } from "@/hooks/use-places";
 import { PlaceSkeleton } from "./PlaceSkeleton";
+import { Badge } from "@/components/ui/badge";
 
 interface LiveStatusStripProps {
   placeData: PlaceData;
@@ -24,10 +25,20 @@ const getAqiBg = (aqi: number | null) => {
   return "from-red-500/20 to-red-500/5";
 };
 
-export function LiveStatusStrip({ placeData, isLoading }: LiveStatusStripProps) {
-  const { weather, aqi } = placeData;
+const formatFetchTime = (fetchedAt?: number): string => {
+  if (!fetchedAt) return "";
+  const diff = Date.now() - fetchedAt;
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ago`;
+};
 
-  if (isLoading) {
+export function LiveStatusStrip({ placeData, isLoading }: LiveStatusStripProps) {
+  const { weather, aqi, dataFreshness } = placeData;
+
+  if (isLoading && !weather && !aqi) {
     return (
       <div className="py-6">
         <PlaceSkeleton type="weather" />
@@ -38,6 +49,7 @@ export function LiveStatusStrip({ placeData, isLoading }: LiveStatusStripProps) 
   if (!weather?.current && !aqi) return null;
 
   const statusCards = [];
+  const isFresh = dataFreshness?.weather || dataFreshness?.aqi;
 
   if (weather?.current) {
     statusCards.push(
@@ -48,6 +60,7 @@ export function LiveStatusStrip({ placeData, isLoading }: LiveStatusStripProps) 
         sublabel: `Feels like ${weather.current.feels_like}°C`,
         gradient: "from-primary/20 to-primary/5",
         iconColor: "text-primary",
+        fetchedAt: weather.fetchedAt,
       },
       {
         icon: Cloud,
@@ -74,19 +87,28 @@ export function LiveStatusStrip({ placeData, isLoading }: LiveStatusStripProps) 
       icon: Wind,
       value: aqi.aqi !== null ? `AQI ${aqi.aqi}` : "N/A",
       label: "Air Quality",
-      sublabel: aqi.category,
+      sublabel: aqi.category || "Unknown",
       gradient: getAqiBg(aqi.aqi),
       iconColor: getAqiColor(aqi.aqi),
+      fetchedAt: aqi.fetchedAt,
+      station: aqi.station?.name,
     });
   }
 
   return (
     <div className="py-6 overflow-hidden">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-        <span className="text-xs text-muted-foreground font-medium">
-          Live • Updated just now
-        </span>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full animate-pulse ${isFresh ? "bg-green-500" : "bg-yellow-500"}`} />
+          <span className="text-xs text-muted-foreground font-medium">
+            {isFresh ? "Live" : "Cached"} • Updated {formatFetchTime(weather?.fetchedAt || aqi?.fetchedAt)}
+          </span>
+        </div>
+        {isFresh && (
+          <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600 border-green-500/20">
+            ✓ Latest
+          </Badge>
+        )}
       </div>
       <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
         {statusCards.map((card, index) => (
@@ -105,7 +127,12 @@ export function LiveStatusStrip({ placeData, isLoading }: LiveStatusStripProps) 
             </div>
             <div className="font-display font-bold text-xl">{card.value}</div>
             <div className="text-xs text-muted-foreground">{card.label}</div>
-            <div className="text-xs text-muted-foreground/70 mt-1 capitalize">{card.sublabel}</div>
+            <div className="text-xs text-muted-foreground/70 mt-1 capitalize truncate">{card.sublabel}</div>
+            {card.station && (
+              <div className="text-[10px] text-muted-foreground/50 mt-1 truncate" title={card.station}>
+                📍 {card.station}
+              </div>
+            )}
           </motion.div>
         ))}
       </div>
