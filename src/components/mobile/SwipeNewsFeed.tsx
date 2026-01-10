@@ -7,9 +7,12 @@ import { useCategoryPreferences } from "@/hooks/use-category-preferences";
 import { useHaptic } from "@/hooks/use-haptic";
 import { SwipeNewsCard } from "./SwipeNewsCard";
 import { 
-  Loader2, Wifi, WifiOff, ChevronLeft, ChevronRight, Settings, RefreshCw
+  Loader2, Wifi, WifiOff, ChevronLeft, ChevronRight, RefreshCw, Settings,
+  Home, Newspaper, Headphones, MapPin, User, MoreHorizontal, CloudOff, Cloud
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import type { NewsItem } from "@/components/NewsCard";
 
 interface SwipeNewsFeedProps {
@@ -48,8 +51,12 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
     cachedStories, 
     isOffline, 
     cacheStories, 
-    hasCachedStories 
+    hasCachedStories,
+    isSyncing,
+    cachedCount
   } = useOfflineCache();
+  
+  const location = useLocation();
 
   const { enabledCategories, isLoaded: categoriesLoaded } = useCategoryPreferences();
   const { trigger: haptic } = useHaptic();
@@ -60,7 +67,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
   const queryParams = {
     country: country?.code || "us",
     language: language?.code || "en",
-    pageSize: 20,
+    pageSize: 50, // Increased from 20 to 50
     feedType: "trending" as const,
     topic: currentCategory?.id === "all" ? undefined : currentCategory?.id,
   };
@@ -494,17 +501,32 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Offline indicator */}
+        {/* Offline/Sync indicator */}
         <AnimatePresence>
-          {isOffline && (
+          {(isOffline || isSyncing) && (
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="fixed top-1 left-1/2 -translate-x-1/2 z-50 bg-amber-500/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center gap-2"
+              className={`fixed top-1 left-1/2 -translate-x-1/2 z-50 backdrop-blur-md rounded-full px-4 py-1.5 flex items-center gap-2 shadow-lg ${
+                isSyncing 
+                  ? "bg-primary/90" 
+                  : "bg-amber-500/90"
+              }`}
             >
-              <WifiOff className="w-3 h-3 text-white" />
-              <span className="text-xs text-white font-medium">Offline Mode</span>
+              {isSyncing ? (
+                <>
+                  <Cloud className="w-3.5 h-3.5 text-white animate-pulse" />
+                  <span className="text-xs text-white font-medium">Syncing...</span>
+                </>
+              ) : (
+                <>
+                  <CloudOff className="w-3.5 h-3.5 text-white" />
+                  <span className="text-xs text-white font-medium">
+                    Offline • {cachedCount} stories cached
+                  </span>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -550,13 +572,69 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
               })}
             </div>
             
-            {/* Settings button */}
-            <Link 
-              to="/settings"
-              className="flex-shrink-0 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 active:bg-black/60"
-            >
-              <Settings className="w-4 h-4" />
-            </Link>
+            {/* More menu button with Sheet */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <motion.button 
+                  whileTap={{ scale: 0.9 }}
+                  className="flex-shrink-0 w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white shadow-lg border border-white/10"
+                >
+                  <MoreHorizontal className="w-5 h-5" />
+                </motion.button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72 bg-background/95 backdrop-blur-xl">
+                <div className="flex flex-col gap-1 mt-6">
+                  <Link
+                    to="/world"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Wifi className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <span className="font-medium">World News</span>
+                      <p className="text-xs text-muted-foreground">Global headlines</p>
+                    </div>
+                  </Link>
+                  <Link
+                    to="/topics"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Newspaper className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <span className="font-medium">Topics</span>
+                      <p className="text-xs text-muted-foreground">Browse by category</p>
+                    </div>
+                  </Link>
+                  <Link
+                    to="/saved"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Newspaper className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <span className="font-medium">Saved Articles</span>
+                      <p className="text-xs text-muted-foreground">Your bookmarks</p>
+                    </div>
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Settings className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <span className="font-medium">Settings</span>
+                      <p className="text-xs text-muted-foreground">Preferences & more</p>
+                    </div>
+                  </Link>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
           
           {/* Swipe hint */}
@@ -650,13 +728,55 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
 
         {/* Loading more indicator */}
         {isFetchingNextPage && (
-          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50">
-            <div className="bg-black/40 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2">
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
+            <div className="bg-black/60 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
               <Loader2 className="w-4 h-4 animate-spin text-white" />
-              <span className="text-xs text-white">Loading more...</span>
+              <span className="text-xs text-white font-medium">Loading more...</span>
             </div>
           </div>
         )}
+
+        {/* Bottom Navigation Bar */}
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border/50 safe-area-bottom">
+          <div className="flex items-center justify-around py-2 px-2">
+            {[
+              { path: "/", icon: Home, label: "Home" },
+              { path: "/news", icon: Newspaper, label: "News" },
+              { path: "/listen", icon: Headphones, label: "Listen" },
+              { path: "/places", icon: MapPin, label: "Places" },
+              { path: "/profile", icon: User, label: "Profile" },
+            ].map((item) => {
+              const isActive = location.pathname === item.path || 
+                (item.path === "/news" && location.pathname === "/");
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className="flex flex-col items-center gap-0.5 min-w-[56px] py-1"
+                >
+                  <motion.div
+                    whileTap={{ scale: 0.9 }}
+                    className={`p-2 rounded-xl transition-colors ${
+                      isActive 
+                        ? "bg-primary/15" 
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 transition-colors ${
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    }`} />
+                  </motion.div>
+                  <span className={`text-[10px] font-medium transition-colors ${
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  }`}>
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
       </div>
     </div>
   );
