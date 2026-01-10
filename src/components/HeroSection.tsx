@@ -59,37 +59,37 @@ export function HeroSection() {
             <span className="text-sm font-medium text-foreground">AI-Powered Global Intelligence</span>
           </motion.div>
 
-          {/* Main headline */}
+          {/* Main headline - SEO H1 */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
             className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6"
           >
-            <span className="text-foreground">NEW</span>
-            <span className="gradient-text">STACK</span>
+            <span className="text-foreground">Free AI News, Summaries & Local Intelligence</span>
           </motion.h1>
 
-          {/* Tagline */}
+          {/* Brand */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
             className="text-2xl sm:text-3xl md:text-4xl font-display font-medium text-foreground/90 mb-4"
           >
-            The world. In real time.
+            <span className="text-foreground">NEW</span>
+            <span className="gradient-text">STACK</span>
+            <span className="text-muted-foreground"> — The World. In Real Time.</span>
           </motion.p>
 
-          {/* Subtext */}
+          {/* Subtext with SEO keywords */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.6 }}
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-12"
           >
-            Listen, read and understand what's happening anywhere in the world.
-            <br className="hidden sm:block" />
-            Powered by AI. Personalized for you.
+            The best free AI news app with trusted sources, audio listening, trending topics, 
+            and place-based intelligence. No paywalls, no ads pressure — just quality journalism.
           </motion.p>
 
           {/* CTA Buttons */}
@@ -127,9 +127,10 @@ export function HeroSection() {
             className="flex items-center justify-center gap-8 sm:gap-12 mt-16 pt-8 border-t border-border/30"
           >
             {[
-              { value: "10M+", label: "Daily Readers" },
-              { value: "195", label: "Countries" },
-              { value: "50+", label: "Languages" },
+              { value: "307+", label: "Stories/Day" },
+              { value: "15+", label: "Trusted Sources" },
+              { value: "50", label: "Free Audio/Day" },
+              { value: "∞", label: "Free Reading" },
             ].map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="text-2xl sm:text-3xl font-display font-bold text-foreground">{stat.value}</div>

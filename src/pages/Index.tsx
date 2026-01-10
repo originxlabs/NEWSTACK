@@ -5,6 +5,7 @@ import { NewsFeed } from "@/components/NewsFeed";
 import { PlacesSection } from "@/components/PlacesSection";
 import { Footer } from "@/components/Footer";
 import { BreakingNewsBanner } from "@/components/BreakingNewsBanner";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePreferences } from "@/contexts/PreferencesContext";
 
@@ -53,6 +54,7 @@ const Index = () => {
         <PlacesSection />
       </main>
       <Footer />
+      <PWAInstallPrompt />
     </div>
   );
 };

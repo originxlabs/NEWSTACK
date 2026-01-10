@@ -15,7 +15,7 @@ const navLinks = [
   { name: "Listen", href: "/listen", icon: "🎧" },
   { name: "World", href: "/world", icon: "🌍" },
   { name: "Places", href: "/places", icon: "📍" },
-  { name: "Topics", href: "/topics", icon: "🧠" },
+  { name: "Features", href: "/features", icon: "✨" },
   { name: "Support", href: "/support", icon: "❤️" },
 ];
 

@@ -1,51 +1,59 @@
 {
-  "name": "NEWSTACK",
+  "name": "NEWSTACK — Free AI News App",
   "short_name": "NEWSTACK",
-  "description": "The world's most intelligent news platform. AI-powered, personalized, and always up to date.",
-  "start_url": "/",
+  "description": "Free AI-powered news app with trusted summaries, audio news, trending topics, and local intelligence. No paywalls, ever.",
+  "start_url": "/?source=pwa",
+  "id": "/",
   "display": "standalone",
-  "background_color": "#0a0f14",
+  "background_color": "#ffffff",
   "theme_color": "#6366f1",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["news", "lifestyle", "productivity"],
+  "categories": ["news", "lifestyle", "productivity", "education"],
   "screenshots": [],
   "shortcuts": [
     {
-      "name": "Feed",
+      "name": "Latest News",
       "short_name": "Feed",
-      "url": "/",
+      "description": "View the latest AI-curated news",
+      "url": "/?source=pwa",
       "icons": [{ "src": "/logo.svg", "sizes": "any" }]
     },
     {
-      "name": "Listen",
+      "name": "Listen to News",
       "short_name": "Listen",
-      "url": "/listen",
+      "description": "Audio news briefings",
+      "url": "/listen?source=pwa",
       "icons": [{ "src": "/logo.svg", "sizes": "any" }]
     },
     {
-      "name": "Places",
+      "name": "Explore Places",
       "short_name": "Places",
-      "url": "/places",
+      "description": "Local intelligence & place insights",
+      "url": "/places?source=pwa",
+      "icons": [{ "src": "/logo.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Trending Now",
+      "short_name": "Trending",
+      "description": "What's trending globally",
+      "url": "/world?source=pwa",
       "icons": [{ "src": "/logo.svg", "sizes": "any" }]
     }
   ],
@@ -57,5 +65,13 @@
       "text": "text",
       "url": "url"
     }
-  }
+  },
+  "prefer_related_applications": false,
+  "display_override": ["standalone", "minimal-ui"],
+  "protocol_handlers": [
+    {
+      "protocol": "web+newstack",
+      "url": "/?url=%s"
+    }
+  ]
 }
