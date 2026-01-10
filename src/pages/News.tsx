@@ -159,6 +159,8 @@ export default function News() {
   const [timelineStory, setTimelineStory] = useState<{ id: string; headline: string } | null>(null);
   const [readMoreOpen, setReadMoreOpen] = useState(false);
   const [readMoreArticle, setReadMoreArticle] = useState<NewsItem | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const loaderRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -352,6 +354,26 @@ export default function News() {
     setSearchQuery("");
   }, []);
 
+  // Manual refresh handler
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setLastRefreshed(new Date());
+    setIsRefreshing(false);
+  }, [refetch]);
+
+  // Format last refreshed time
+  const getLastRefreshedText = useCallback(() => {
+    const now = new Date();
+    const diffMs = now.getTime() - lastRefreshed.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffSecs = Math.floor(diffMs / 1000);
+    
+    if (diffSecs < 60) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    return format(lastRefreshed, "h:mm a");
+  }, [lastRefreshed]);
+
   const hasActiveFilters = !selectedCategories.includes("all") || sortBy !== "latest" || selectedSource !== "all" || selectedDate || searchQuery;
 
   // Infinite scroll
@@ -497,7 +519,7 @@ export default function News() {
         <section className="sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b border-border/50">
           <div className="container mx-auto px-4 py-3">
             <div className="flex flex-col gap-3">
-              {/* Feed Type Tabs */}
+              {/* Feed Type Tabs with Refresh Indicator */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {feedTabs.map((tab) => (
                   <Button
@@ -512,7 +534,25 @@ export default function News() {
                   </Button>
                 ))}
                 
-                <div className="ml-auto flex items-center gap-2">
+                {/* Refresh Indicator */}
+                <div className="ml-auto flex items-center gap-3">
+                  <button
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                  >
+                    <motion.div
+                      animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
+                      transition={isRefreshing ? { duration: 1, repeat: Infinity, ease: "linear" } : {}}
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    </motion.div>
+                    <span className="hidden sm:inline">
+                      {isRefreshing ? "Refreshing..." : `Updated ${getLastRefreshedText()}`}
+                    </span>
+                  </button>
+                  
+                  <div className="h-4 w-px bg-border hidden sm:block" />
                   {/* Date Picker */}
                   <Popover>
                     <PopoverTrigger asChild>

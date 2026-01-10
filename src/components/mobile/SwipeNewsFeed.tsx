@@ -32,6 +32,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
   const [categoryIndex, setCategoryIndex] = useState(0);
   const [showCategoryHint, setShowCategoryHint] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const containerRef = useRef<HTMLDivElement>(null);
   const categoryContainerRef = useRef<HTMLDivElement>(null);
   const touchRef = useRef<TouchState>({
@@ -234,6 +235,19 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
   const handleRefresh = async () => {
     setCurrentIndex(0);
     await refetch();
+    setLastRefreshed(new Date());
+  };
+
+  // Format last refreshed time
+  const getLastRefreshedText = () => {
+    const now = new Date();
+    const diffMs = now.getTime() - lastRefreshed.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffSecs = Math.floor(diffMs / 1000);
+    
+    if (diffSecs < 60) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    return lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   // Keyboard navigation
@@ -424,11 +438,18 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
           </AnimatePresence>
         </div>
 
-        {/* Story counter */}
-        <div className="fixed top-12 right-3 z-40 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1">
-          <span className="text-xs text-white font-medium">
-            {currentIndex + 1} / {displayItems.length}
-          </span>
+        {/* Story counter with last refresh time */}
+        <div className="fixed top-12 right-3 z-40 flex flex-col items-end gap-1">
+          <div className="bg-black/40 backdrop-blur-sm rounded-full px-3 py-1">
+            <span className="text-xs text-white font-medium">
+              {currentIndex + 1} / {displayItems.length}
+            </span>
+          </div>
+          <div className="bg-black/30 backdrop-blur-sm rounded-full px-2 py-0.5">
+            <span className="text-[10px] text-white/70">
+              ↻ {getLastRefreshedText()}
+            </span>
+          </div>
         </div>
 
         {/* Category navigation arrows */}
