@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Heart, Coffee, Zap, Crown, Check, ExternalLink, Loader2 } from "lucide-react";
+import { Heart, Coffee, Zap, Crown, Check, ExternalLink, Loader2, Sparkles } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,35 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+
+declare global {
+  interface Window {
+    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
+  }
+}
+
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpayResponse) => void;
+  prefill: { email?: string };
+  theme: { color: string };
+  modal?: { ondismiss?: () => void };
+}
+
+interface RazorpayInstance {
+  open: () => void;
+}
+
+interface RazorpayResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
 
 const donationTiers = [
   {
@@ -51,40 +80,131 @@ const donationTiers = [
   },
 ];
 
+const premiumFeatures = [
+  { icon: "🎧", title: "Unlimited TTS Listens", description: "Listen to unlimited articles with AI voice" },
+  { icon: "🚫", title: "Ad-Free Experience", description: "No promotional content, ever" },
+  { icon: "⭐", title: "Exclusive Topics", description: "Access premium news sources and topics" },
+  { icon: "📱", title: "Offline Reading", description: "Download articles for offline access" },
+];
+
 const Support = () => {
   const [selectedTier, setSelectedTier] = useState<string | null>("supporter");
   const [customAmount, setCustomAmount] = useState("");
   const [donationType, setDonationType] = useState<"one-time" | "monthly">("one-time");
   const [isProcessing, setIsProcessing] = useState(false);
-  const { user } = useAuth();
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const { user, refreshProfile } = useAuth();
 
-  const handleDonate = async (amount: number) => {
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => setRazorpayLoaded(true);
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  const getSelectedAmount = (): number => {
+    if (customAmount) {
+      return parseInt(customAmount) || 0;
+    }
+    return donationTiers.find(t => t.id === selectedTier)?.amount || 0;
+  };
+
+  const handleDonate = async () => {
+    const amount = getSelectedAmount();
+    
+    if (amount < 10) {
+      toast.error("Minimum donation amount is ₹10");
+      return;
+    }
+
+    if (!razorpayLoaded) {
+      toast.error("Payment gateway is loading. Please try again.");
+      return;
+    }
+
     setIsProcessing(true);
     
     try {
-      // Create donation record
-      const { error } = await supabase.from("donations").insert({
-        user_id: user?.id || null,
-        email: user?.email || null,
-        amount: amount,
-        currency: "INR",
-        donation_type: donationType,
-        status: "initiated",
+      // Create Razorpay order via edge function
+      const { data, error } = await supabase.functions.invoke("create-razorpay-order", {
+        body: {
+          amount,
+          email: user?.email || null,
+          donationType,
+          userId: user?.id || null,
+        },
       });
 
-      if (error) throw error;
+      if (error || !data) {
+        throw new Error(error?.message || "Failed to create order");
+      }
 
-      // Open Razorpay (in production, this would be a proper integration)
-      // For now, show a success message
-      toast.success(
-        "Thank you for your support! 💚",
-        { description: "Razorpay payment gateway will be integrated for production." }
-      );
+      // Open Razorpay checkout
+      const options: RazorpayOptions = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        name: "NEWSTACK",
+        description: `${donationType === "monthly" ? "Monthly" : "One-time"} Donation - ₹${amount}`,
+        order_id: data.orderId,
+        handler: async (response: RazorpayResponse) => {
+          // Verify payment
+          try {
+            const verifyResult = await supabase.functions.invoke("verify-razorpay-payment", {
+              body: {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                userId: user?.id || null,
+              },
+            });
+
+            if (verifyResult.error) {
+              toast.error("Payment verification failed");
+            } else {
+              toast.success("Thank you for your support! 💚 Premium features activated!");
+              if (user) {
+                await refreshProfile();
+              }
+            }
+          } catch (err) {
+            console.error("Verification error:", err);
+            toast.error("Payment verification failed");
+          }
+        },
+        prefill: {
+          email: user?.email || undefined,
+        },
+        theme: {
+          color: "#10b981",
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessing(false);
+          },
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
     } catch (err) {
       console.error("Donation error:", err);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleCustomAmountChange = (value: string) => {
+    const num = parseInt(value) || 0;
+    setCustomAmount(value);
+    if (num >= 10) {
+      setSelectedTier(null);
     }
   };
 
@@ -109,12 +229,32 @@ const Support = () => {
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-4">
               NEWSTACK is free for everyone. No paywalls. No forced subscriptions. No ads.
-              Your support helps us stay independent and keep quality journalism accessible to all.
+              Your support helps us stay independent and unlocks premium features for you.
             </p>
-            <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-              We believe everyone deserves access to trustworthy news. NEWSTACK is community-funded 
-              by readers like you who value transparency and accuracy over clickbait.
-            </p>
+          </motion.div>
+
+          {/* Premium Features */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="glass-card rounded-2xl p-6 mb-8"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-xl font-semibold">Unlock Premium Features</h2>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {premiumFeatures.map((feature) => (
+                <div key={feature.title} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                  <span className="text-2xl">{feature.icon}</span>
+                  <div>
+                    <h3 className="font-medium text-sm">{feature.title}</h3>
+                    <p className="text-xs text-muted-foreground">{feature.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </motion.div>
 
           {/* Donation Type Toggle */}
@@ -154,11 +294,14 @@ const Support = () => {
               >
                 <Card
                   className={`relative p-6 cursor-pointer transition-all hover:scale-[1.02] ${
-                    selectedTier === tier.id
+                    selectedTier === tier.id && !customAmount
                       ? "ring-2 ring-primary bg-primary/5"
                       : "hover:bg-muted/50"
                   }`}
-                  onClick={() => setSelectedTier(tier.id)}
+                  onClick={() => {
+                    setSelectedTier(tier.id);
+                    setCustomAmount("");
+                  }}
                 >
                   {tier.popular && (
                     <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary">
@@ -208,19 +351,17 @@ const Support = () => {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
                 <Input
                   type="number"
-                  placeholder="500"
+                  placeholder="Minimum ₹10"
+                  min={10}
                   value={customAmount}
-                  onChange={(e) => {
-                    setCustomAmount(e.target.value);
-                    setSelectedTier(null);
-                  }}
+                  onChange={(e) => handleCustomAmountChange(e.target.value)}
                   className="pl-8 h-12"
                 />
               </div>
               <Button
                 size="lg"
-                onClick={() => handleDonate(Number(customAmount) || donationTiers.find(t => t.id === selectedTier)?.amount || 299)}
-                disabled={isProcessing || (!customAmount && !selectedTier)}
+                onClick={handleDonate}
+                disabled={isProcessing || getSelectedAmount() < 10}
                 className="px-8"
               >
                 {isProcessing ? (
@@ -228,9 +369,14 @@ const Support = () => {
                 ) : (
                   <Heart className="h-4 w-4 mr-2" />
                 )}
-                Donate Now
+                {isProcessing ? "Processing..." : "Donate Now"}
               </Button>
             </div>
+            {customAmount && parseInt(customAmount) < 10 && parseInt(customAmount) > 0 && (
+              <p className="text-center text-sm text-destructive mt-2">
+                Minimum amount is ₹10
+              </p>
+            )}
           </motion.div>
 
           {/* Trust Section */}
@@ -245,7 +391,7 @@ const Support = () => {
               <div className="glass-card rounded-xl p-6">
                 <h4 className="font-semibold mb-2">🌍 Free Forever</h4>
                 <p className="text-sm text-muted-foreground">
-                  No paywalls. No ads. No forced subscriptions. Every user gets full access to all news and 50 free audio plays daily.
+                  No paywalls. No ads. No forced subscriptions. Every user gets full access to all news.
                 </p>
               </div>
               <div className="glass-card rounded-xl p-6">

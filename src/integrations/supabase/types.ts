@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          role?: string
+        }
+        Relationships: []
+      }
       breaking_news: {
         Row: {
           country_code: string | null
@@ -86,6 +110,48 @@ export type Database = {
         }
         Relationships: []
       }
+      click_events: {
+        Row: {
+          created_at: string
+          element_id: string | null
+          element_text: string | null
+          element_type: string | null
+          id: string
+          metadata: Json | null
+          page_path: string | null
+          session_id: string | null
+          user_id: string | null
+          x_position: number | null
+          y_position: number | null
+        }
+        Insert: {
+          created_at?: string
+          element_id?: string | null
+          element_text?: string | null
+          element_type?: string | null
+          id?: string
+          metadata?: Json | null
+          page_path?: string | null
+          session_id?: string | null
+          user_id?: string | null
+          x_position?: number | null
+          y_position?: number | null
+        }
+        Update: {
+          created_at?: string
+          element_id?: string | null
+          element_text?: string | null
+          element_type?: string | null
+          id?: string
+          metadata?: Json | null
+          page_path?: string | null
+          session_id?: string | null
+          user_id?: string | null
+          x_position?: number | null
+          y_position?: number | null
+        }
+        Relationships: []
+      }
       countries: {
         Row: {
           code: string
@@ -117,6 +183,39 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      cron_job_logs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          job_name: string
+          metadata: Json | null
+          records_processed: number | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          job_name: string
+          metadata?: Json | null
+          records_processed?: number | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          job_name?: string
+          metadata?: Json | null
+          records_processed?: number | null
+          status?: string
+        }
+        Relationships: []
       }
       discussion_reactions: {
         Row: {
@@ -208,7 +307,12 @@ export type Database = {
           id: string
           order_id: string | null
           payment_id: string | null
+          premium_granted: boolean | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          razorpay_signature: string | null
           status: string | null
+          subscription_months: number | null
           user_id: string | null
         }
         Insert: {
@@ -220,7 +324,12 @@ export type Database = {
           id?: string
           order_id?: string | null
           payment_id?: string | null
+          premium_granted?: boolean | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
           status?: string | null
+          subscription_months?: number | null
           user_id?: string | null
         }
         Update: {
@@ -232,7 +341,12 @@ export type Database = {
           id?: string
           order_id?: string | null
           payment_id?: string | null
+          premium_granted?: boolean | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
           status?: string | null
+          subscription_months?: number | null
           user_id?: string | null
         }
         Relationships: []
@@ -424,6 +538,42 @@ export type Database = {
         }
         Relationships: []
       }
+      page_views: {
+        Row: {
+          country: string | null
+          created_at: string
+          device_type: string | null
+          id: string
+          page_path: string
+          referrer: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          page_path: string
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          page_path?: string
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -432,10 +582,14 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          is_premium: boolean | null
           language_code: string | null
           phone: string | null
           preferred_mode: string | null
+          premium_expires_at: string | null
+          premium_features: Json | null
           subscription_tier: string | null
+          total_donations: number | null
           updated_at: string
           user_id: string
         }
@@ -446,10 +600,14 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          is_premium?: boolean | null
           language_code?: string | null
           phone?: string | null
           preferred_mode?: string | null
+          premium_expires_at?: string | null
+          premium_features?: Json | null
           subscription_tier?: string | null
+          total_donations?: number | null
           updated_at?: string
           user_id: string
         }
@@ -460,10 +618,14 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          is_premium?: boolean | null
           language_code?: string | null
           phone?: string | null
           preferred_mode?: string | null
+          premium_expires_at?: string | null
+          premium_features?: Json | null
           subscription_tier?: string | null
+          total_donations?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -520,6 +682,45 @@ export type Database = {
           name?: string
           priority?: number | null
           url?: string
+        }
+        Relationships: []
+      }
+      rss_ingestion_logs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          feed_id: string | null
+          feed_name: string | null
+          feed_url: string | null
+          id: string
+          status: string
+          stories_fetched: number | null
+          stories_inserted: number | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          feed_id?: string | null
+          feed_name?: string | null
+          feed_url?: string | null
+          id?: string
+          status: string
+          stories_fetched?: number | null
+          stories_inserted?: number | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          feed_id?: string | null
+          feed_name?: string | null
+          feed_url?: string | null
+          id?: string
+          status?: string
+          stories_fetched?: number | null
+          stories_inserted?: number | null
         }
         Relationships: []
       }
