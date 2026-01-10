@@ -919,12 +919,20 @@ export default function News() {
           }
         }}
         onCompare={(headline, id) => {
-          setComparisonStory({ headline, id });
-          setComparisonOpen(true);
+          setReadMoreOpen(false);
+          setReadMoreArticle(null);
+          setTimeout(() => {
+            setComparisonStory({ headline, id });
+            setComparisonOpen(true);
+          }, 150);
         }}
         onViewTimeline={(id, headline) => {
-          setTimelineStory({ id, headline });
-          setTimelineOpen(true);
+          setReadMoreOpen(false);
+          setReadMoreArticle(null);
+          setTimeout(() => {
+            setTimelineStory({ id, headline });
+            setTimelineOpen(true);
+          }, 150);
         }}
       />
     </div>

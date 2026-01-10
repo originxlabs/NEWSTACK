@@ -20,6 +20,9 @@ import Support from "./pages/Support";
 import Profile from "./pages/Profile";
 import Features from "./pages/Features";
 import SavedArticles from "./pages/SavedArticles";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import RefundPolicy from "./pages/RefundPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,11 +72,12 @@ const App = () => (
                 <Route path="/pricing" element={<Support />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/saved" element={<SavedArticles />} />
-                {/* Legal pages - redirect to support for now */}
-                <Route path="/privacy" element={<Support />} />
-                <Route path="/terms" element={<Support />} />
-                <Route path="/cookies" element={<Support />} />
-                <Route path="/licenses" element={<Support />} />
+                {/* Legal pages */}
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/refund" element={<RefundPolicy />} />
+                <Route path="/cookies" element={<PrivacyPolicy />} />
+                <Route path="/licenses" element={<TermsOfService />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
