@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePWAMode } from "@/hooks/use-pwa-mode";
 import { SwipeNewsFeed } from "./SwipeNewsFeed";
+import { MobileSettings } from "./MobileSettings";
 import { 
   Home, Newspaper, Headphones, MapPin, User, Menu, X, 
   Globe, Bookmark, Settings, LogIn
@@ -28,7 +29,8 @@ const menuItems = [
   { path: "/world", icon: Globe, label: "World News" },
   { path: "/topics", icon: Newspaper, label: "Topics" },
   { path: "/saved", icon: Bookmark, label: "Saved Articles" },
-  { path: "/pricing", icon: Settings, label: "Premium" },
+  { path: "/settings", icon: Settings, label: "Settings" },
+  { path: "/pricing", icon: Bookmark, label: "Premium" },
 ];
 
 export function MobileAppWrapper({ children }: MobileAppWrapperProps) {
@@ -56,6 +58,12 @@ export function MobileAppWrapper({ children }: MobileAppWrapperProps) {
   // For desktop or non-PWA, render normal content
   if (!isPWA || (!isMobile && !isTablet)) {
     return <>{children}</>;
+  }
+
+  // Show settings page
+  const isSettingsPage = location.pathname === "/settings";
+  if (isSettingsPage && isPWA && (isMobile || isTablet)) {
+    return <MobileSettings />;
   }
 
   // Show swipe mode on home page for mobile PWA

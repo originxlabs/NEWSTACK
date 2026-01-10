@@ -3,32 +3,19 @@ import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { useInfiniteNews } from "@/hooks/use-news";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useOfflineCache } from "@/hooks/use-offline-cache";
+import { useCategoryPreferences } from "@/hooks/use-category-preferences";
+import { useHaptic } from "@/hooks/use-haptic";
 import { SwipeNewsCard } from "./SwipeNewsCard";
 import { PullToRefresh } from "./PullToRefresh";
 import { 
-  Loader2, Wifi, WifiOff, ChevronLeft, ChevronRight, 
-  Briefcase, Cpu, Globe, Trophy, TrendingUp, Heart, Film, Leaf, Rocket, FlaskConical, Landmark
+  Loader2, Wifi, WifiOff, ChevronLeft, ChevronRight, Settings
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 import type { NewsItem } from "@/components/NewsCard";
 
 interface SwipeNewsFeedProps {
   className?: string;
 }
-
-const CATEGORIES = [
-  { id: "all", name: "All", icon: TrendingUp },
-  { id: "business", name: "Business", icon: Briefcase },
-  { id: "tech", name: "Tech", icon: Cpu },
-  { id: "world", name: "World", icon: Globe },
-  { id: "sports", name: "Sports", icon: Trophy },
-  { id: "health", name: "Health", icon: Heart },
-  { id: "entertainment", name: "Entertainment", icon: Film },
-  { id: "climate", name: "Climate", icon: Leaf },
-  { id: "startups", name: "Startups", icon: Rocket },
-  { id: "science", name: "Science", icon: FlaskConical },
-  { id: "politics", name: "Politics", icon: Landmark },
-];
 
 export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
   const { country, language } = usePreferences();
@@ -46,7 +33,11 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
     hasCachedStories 
   } = useOfflineCache();
 
-  const currentCategory = CATEGORIES[categoryIndex];
+  const { enabledCategories, isLoaded: categoriesLoaded } = useCategoryPreferences();
+  const { trigger: haptic } = useHaptic();
+  const hapticEnabled = localStorage.getItem("newstack_haptic_enabled") !== "false";
+
+  const currentCategory = enabledCategories[categoryIndex] || enabledCategories[0];
   
   const queryParams = {
     country: country?.code || "us",
@@ -123,19 +114,23 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
     if (swipeDirection === "up" && currentIndex < displayItems.length - 1) {
       setDirection(1);
       setCurrentIndex((prev) => prev + 1);
+      if (hapticEnabled) haptic("light");
     } else if (swipeDirection === "down" && currentIndex > 0) {
       setDirection(-1);
       setCurrentIndex((prev) => prev - 1);
+      if (hapticEnabled) haptic("light");
     }
-  }, [currentIndex, displayItems.length]);
+  }, [currentIndex, displayItems.length, hapticEnabled, haptic]);
 
   const handleCategorySwipe = useCallback((swipeDirection: "left" | "right") => {
-    if (swipeDirection === "left" && categoryIndex < CATEGORIES.length - 1) {
+    if (swipeDirection === "left" && categoryIndex < enabledCategories.length - 1) {
       setCategoryIndex((prev) => prev + 1);
+      if (hapticEnabled) haptic("medium");
     } else if (swipeDirection === "right" && categoryIndex > 0) {
       setCategoryIndex((prev) => prev - 1);
+      if (hapticEnabled) haptic("medium");
     }
-  }, [categoryIndex]);
+  }, [categoryIndex, enabledCategories.length, hapticEnabled, haptic]);
 
   const handleDragEnd = useCallback((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const threshold = 50;
@@ -277,28 +272,41 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
 
         {/* Category bar */}
         <div className="fixed top-2 left-0 right-0 z-40 px-2">
-          <div 
-            ref={categoryContainerRef}
-            className="flex gap-2 overflow-x-auto scrollbar-hide py-1"
-          >
-            {CATEGORIES.map((cat, idx) => {
-              const Icon = cat.icon;
-              const isActive = idx === categoryIndex;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setCategoryIndex(idx)}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    isActive 
-                      ? "bg-primary text-primary-foreground shadow-lg" 
-                      : "bg-black/40 backdrop-blur-sm text-white/80 hover:bg-black/60"
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {cat.name}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            <div 
+              ref={categoryContainerRef}
+              className="flex-1 flex gap-2 overflow-x-auto scrollbar-hide py-1"
+            >
+              {enabledCategories.map((cat, idx) => {
+                const Icon = cat.icon;
+                const isActive = idx === categoryIndex;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setCategoryIndex(idx);
+                      if (hapticEnabled) haptic("light");
+                    }}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      isActive 
+                        ? "bg-primary text-primary-foreground shadow-lg" 
+                        : "bg-black/40 backdrop-blur-sm text-white/80 hover:bg-black/60"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+            
+            {/* Settings button */}
+            <Link 
+              to="/settings"
+              className="flex-shrink-0 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-black/60"
+            >
+              <Settings className="w-4 h-4" />
+            </Link>
           </div>
           
           {/* Swipe hint */}
@@ -334,7 +342,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
             <ChevronLeft className="w-6 h-6" />
           </button>
         )}
-        {categoryIndex < CATEGORIES.length - 1 && (
+        {categoryIndex < enabledCategories.length - 1 && (
           <button
             onClick={() => handleCategorySwipe("left")}
             className="fixed right-2 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 hover:bg-black/50"
