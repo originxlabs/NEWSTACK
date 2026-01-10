@@ -33,11 +33,16 @@ const topics = [
 ];
 
 // Transform API article to NewsItem format
+// Transform API article to NewsItem format
 function transformArticle(article: NewsArticle, feedType: FeedType): NewsItem {
   const publishedDate = new Date(article.published_at);
   const now = new Date();
   const diffHours = Math.floor((now.getTime() - publishedDate.getTime()) / (1000 * 60 * 60));
   const timestamp = diffHours < 1 ? "Just now" : diffHours < 24 ? `${diffHours}h ago` : `${Math.floor(diffHours / 24)}d ago`;
+
+  // Determine location relevance from the article data
+  const locationRelevance = (article as any).location_relevance || 
+    (article.is_global ? "Global" : "Country") as "Local" | "Country" | "Global";
 
   return {
     id: article.id,
@@ -56,8 +61,9 @@ function transformArticle(article: NewsArticle, feedType: FeedType): NewsItem {
     countryCode: article.country_code || undefined,
     isGlobal: article.is_global,
     isBreaking: diffHours < 2 && feedType === "recent",
-    isTrending: feedType === "trending",
+    isTrending: feedType === "trending" || (article.source_count && article.source_count >= 2),
     sourceCount: article.source_count,
+    locationRelevance,
   };
 }
 

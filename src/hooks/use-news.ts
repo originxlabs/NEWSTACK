@@ -22,6 +22,7 @@ export interface NewsArticle {
   is_global: boolean;
   country_code: string | null;
   source_count?: number;
+  location_relevance?: "Local" | "Country" | "Global";
 }
 
 interface FetchNewsParams {

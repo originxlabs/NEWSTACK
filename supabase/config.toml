@@ -5,3 +5,45 @@ verify_jwt = false
 
 [functions.text-to-speech]
 verify_jwt = false
+
+[functions.ingest-rss]
+verify_jwt = false
+
+[functions.get-stories]
+verify_jwt = false
+
+[functions.places-search]
+verify_jwt = false
+
+[functions.places-details]
+verify_jwt = false
+
+[functions.places-weather]
+verify_jwt = false
+
+[functions.places-nearby]
+verify_jwt = false
+
+[functions.places-news]
+verify_jwt = false
+
+[functions.places-aqi]
+verify_jwt = false
+
+[functions.places-airports]
+verify_jwt = false
+
+[functions.places-ai-summary]
+verify_jwt = false
+
+[functions.places-ask]
+verify_jwt = false
+
+[functions.summarize-news]
+verify_jwt = false
+
+# Schedule RSS ingestion every 10 minutes
+[[cron]]
+name = "ingest-rss-cron"
+schedule = "*/10 * * * *"
+function = "ingest-rss"

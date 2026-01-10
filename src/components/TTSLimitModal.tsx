@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Heart, Headphones, Coffee, CreditCard, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
+import { Heart, Headphones, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
@@ -12,19 +12,18 @@ interface TTSLimitModalProps {
 
 export function TTSLimitModal({ isOpen, onClose, usedCount, maxCount }: TTSLimitModalProps) {
   const handleDonate = () => {
-    // In production, integrate with Razorpay
-    window.open("https://razorpay.com", "_blank");
+    window.location.href = "/support";
     onClose();
   };
 
   const handleUpgrade = () => {
-    window.location.href = "/pricing";
+    window.location.href = "/support";
     onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 overflow-hidden">
+      <DialogContent className="max-w-md p-0 overflow-hidden bg-background">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -53,7 +52,7 @@ export function TTSLimitModal({ isOpen, onClose, usedCount, maxCount }: TTSLimit
             <div className="w-full h-2 bg-muted rounded-full overflow-hidden mb-6">
               <div 
                 className="h-full bg-gradient-to-r from-primary to-purple-500"
-                style={{ width: `${(usedCount / maxCount) * 100}%` }}
+                style={{ width: `${Math.min((usedCount / maxCount) * 100, 100)}%` }}
               />
             </div>
 
@@ -71,7 +70,7 @@ export function TTSLimitModal({ isOpen, onClose, usedCount, maxCount }: TTSLimit
                 onClick={handleDonate}
               >
                 <Heart className="w-5 h-5 fill-current" />
-                Support NEWSTACK
+                Donate & Support NEWSTACK
               </Button>
               
               <Button 

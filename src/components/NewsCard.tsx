@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Headphones, Bookmark, Heart, Share2, TrendingUp, Shield, ChevronRight, Pause, Play, Loader2, Flag, Clock, ExternalLink } from "lucide-react";
+import { Headphones, Bookmark, Heart, Share2, TrendingUp, Shield, ChevronRight, Pause, Play, Loader2, Flag, Clock, ExternalLink, MapPin, Globe, Building2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTTS } from "@/hooks/use-tts";
+import { useTTSLimit } from "@/hooks/use-tts-limit";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { toast } from "sonner";
 import { NewsDetailModal } from "@/components/NewsDetailModal";
+import { TTSLimitModal } from "@/components/TTSLimitModal";
 import { DiscussionButton } from "@/components/discussions/DiscussionButton";
 
 export interface NewsItem {
@@ -29,6 +31,7 @@ export interface NewsItem {
   isBreaking?: boolean;
   isTrending?: boolean;
   sourceCount?: number;
+  locationRelevance?: "Local" | "Country" | "Global";
 }
 
 interface NewsCardProps {
@@ -58,23 +61,45 @@ const sentimentConfig = {
 };
 
 export function NewsCard({ news, index }: NewsCardProps) {
-  const { language } = usePreferences();
+  const { language, country } = usePreferences();
   const { speak, toggle, isLoading, isPlaying, progress, stop } = useTTS({
     language: language?.code || "en",
   });
+  const { incrementUsage, canPlay, showLimitModal, closeLimitModal, usedCount, maxCount } = useTTSLimit();
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
 
   const sentiment = sentimentConfig[news.sentiment] || sentimentConfig.neutral;
 
+  // Determine location relevance
+  const locationRelevance = news.locationRelevance || (
+    news.isGlobal ? "Global" : 
+    news.countryCode === country?.code ? "Country" : 
+    news.countryCode ? "Country" : "Global"
+  );
+
+  const locationBadgeConfig = {
+    Local: { icon: MapPin, color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+    Country: { icon: Building2, color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+    Global: { icon: Globe, color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+  };
+
   const handleListen = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isPlaying) {
       toggle();
     } else if (!isLoading) {
-      const textToSpeak = news.headline.substring(0, 150);
-      await speak(textToSpeak);
+      // Check TTS limit before playing
+      if (!canPlay()) {
+        return; // Modal will be shown by the hook
+      }
+      
+      // Increment usage and play
+      if (incrementUsage()) {
+        const textToSpeak = news.headline.substring(0, 150);
+        await speak(textToSpeak);
+      }
     }
   };
 
@@ -174,10 +199,17 @@ export function NewsCard({ news, index }: NewsCardProps) {
                     <Badge className={topicColors[news.topic.toLowerCase()] || "bg-primary/10 text-primary"}>
                       {news.topic}
                     </Badge>
-                    <div className={`flex items-center gap-1 text-xs ${sentiment.color}`}>
-                      <sentiment.icon className="w-3 h-3" />
-                      <span>{sentiment.label}</span>
-                    </div>
+                    {/* Location relevance badge */}
+                    {(() => {
+                      const config = locationBadgeConfig[locationRelevance];
+                      const LocationIcon = config.icon;
+                      return (
+                        <Badge variant="outline" className={`text-xs ${config.color}`}>
+                          <LocationIcon className="w-3 h-3 mr-1" />
+                          {locationRelevance}
+                        </Badge>
+                      );
+                    })()}
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Shield className="w-3 h-3 text-green-500" />
@@ -317,6 +349,14 @@ export function NewsCard({ news, index }: NewsCardProps) {
         news={news}
         isOpen={showDetail}
         onClose={() => setShowDetail(false)}
+      />
+
+      {/* TTS Limit Modal */}
+      <TTSLimitModal
+        isOpen={showLimitModal}
+        onClose={closeLimitModal}
+        usedCount={usedCount}
+        maxCount={maxCount}
       />
     </>
   );
