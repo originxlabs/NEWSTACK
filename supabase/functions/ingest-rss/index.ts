@@ -500,25 +500,34 @@ serve(async (req) => {
   const url = new URL(req.url);
   const secretParam = url.searchParams.get("secret");
   
+  // Trim whitespace from both values before comparison
+  const trimmedCronSecret = cronSecret?.trim();
+  const trimmedSecretParam = secretParam?.trim();
+  
   // Check various auth methods:
-  // 1. URL parameter with cron secret
-  const isValidSecretParam = cronSecret && secretParam && secretParam === cronSecret;
+  // 1. URL parameter with cron secret (with trimming)
+  const isValidSecretParam = trimmedCronSecret && trimmedSecretParam && trimmedSecretParam === trimmedCronSecret;
   // 2. Bearer token with cron secret
-  const isValidBearerToken = cronSecret && authHeader === `Bearer ${cronSecret}`;
+  const isValidBearerToken = trimmedCronSecret && authHeader === `Bearer ${trimmedCronSecret}`;
   // 3. Internal Supabase cron (uses anon key in Authorization header)
   const isInternalCron = authHeader?.includes(supabaseAnonKey || "ANON_KEY_PLACEHOLDER");
   // 4. Direct call without auth (for testing in config.toml cron - verify_jwt is false)
   const isLocalCron = !authHeader && !secretParam;
-  
+
   console.log("Auth check:", {
     hasCronSecret: !!cronSecret,
     cronSecretLen: cronSecret?.length ?? 0,
+    cronSecretTrimmedLen: trimmedCronSecret?.length ?? 0,
     hasSecretParam: !!secretParam,
     secretParamLen: secretParam?.length ?? 0,
+    secretParamTrimmedLen: trimmedSecretParam?.length ?? 0,
     secretMatch: isValidSecretParam,
     bearerMatch: isValidBearerToken,
     internalCron: isInternalCron,
     localCron: isLocalCron,
+    // Log first 10 chars of each for debugging (safe partial reveal)
+    cronSecretPreview: trimmedCronSecret?.substring(0, 10) ?? 'none',
+    secretParamPreview: trimmedSecretParam?.substring(0, 10) ?? 'none',
   });
 
   // For external calls (cron-job.org), require the secret
