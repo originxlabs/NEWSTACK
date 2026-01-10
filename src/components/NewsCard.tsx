@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Headphones, Bookmark, Heart, Share2, TrendingUp, Shield, ChevronRight, Pause, Play, Loader2, Flag, Clock, ExternalLink, MapPin, Globe, Building2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Headphones, Bookmark, Heart, Share2, Shield, ChevronRight, Pause, Loader2, Clock, ExternalLink, MapPin, Globe, Building2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { useTTS } from "@/hooks/use-tts";
 import { useTTSLimit } from "@/hooks/use-tts-limit";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { toast } from "sonner";
-import { NewsDetailModal } from "@/components/NewsDetailModal";
 import { TTSLimitModal } from "@/components/TTSLimitModal";
 import { DiscussionButton } from "@/components/discussions/DiscussionButton";
 
@@ -37,6 +36,8 @@ export interface NewsItem {
 interface NewsCardProps {
   news: NewsItem;
   index: number;
+  onClick?: () => void;
+  isActive?: boolean;
 }
 
 const topicColors: Record<string, string> = {
@@ -51,16 +52,16 @@ const topicColors: Record<string, string> = {
   entertainment: "bg-pink-500/10 text-pink-500 border-pink-500/20",
   climate: "bg-lime-500/10 text-lime-500 border-lime-500/20",
   startups: "bg-orange-500/10 text-orange-500 border-orange-500/20",
-  crypto: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+  science: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
 };
 
-const sentimentConfig = {
-  positive: { color: "text-green-500", icon: TrendingUp, label: "Positive" },
-  neutral: { color: "text-muted-foreground", icon: TrendingUp, label: "Neutral" },
-  negative: { color: "text-red-500", icon: TrendingUp, label: "Negative" },
+const locationBadgeConfig = {
+  Local: { icon: MapPin, color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  Country: { icon: Building2, color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  Global: { icon: Globe, color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
 };
 
-export function NewsCard({ news, index }: NewsCardProps) {
+export function NewsCard({ news, index, onClick, isActive }: NewsCardProps) {
   const { language, country } = usePreferences();
   const { speak, toggle, isLoading, isPlaying, progress, stop } = useTTS({
     language: language?.code || "en",
@@ -68,34 +69,18 @@ export function NewsCard({ news, index }: NewsCardProps) {
   const { incrementUsage, canPlay, showLimitModal, closeLimitModal, usedCount, maxCount } = useTTSLimit();
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [showDetail, setShowDetail] = useState(false);
 
-  const sentiment = sentimentConfig[news.sentiment] || sentimentConfig.neutral;
-
-  // Determine location relevance
   const locationRelevance = news.locationRelevance || (
     news.isGlobal ? "Global" : 
-    news.countryCode === country?.code ? "Country" : 
-    news.countryCode ? "Country" : "Global"
+    news.countryCode === country?.code ? "Country" : "Global"
   );
-
-  const locationBadgeConfig = {
-    Local: { icon: MapPin, color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-    Country: { icon: Building2, color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-    Global: { icon: Globe, color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
-  };
 
   const handleListen = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isPlaying) {
       toggle();
     } else if (!isLoading) {
-      // Check TTS limit before playing
-      if (!canPlay()) {
-        return; // Modal will be shown by the hook
-      }
-      
-      // Increment usage and play
+      if (!canPlay()) return;
       if (incrementUsage()) {
         const textToSpeak = news.headline.substring(0, 150);
         await speak(textToSpeak);
@@ -149,15 +134,20 @@ export function NewsCard({ news, index }: NewsCardProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: index * 0.05 }}
-        onClick={() => setShowDetail(true)}
+        onClick={onClick}
         className="cursor-pointer"
       >
-        <Card variant="news" className="group overflow-hidden hover:shadow-xl transition-shadow">
+        <Card 
+          variant="news" 
+          className={`group overflow-hidden hover:shadow-xl transition-all ${
+            isActive ? "ring-2 ring-primary shadow-lg" : ""
+          }`}
+        >
           <CardContent className="p-0">
             <div className="flex flex-col lg:flex-row">
               {/* Image */}
               {news.imageUrl && (
-                <div className="lg:w-64 h-48 lg:h-auto relative overflow-hidden flex-shrink-0">
+                <div className="lg:w-56 xl:w-64 h-44 lg:h-auto relative overflow-hidden flex-shrink-0">
                   <img
                     src={news.imageUrl}
                     alt={news.headline}
@@ -171,40 +161,32 @@ export function NewsCard({ news, index }: NewsCardProps) {
                   {/* Breaking/Trending badges */}
                   <div className="absolute top-3 left-3 flex gap-2">
                     {news.isBreaking && (
-                      <Badge className="bg-red-500 text-white border-0 animate-pulse">
+                      <Badge className="bg-red-500 text-white border-0 animate-pulse text-xs">
                         🔴 Breaking
                       </Badge>
                     )}
                     {news.isTrending && (
-                      <Badge className="bg-orange-500 text-white border-0">
+                      <Badge className="bg-orange-500 text-white border-0 text-xs">
                         🔥 Trending
                       </Badge>
                     )}
                   </div>
-
-                  {news.countryCode && (
-                    <div className="absolute bottom-3 left-3 px-2 py-1 rounded-full bg-background/80 backdrop-blur-sm text-xs flex items-center gap-1">
-                      <Flag className="w-3 h-3" />
-                      {news.countryCode}
-                    </div>
-                  )}
                 </div>
               )}
 
               {/* Content */}
-              <div className="flex-1 p-6">
+              <div className="flex-1 p-4 sm:p-5">
                 {/* Top row */}
-                <div className="flex items-center justify-between gap-4 mb-3">
+                <div className="flex items-center justify-between gap-3 mb-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={topicColors[news.topic.toLowerCase()] || "bg-primary/10 text-primary"}>
+                    <Badge className={`${topicColors[news.topic.toLowerCase()] || "bg-primary/10 text-primary"} text-xs`}>
                       {news.topic}
                     </Badge>
-                    {/* Location relevance badge */}
                     {(() => {
                       const config = locationBadgeConfig[locationRelevance];
                       const LocationIcon = config.icon;
                       return (
-                        <Badge variant="outline" className={`text-xs ${config.color}`}>
+                        <Badge variant="outline" className={`text-[10px] ${config.color}`}>
                           <LocationIcon className="w-3 h-3 mr-1" />
                           {locationRelevance}
                         </Badge>
@@ -213,23 +195,23 @@ export function NewsCard({ news, index }: NewsCardProps) {
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Shield className="w-3 h-3 text-green-500" />
-                    <span>{news.trustScore}% Trust</span>
+                    <span>{news.trustScore}%</span>
                   </div>
                 </div>
 
                 {/* Headline */}
-                <h3 className="font-display text-lg sm:text-xl font-semibold mb-2 leading-tight group-hover:text-primary transition-colors">
+                <h3 className="font-display text-base sm:text-lg font-semibold mb-2 leading-tight group-hover:text-primary transition-colors line-clamp-2">
                   {news.headline}
                 </h3>
 
-                {/* AI Summary */}
-                <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-2">
+                {/* Summary */}
+                <p className="text-sm text-muted-foreground mb-3 leading-relaxed line-clamp-2">
                   {news.summary}
                 </p>
 
-                {/* Audio progress bar */}
+                {/* Audio progress */}
                 {(isPlaying || isLoading) && (
-                  <div className="mb-4">
+                  <div className="mb-3">
                     <div className="h-1 bg-muted rounded-full overflow-hidden">
                       <motion.div
                         className="h-full bg-primary"
@@ -241,22 +223,22 @@ export function NewsCard({ news, index }: NewsCardProps) {
                 )}
 
                 {/* Source and time */}
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4 flex-wrap">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3 flex-wrap">
                   <button 
                     onClick={handleSourceClick}
-                    className="flex items-center gap-2 hover:text-primary transition-colors"
+                    className="flex items-center gap-1.5 hover:text-primary transition-colors"
                   >
-                    <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium">
+                    <div className="w-4 h-4 rounded-full bg-muted flex items-center justify-center text-[9px] font-medium">
                       {news.source.charAt(0)}
                     </div>
-                    <span className="truncate max-w-32">{news.source}</span>
+                    <span className="truncate max-w-28">{news.source}</span>
                     <ExternalLink className="w-3 h-3" />
                   </button>
                   {news.sourceCount && news.sourceCount > 1 && (
                     <>
                       <span>•</span>
-                      <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-                        Covered by {news.sourceCount} sources
+                      <Badge variant="outline" className="text-[9px] h-4 px-1">
+                        {news.sourceCount} sources
                       </Badge>
                     </>
                   )}
@@ -269,52 +251,49 @@ export function NewsCard({ news, index }: NewsCardProps) {
 
                 {/* Actions */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <Button
                       variant="glass"
                       size="sm"
                       onClick={handleListen}
-                      className="gap-2"
+                      className="gap-1.5 h-8 text-xs"
                       disabled={isLoading}
                     >
                       {isLoading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Loading...</span>
-                        </>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : isPlaying ? (
                         <>
-                          <Pause className="w-4 h-4" />
+                          <Pause className="w-3.5 h-3.5" />
                           <AudioWave />
                         </>
                       ) : (
                         <>
-                          <Headphones className="w-4 h-4" />
-                          <span>Listen</span>
+                          <Headphones className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Listen</span>
                         </>
                       )}
                     </Button>
 
                     <Button
                       variant="ghost"
-                      size="iconSm"
+                      size="icon"
                       onClick={handleSave}
-                      className={isSaved ? "text-primary" : ""}
+                      className={`w-8 h-8 ${isSaved ? "text-primary" : ""}`}
                     >
-                      <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current" : ""}`} />
+                      <Bookmark className={`w-3.5 h-3.5 ${isSaved ? "fill-current" : ""}`} />
                     </Button>
 
                     <Button
                       variant="ghost"
-                      size="iconSm"
+                      size="icon"
                       onClick={handleLike}
-                      className={isLiked ? "text-destructive" : ""}
+                      className={`w-8 h-8 ${isLiked ? "text-destructive" : ""}`}
                     >
-                      <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
+                      <Heart className={`w-3.5 h-3.5 ${isLiked ? "fill-current" : ""}`} />
                     </Button>
 
-                    <Button variant="ghost" size="iconSm" onClick={handleShare}>
-                      <Share2 className="w-4 h-4" />
+                    <Button variant="ghost" size="icon" onClick={handleShare} className="w-8 h-8">
+                      <Share2 className="w-3.5 h-3.5" />
                     </Button>
 
                     <DiscussionButton
@@ -328,10 +307,10 @@ export function NewsCard({ news, index }: NewsCardProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-xs gap-1"
+                    className="text-xs gap-1 h-8"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setShowDetail(true);
+                      onClick?.();
                     }}
                   >
                     Read more
@@ -344,14 +323,6 @@ export function NewsCard({ news, index }: NewsCardProps) {
         </Card>
       </motion.div>
 
-      {/* Detail Modal */}
-      <NewsDetailModal
-        news={news}
-        isOpen={showDetail}
-        onClose={() => setShowDetail(false)}
-      />
-
-      {/* TTS Limit Modal */}
       <TTSLimitModal
         isOpen={showLimitModal}
         onClose={closeLimitModal}
@@ -364,20 +335,13 @@ export function NewsCard({ news, index }: NewsCardProps) {
 
 function AudioWave() {
   return (
-    <div className="flex items-center gap-0.5 h-4">
-      {[1, 2, 3, 4, 5].map((i) => (
+    <div className="flex items-center gap-0.5 h-3">
+      {[1, 2, 3, 4].map((i) => (
         <motion.div
           key={i}
           className="w-0.5 bg-primary rounded-full"
-          animate={{
-            height: ["8px", "16px", "8px"],
-          }}
-          transition={{
-            duration: 0.5,
-            repeat: Infinity,
-            delay: i * 0.1,
-            ease: "easeInOut",
-          }}
+          animate={{ height: ["6px", "12px", "6px"] }}
+          transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1, ease: "easeInOut" }}
         />
       ))}
     </div>

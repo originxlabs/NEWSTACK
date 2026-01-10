@@ -1,6 +1,9 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
-import { Loader2, TrendingUp, Clock, Sparkles, AlertCircle, RefreshCw, Star, Moon, Flame, Tv } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Loader2, TrendingUp, Clock, Sparkles, AlertCircle, RefreshCw, 
+  Flame, Globe, MapPin, Filter, ChevronDown, X, Headphones, MessageSquare
+} from "lucide-react";
 import { NewsCard, NewsItem } from "./NewsCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,39 +11,55 @@ import { useInfiniteNews, NewsArticle } from "@/hooks/use-news";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { TrendingNewsBanner } from "./TrendingNewsBanner";
+import { ArticleDetailPanel } from "./ArticleDetailPanel";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-type FeedType = "recent" | "trending" | "foryou" | "entertainment" | "horoscope";
+type FeedType = "recent" | "trending" | "foryou" | "local" | "world";
+type SortType = "latest" | "sources" | "discussed" | "audio" | "relevance";
 
 const feedTabs: { id: FeedType; name: string; icon: React.ReactNode; description: string }[] = [
   { id: "recent", name: "Recent", icon: <Clock className="w-4 h-4" />, description: "Latest news first" },
   { id: "trending", name: "Trending", icon: <Flame className="w-4 h-4" />, description: "What's hot now" },
   { id: "foryou", name: "For You", icon: <Sparkles className="w-4 h-4" />, description: "Personalized" },
-  { id: "entertainment", name: "Entertainment", icon: <Tv className="w-4 h-4" />, description: "Movies, Music, Celebs" },
-  { id: "horoscope", name: "Horoscope", icon: <Moon className="w-4 h-4" />, description: "Daily predictions" },
+  { id: "local", name: "Local", icon: <MapPin className="w-4 h-4" />, description: "Near you" },
+  { id: "world", name: "World", icon: <Globe className="w-4 h-4" />, description: "Global news" },
 ];
 
-const topics = [
+const categories = [
   { slug: "all", name: "All" },
   { slug: "ai", name: "AI" },
   { slug: "business", name: "Business" },
   { slug: "finance", name: "Finance" },
   { slug: "politics", name: "Politics" },
-  { slug: "sports", name: "Sports" },
-  { slug: "health", name: "Health" },
+  { slug: "startups", name: "Startups" },
   { slug: "tech", name: "Tech" },
   { slug: "climate", name: "Climate" },
-  { slug: "startups", name: "Startups" },
+  { slug: "health", name: "Health" },
+  { slug: "sports", name: "Sports" },
+  { slug: "entertainment", name: "Entertainment" },
+  { slug: "science", name: "Science" },
 ];
 
-// Transform API article to NewsItem format
-// Transform API article to NewsItem format
+const sortOptions: { id: SortType; name: string; icon: React.ReactNode }[] = [
+  { id: "latest", name: "Latest first", icon: <Clock className="w-4 h-4" /> },
+  { id: "sources", name: "Most sources", icon: <TrendingUp className="w-4 h-4" /> },
+  { id: "discussed", name: "Most discussed", icon: <MessageSquare className="w-4 h-4" /> },
+  { id: "audio", name: "Audio available", icon: <Headphones className="w-4 h-4" /> },
+  { id: "relevance", name: "Local relevance", icon: <MapPin className="w-4 h-4" /> },
+];
+
 function transformArticle(article: NewsArticle, feedType: FeedType): NewsItem {
   const publishedDate = new Date(article.published_at);
   const now = new Date();
   const diffHours = Math.floor((now.getTime() - publishedDate.getTime()) / (1000 * 60 * 60));
   const timestamp = diffHours < 1 ? "Just now" : diffHours < 24 ? `${diffHours}h ago` : `${Math.floor(diffHours / 24)}d ago`;
 
-  // Determine location relevance from the article data
   const locationRelevance = (article as any).location_relevance || 
     (article.is_global ? "Global" : "Country") as "Local" | "Country" | "Global";
 
@@ -67,88 +86,33 @@ function transformArticle(article: NewsArticle, feedType: FeedType): NewsItem {
   };
 }
 
-// Horoscope data generator
-const zodiacSigns = [
-  { name: "Aries", emoji: "♈", dates: "Mar 21 - Apr 19" },
-  { name: "Taurus", emoji: "♉", dates: "Apr 20 - May 20" },
-  { name: "Gemini", emoji: "♊", dates: "May 21 - Jun 20" },
-  { name: "Cancer", emoji: "♋", dates: "Jun 21 - Jul 22" },
-  { name: "Leo", emoji: "♌", dates: "Jul 23 - Aug 22" },
-  { name: "Virgo", emoji: "♍", dates: "Aug 23 - Sep 22" },
-  { name: "Libra", emoji: "♎", dates: "Sep 23 - Oct 22" },
-  { name: "Scorpio", emoji: "♏", dates: "Oct 23 - Nov 21" },
-  { name: "Sagittarius", emoji: "♐", dates: "Nov 22 - Dec 21" },
-  { name: "Capricorn", emoji: "♑", dates: "Dec 22 - Jan 19" },
-  { name: "Aquarius", emoji: "♒", dates: "Jan 20 - Feb 18" },
-  { name: "Pisces", emoji: "♓", dates: "Feb 19 - Mar 20" },
-];
-
-const horoscopePredictions = [
-  "Today brings exciting opportunities. Stay open to unexpected encounters.",
-  "Financial decisions require careful thought. Trust your intuition.",
-  "Romance is in the air. Express your feelings openly.",
-  "Career prospects look bright. A mentor may offer guidance.",
-  "Health matters need attention. Focus on self-care today.",
-  "Creative energy flows. Channel it into meaningful projects.",
-];
-
-function generateHoroscopes(): NewsItem[] {
-  return zodiacSigns.map((sign, i) => ({
-    id: `horoscope-${sign.name}`,
-    headline: `${sign.emoji} ${sign.name} - Daily Horoscope`,
-    summary: horoscopePredictions[i % horoscopePredictions.length],
-    topic: "horoscope",
-    sentiment: "positive" as const,
-    trustScore: 75,
-    source: "NEWSTACK Astrology",
-    timestamp: "Today",
-    whyMatters: `Based on planetary alignments for ${sign.name} (${sign.dates}).`,
-  }));
-}
-
 export function NewsFeed() {
   const { country, language } = usePreferences();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [feedType, setFeedType] = useState<FeedType>("recent");
-  const [selectedTopic, setSelectedTopic] = useState("all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
+  const [sortBy, setSortBy] = useState<SortType>("latest");
+  const [selectedArticle, setSelectedArticle] = useState<NewsItem | null>(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const loaderRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Swipe handling for mobile
-  const x = useMotionValue(0);
-  const currentTabIndex = feedTabs.findIndex(t => t.id === feedType);
-
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const threshold = 50;
-    if (info.offset.x > threshold && currentTabIndex > 0) {
-      setFeedType(feedTabs[currentTabIndex - 1].id);
-    } else if (info.offset.x < -threshold && currentTabIndex < feedTabs.length - 1) {
-      setFeedType(feedTabs[currentTabIndex + 1].id);
-    }
-  };
 
   // Build query params based on feed type
   const queryParams = useMemo(() => {
-    let topic = selectedTopic !== "all" ? selectedTopic : undefined;
+    let topic = selectedCategories.includes("all") ? undefined : selectedCategories[0];
     
-    // Override topic for special feeds
-    if (feedType === "entertainment") {
-      topic = "entertainment";
-    }
-    
-    // Map feed type to API parameter
     const apiFeedType = feedType === "recent" || feedType === "trending" || feedType === "foryou" 
       ? feedType 
       : "recent";
     
     return {
-      country: country?.code,
+      country: feedType === "local" ? country?.code : undefined,
       language: language?.code === "en" ? "eng" : language?.code,
       topic,
       pageSize: 15,
       feedType: apiFeedType as "recent" | "trending" | "foryou",
     };
-  }, [country?.code, language?.code, selectedTopic, feedType]);
+  }, [country?.code, language?.code, selectedCategories, feedType]);
 
   const {
     data,
@@ -161,35 +125,44 @@ export function NewsFeed() {
     refetch,
   } = useInfiniteNews(queryParams);
 
-  // Transform articles
+  // Transform and sort articles
   const newsItems = useMemo(() => {
     if (!data?.pages) return [];
     
     let items = data.pages.flatMap((page) => page.articles.map(a => transformArticle(a, feedType)));
     
-    // Sort based on feed type
-    if (feedType === "trending") {
-      items = [...items].sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0));
-    } else if (feedType === "foryou" && user) {
-      // Shuffle for personalized feel (in production, use user preferences)
-      items = [...items].sort(() => Math.random() - 0.5);
+    // Apply sorting
+    switch (sortBy) {
+      case "sources":
+        items = [...items].sort((a, b) => (b.sourceCount || 0) - (a.sourceCount || 0));
+        break;
+      case "relevance":
+        items = [...items].sort((a, b) => {
+          const order = { Local: 3, Country: 2, Global: 1 };
+          return (order[b.locationRelevance || "Global"] || 0) - (order[a.locationRelevance || "Global"] || 0);
+        });
+        break;
+      case "discussed":
+        // Shuffle for now - in production would sort by comment count
+        items = [...items].sort(() => Math.random() - 0.5);
+        break;
+      default:
+        break;
+    }
+
+    // Filter by feed type
+    if (feedType === "world") {
+      items = items.filter(item => item.isGlobal || item.locationRelevance === "Global");
+    } else if (feedType === "local") {
+      items = items.filter(item => item.locationRelevance === "Local" || item.locationRelevance === "Country");
     }
     
     return items;
-  }, [data, feedType, user]);
+  }, [data, feedType, sortBy]);
 
-  // Special content for horoscope feed
-  const horoscopes = useMemo(() => {
-    if (feedType === "horoscope") {
-      return generateHoroscopes();
-    }
-    return [];
-  }, [feedType]);
-
-  // Get top 3 trending stories for banner
+  // Get trending stories for banner
   const trendingStories = useMemo(() => {
     if (feedType !== "recent") return [];
-    
     return newsItems
       .filter(item => item.sourceCount && item.sourceCount > 1)
       .slice(0, 3)
@@ -205,21 +178,39 @@ export function NewsFeed() {
       }));
   }, [newsItems, feedType]);
 
-  const displayNews = feedType === "horoscope" ? horoscopes : newsItems;
-
-  // Filter by topic (only for non-special feeds)
+  // Filter by categories
   const filteredNews = useMemo(() => {
-    if (feedType === "entertainment" || feedType === "horoscope") {
-      return displayNews;
+    if (selectedCategories.includes("all")) return newsItems;
+    return newsItems.filter(n => selectedCategories.includes(n.topic.toLowerCase()));
+  }, [newsItems, selectedCategories]);
+
+  // Toggle category selection
+  const toggleCategory = (slug: string) => {
+    if (slug === "all") {
+      setSelectedCategories(["all"]);
+    } else {
+      setSelectedCategories(prev => {
+        const withoutAll = prev.filter(c => c !== "all");
+        if (prev.includes(slug)) {
+          const newSelection = withoutAll.filter(c => c !== slug);
+          return newSelection.length === 0 ? ["all"] : newSelection;
+        }
+        return [...withoutAll, slug];
+      });
     }
-    return selectedTopic === "all" ? displayNews : displayNews.filter(n => n.topic.toLowerCase() === selectedTopic);
-  }, [displayNews, selectedTopic, feedType]);
+  };
+
+  // Handle article click
+  const handleArticleClick = (article: NewsItem) => {
+    setSelectedArticle(article);
+    setIsPanelOpen(true);
+  };
 
   // Infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage && feedType !== "horoscope") {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
           fetchNextPage();
         }
       },
@@ -228,160 +219,203 @@ export function NewsFeed() {
 
     if (loaderRef.current) observer.observe(loaderRef.current);
     return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, feedType]);
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   return (
-    <section className="py-12 sm:py-20 px-4">
-      <div className="container mx-auto max-w-4xl">
-        {/* Trending News Banner - Show on Recent feed with multi-source stories */}
-        {feedType === "recent" && trendingStories.length > 0 && !isLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <TrendingNewsBanner stories={trendingStories} />
-          </motion.div>
-        )}
-
-        {/* Section header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-1">Your Feed</h2>
-              <p className="text-sm text-muted-foreground">
-                {country ? `${country.flag_emoji} ${country.name} & World` : "AI-curated stories"}
-              </p>
-            </div>
-          </div>
-
-          {/* Feed Type Tabs - Swipeable on mobile */}
-          <div className="relative mb-4">
-            <div className="flex items-center gap-1 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
-              {feedTabs.map((tab) => (
-                <Button
-                  key={tab.id}
-                  variant={feedType === tab.id ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setFeedType(tab.id)}
-                  className="flex-shrink-0 gap-2 snap-start"
-                >
-                  {tab.icon}
-                  <span className="hidden sm:inline">{tab.name}</span>
-                  <span className="sm:hidden">{tab.name}</span>
-                </Button>
-              ))}
-            </div>
-            
-            {/* Active tab indicator */}
-            <motion.div
-              className="absolute bottom-0 h-0.5 bg-primary rounded-full"
-              layoutId="feedTabIndicator"
-              transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
-            />
-          </div>
-
-          {/* Topic filters - Hidden for special feeds */}
-          {feedType !== "entertainment" && feedType !== "horoscope" && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {topics.map((topic) => (
-                <Button
-                  key={topic.slug}
-                  variant={selectedTopic === topic.slug ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setSelectedTopic(topic.slug)}
-                  className="flex-shrink-0 text-xs h-8"
-                >
-                  {topic.name}
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {/* Feed description */}
-          <div className="mt-3 flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              {feedTabs.find(t => t.id === feedType)?.description}
-            </Badge>
-            {feedType === "foryou" && !user && (
-              <Badge variant="secondary" className="text-xs">
-                Sign in for personalized feed
-              </Badge>
+    <section id="news-feed" className="py-8 sm:py-12 px-4">
+      <div className="container mx-auto">
+        <div className={`flex gap-6 ${!isMobile && isPanelOpen ? "max-w-7xl" : "max-w-4xl"} mx-auto`}>
+          {/* Main Feed */}
+          <div className={`flex-1 min-w-0 ${!isMobile && isPanelOpen ? "max-w-[calc(100%-520px)]" : ""}`}>
+            {/* Trending Banner */}
+            {feedType === "recent" && trendingStories.length > 0 && !isLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6"
+              >
+                <TrendingNewsBanner stories={trendingStories} />
+              </motion.div>
             )}
-          </div>
-        </motion.div>
 
-        {/* Error state */}
-        {isError && feedType !== "horoscope" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
-            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <h3 className="font-display text-xl font-semibold mb-2">Failed to load news</h3>
-            <p className="text-muted-foreground mb-4">
-              {error instanceof Error ? error.message : "Please try again later"}
-            </p>
-            <Button onClick={() => refetch()} className="gap-2">
-              <RefreshCw className="w-4 h-4" />
-              Try Again
-            </Button>
-          </motion.div>
-        )}
+            {/* Header */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="font-display text-2xl sm:text-3xl font-bold mb-1">Your Feed</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {country ? `${country.flag_emoji} ${country.name} & World` : "AI-curated stories"}
+                  </p>
+                </div>
 
-        {/* Loading state */}
-        {isLoading && feedType !== "horoscope" && (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="glass-card rounded-xl h-48 animate-pulse" />
-            ))}
-          </div>
-        )}
+                {/* Sort Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Filter className="w-4 h-4" />
+                      <span className="hidden sm:inline">Sort</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    {sortOptions.map((option) => (
+                      <DropdownMenuItem
+                        key={option.id}
+                        onClick={() => setSortBy(option.id)}
+                        className={sortBy === option.id ? "bg-accent" : ""}
+                      >
+                        {option.icon}
+                        <span className="ml-2">{option.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
 
-        {/* News cards with swipe gesture */}
-        {!isLoading && (
-          <motion.div
-            ref={containerRef}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.1}
-            onDragEnd={handleDragEnd}
-            style={{ x }}
-            className="space-y-4 touch-pan-y"
-          >
-            <AnimatePresence mode="wait">
-              {filteredNews.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ delay: index * 0.03 }}
-                >
-                  <NewsCard news={item} index={index} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
-        )}
+              {/* Feed Tabs */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-2 scrollbar-hide mb-4">
+                {feedTabs.map((tab) => (
+                  <Button
+                    key={tab.id}
+                    variant={feedType === tab.id ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setFeedType(tab.id)}
+                    className="flex-shrink-0 gap-2"
+                  >
+                    {tab.icon}
+                    <span className="hidden sm:inline">{tab.name}</span>
+                    <span className="sm:hidden">{tab.name}</span>
+                  </Button>
+                ))}
+              </div>
 
-        {/* No results */}
-        {!isLoading && filteredNews.length === 0 && !isError && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No news found. Try selecting a different category.</p>
-          </div>
-        )}
+              {/* Category Filters */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {categories.map((category) => {
+                  const isSelected = selectedCategories.includes(category.slug);
+                  return (
+                    <Button
+                      key={category.slug}
+                      variant={isSelected ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => toggleCategory(category.slug)}
+                      className="flex-shrink-0 text-xs h-8 gap-1"
+                    >
+                      {category.name}
+                      {isSelected && category.slug !== "all" && (
+                        <X className="w-3 h-3 ml-1" onClick={(e) => {
+                          e.stopPropagation();
+                          toggleCategory(category.slug);
+                        }} />
+                      )}
+                    </Button>
+                  );
+                })}
+              </div>
 
-        {/* Loading indicator */}
-        <div ref={loaderRef} className="py-8 flex justify-center">
-          {isFetchingNextPage && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Loading more...</span>
+              {/* Active filters */}
+              <div className="mt-3 flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className="text-xs">
+                  {feedTabs.find(t => t.id === feedType)?.description}
+                </Badge>
+                {sortBy !== "latest" && (
+                  <Badge variant="secondary" className="text-xs">
+                    {sortOptions.find(s => s.id === sortBy)?.name}
+                  </Badge>
+                )}
+                {feedType === "foryou" && !user && (
+                  <Badge variant="secondary" className="text-xs">
+                    Sign in for personalized feed
+                  </Badge>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Error State */}
+            {isError && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
+                <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+                <h3 className="font-display text-xl font-semibold mb-2">Failed to load news</h3>
+                <p className="text-muted-foreground mb-4">
+                  {error instanceof Error ? error.message : "Please try again later"}
+                </p>
+                <Button onClick={() => refetch()} className="gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Try Again
+                </Button>
+              </motion.div>
+            )}
+
+            {/* Loading State */}
+            {isLoading && (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="glass-card rounded-xl h-48 animate-pulse" />
+                ))}
+              </div>
+            )}
+
+            {/* News Cards */}
+            {!isLoading && (
+              <div className="space-y-4">
+                <AnimatePresence mode="wait">
+                  {filteredNews.map((item, index) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ delay: index * 0.03 }}
+                    >
+                      <NewsCard 
+                        news={item} 
+                        index={index} 
+                        onClick={() => handleArticleClick(item)}
+                        isActive={selectedArticle?.id === item.id && isPanelOpen}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* No Results */}
+            {!isLoading && filteredNews.length === 0 && !isError && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No news found. Try selecting a different category.</p>
+              </div>
+            )}
+
+            {/* Loading More */}
+            <div ref={loaderRef} className="py-8 flex justify-center">
+              {isFetchingNextPage && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Loading more...</span>
+                </div>
+              )}
+              {!hasNextPage && filteredNews.length > 0 && (
+                <p className="text-muted-foreground text-sm">You've reached the end.</p>
+              )}
             </div>
-          )}
-          {!hasNextPage && filteredNews.length > 0 && feedType !== "horoscope" && (
-            <p className="text-muted-foreground text-sm">You've reached the end.</p>
+          </div>
+
+          {/* Desktop: Inline panel space holder */}
+          {!isMobile && isPanelOpen && (
+            <div className="hidden lg:block w-[520px] flex-shrink-0" />
           )}
         </div>
       </div>
+
+      {/* Article Detail Panel */}
+      <ArticleDetailPanel
+        article={selectedArticle}
+        isOpen={isPanelOpen}
+        onClose={() => {
+          setIsPanelOpen(false);
+          setSelectedArticle(null);
+        }}
+      />
     </section>
   );
 }
