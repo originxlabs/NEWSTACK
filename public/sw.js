@@ -1,8 +1,10 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = 'newstack-v1';
-const OFFLINE_CACHE_NAME = 'newstack-offline-v1';
-const ARTICLES_CACHE_NAME = 'newstack-articles-v1';
+// Version bump triggers cache refresh for installed PWA
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `newstack-${CACHE_VERSION}`;
+const OFFLINE_CACHE_NAME = `newstack-offline-${CACHE_VERSION}`;
+const ARTICLES_CACHE_NAME = `newstack-articles-${CACHE_VERSION}`;
 
 // Core assets to cache immediately
 const CORE_ASSETS = [

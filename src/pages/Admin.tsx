@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { 
   Shield, Rss, Activity, Users, CreditCard, Mail, 
   BarChart3, MousePointer2, Clock, AlertTriangle,
-  Plus, Trash2, Edit, Check, X, Loader2, RefreshCw
+  Plus, Trash2, Edit, Check, X, Loader2, RefreshCw, Play, ExternalLink
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/hooks/use-admin";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 
 interface RSSFeed {
   id: string;
@@ -63,6 +64,17 @@ interface AnalyticsSummary {
   donationAmount: number;
 }
 
+interface TestResult {
+  feedId: string;
+  success: boolean;
+  itemsFound: number;
+  items: Array<{ title: string; link: string; pubDate?: string }>;
+  durationMs: number;
+  error?: string;
+}
+
+const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"];
+
 const Admin = () => {
   const { isAdmin, isLoading: adminLoading } = useAdmin();
   const { user } = useAuth();
@@ -76,6 +88,10 @@ const Admin = () => {
   const [editingFeed, setEditingFeed] = useState<string | null>(null);
   const [newFeed, setNewFeed] = useState({ name: "", url: "", category: "general", country_code: "IN", language: "en" });
   const [showAddFeed, setShowAddFeed] = useState(false);
+  const [testingFeed, setTestingFeed] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
+  const [pageViewsData, setPageViewsData] = useState<Array<{ date: string; views: number }>>([]);
+  const [topPagesData, setTopPagesData] = useState<Array<{ name: string; value: number }>>([]);
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) {

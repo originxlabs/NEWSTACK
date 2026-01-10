@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Bookmark, MapPin, MessageCircle, Settings, LogOut, Edit, Camera, Loader2, Trash2, Crown, Sparkles, Shield } from "lucide-react";
+import { User, Bookmark, MapPin, MessageCircle, Settings, LogOut, Edit, Camera, Loader2, Trash2, Crown, Sparkles, Shield, CreditCard } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { NewsCard, NewsItem } from "@/components/NewsCard";
 import { DiscussionPanel } from "@/components/discussions/DiscussionPanel";
 import { useAdmin } from "@/hooks/use-admin";
+import { SubscriptionManagement } from "@/components/SubscriptionManagement";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 
 interface SavedPlace {
   id: string;
@@ -235,11 +237,20 @@ const Profile = () => {
                   </Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="subscription" className="gap-2">
+                <CreditCard className="h-4 w-4" />
+                Subscription
+              </TabsTrigger>
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="h-4 w-4" />
                 Settings
               </TabsTrigger>
             </TabsList>
+
+            {/* Subscription Tab */}
+            <TabsContent value="subscription">
+              <SubscriptionManagement />
+            </TabsContent>
 
             {/* Saved News */}
             <TabsContent value="saved-news">
