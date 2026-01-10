@@ -4,7 +4,7 @@ import {
   Loader2, TrendingUp, Clock, Sparkles, AlertCircle, RefreshCw, 
   Flame, Globe, MapPin, Filter, ChevronDown, X, Calendar, Newspaper,
   Grid3X3, List, LayoutGrid, Search, SlidersHorizontal, Zap, Scale,
-  Radio, Rss
+  Radio, Rss, History
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TrendingNewsBanner } from "@/components/TrendingNewsBanner";
 import { ArticleDetailPanel } from "@/components/ArticleDetailPanel";
 import { ArticleComparison } from "@/components/ArticleComparison";
+import { StoryTimeline } from "@/components/StoryTimeline";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
@@ -151,6 +152,8 @@ export default function News() {
   const [isVisible, setIsVisible] = useState(false);
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [comparisonStory, setComparisonStory] = useState<{ headline: string; id?: string } | null>(null);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineStory, setTimelineStory] = useState<{ id: string; headline: string } | null>(null);
   
   const loaderRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -183,13 +186,26 @@ export default function News() {
     return () => observer.disconnect();
   }, []);
 
-  // Build query params based on feed type
+  // Build query params based on feed type - now includes source filter for API
   const queryParams = useMemo(() => {
     let topic = selectedCategories.includes("all") ? undefined : selectedCategories[0];
     
     const apiFeedType = feedType === "recent" || feedType === "trending" || feedType === "foryou" 
       ? feedType 
       : "recent";
+    
+    // Map source filter ID to source name for API
+    const sourceNameMap: Record<string, string> = {
+      bbc: "BBC",
+      reuters: "Reuters",
+      guardian: "Guardian",
+      nytimes: "New York Times",
+      washpost: "Washington Post",
+      techcrunch: "TechCrunch",
+      bloomberg: "Bloomberg",
+      ndtv: "NDTV",
+      hindustan: "Hindustan Times",
+    };
     
     return {
       country: feedType === "local" ? country?.code : undefined,
@@ -198,8 +214,11 @@ export default function News() {
       pageSize: 20,
       feedType: apiFeedType as "recent" | "trending" | "foryou",
       query: searchQuery || undefined,
+      source: selectedSource !== "all" ? sourceNameMap[selectedSource] || selectedSource : undefined,
+      dateFrom: selectedDate ? startOfDay(selectedDate).toISOString() : undefined,
+      dateTo: selectedDate ? endOfDay(selectedDate).toISOString() : undefined,
     };
-  }, [country?.code, language?.code, selectedCategories, feedType, searchQuery]);
+  }, [country?.code, language?.code, selectedCategories, feedType, searchQuery, selectedSource, selectedDate]);
 
   const {
     data,
@@ -217,15 +236,9 @@ export default function News() {
     if (!data?.pages) return [];
     
     let items = data.pages.flatMap((page) => page.articles.map(a => transformArticle(a, feedType)));
-    
-    // Filter by source
-    if (selectedSource !== "all") {
-      items = items.filter(item => 
-        item.source.toLowerCase().includes(selectedSource.toLowerCase())
-      );
-    }
 
-    // Filter by date
+    // Note: Source and date filtering is now done server-side via API params
+    // Client-side filtering is kept as fallback for cached data
     if (selectedDate) {
       const start = startOfDay(selectedDate);
       const end = endOfDay(selectedDate);
@@ -921,6 +934,10 @@ export default function News() {
           setComparisonStory({ headline, id });
           setComparisonOpen(true);
         }}
+        onViewTimeline={(id, headline) => {
+          setTimelineStory({ id, headline });
+          setTimelineOpen(true);
+        }}
       />
 
       {/* Article Comparison Modal */}
@@ -931,6 +948,17 @@ export default function News() {
         onClose={() => {
           setComparisonOpen(false);
           setComparisonStory(null);
+        }}
+      />
+
+      {/* Story Timeline Modal */}
+      <StoryTimeline
+        storyId={timelineStory?.id || ""}
+        headline={timelineStory?.headline || ""}
+        isOpen={timelineOpen}
+        onClose={() => {
+          setTimelineOpen(false);
+          setTimelineStory(null);
         }}
       />
     </div>
