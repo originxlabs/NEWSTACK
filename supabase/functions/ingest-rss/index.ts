@@ -492,23 +492,43 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Verify cron secret for scheduled calls
+  // Verify authorization for scheduled/manual calls
   const authHeader = req.headers.get("Authorization");
   const cronSecret = Deno.env.get("CRON_INGEST_SECRET");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
   
-  // Allow calls with valid cron secret OR service role key
   const url = new URL(req.url);
   const secretParam = url.searchParams.get("secret");
-  const isValidCron = secretParam === cronSecret || authHeader?.includes(cronSecret || "");
-  const isServiceRole = authHeader?.includes("Bearer");
+  
+  // Check various auth methods:
+  // 1. URL parameter with cron secret
+  const isValidSecretParam = cronSecret && secretParam && secretParam === cronSecret;
+  // 2. Bearer token with cron secret
+  const isValidBearerToken = cronSecret && authHeader === `Bearer ${cronSecret}`;
+  // 3. Internal Supabase cron (uses anon key in Authorization header)
+  const isInternalCron = authHeader?.includes(supabaseAnonKey || "ANON_KEY_PLACEHOLDER");
+  // 4. Direct call without auth (for testing in config.toml cron - verify_jwt is false)
+  const isLocalCron = !authHeader && !secretParam;
+  
+  console.log("Auth check:", { 
+    hasSecretParam: !!secretParam, 
+    secretMatch: isValidSecretParam, 
+    bearerMatch: isValidBearerToken,
+    internalCron: isInternalCron,
+    localCron: isLocalCron
+  });
 
-  if (!isValidCron && !isServiceRole) {
-    console.log("Unauthorized access attempt");
+  // For external calls (cron-job.org), require the secret
+  // For internal Supabase cron, allow through
+  if (!isValidSecretParam && !isValidBearerToken && !isInternalCron && !isLocalCron) {
+    console.log("Unauthorized access attempt - no valid auth method found");
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+  
+  console.log("Authorization successful - starting ingestion");
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

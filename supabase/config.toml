@@ -42,8 +42,8 @@ verify_jwt = false
 [functions.summarize-news]
 verify_jwt = false
 
-# Schedule RSS ingestion every 10 minutes
+# Schedule RSS ingestion every 30 minutes
 [[cron]]
 name = "ingest-rss-cron"
-schedule = "*/10 * * * *"
+schedule = "*/30 * * * *"
 function = "ingest-rss"
