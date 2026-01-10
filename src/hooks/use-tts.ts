@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { getCachedAudio, setCachedAudio } from "@/lib/tts-cache";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -7,12 +8,22 @@ interface UseTTSOptions {
   language?: string;
   voiceId?: string;
   maxLength?: number;
+  preferBrowser?: boolean; // Use browser TTS as primary (free)
 }
 
 // Language codes for browser speech synthesis
 const browserVoiceLangs: Record<string, string> = {
   en: "en-US",
   hi: "hi-IN",
+  ta: "ta-IN",
+  te: "te-IN",
+  kn: "kn-IN",
+  ml: "ml-IN",
+  mr: "mr-IN",
+  gu: "gu-IN",
+  bn: "bn-IN",
+  pa: "pa-IN",
+  or: "or-IN",
   es: "es-ES",
   fr: "fr-FR",
   de: "de-DE",
@@ -130,6 +141,56 @@ export function useTTS(options: UseTTSOptions = {}) {
       ? text.substring(0, maxLength).trim() + "..."
       : text;
 
+    const currentLang = optionsRef.current.language || "en";
+    const preferBrowser = optionsRef.current.preferBrowser ?? false;
+
+    // If preferBrowser is true, use browser TTS directly (it's free)
+    if (preferBrowser) {
+      try {
+        setUsingFallback(true);
+        await speakWithBrowser(truncatedText);
+        return;
+      } catch (err) {
+        console.log("Browser TTS failed:", err);
+        // Fall through to API
+      }
+    }
+
+    // Check cache first
+    try {
+      const cachedBlob = await getCachedAudio(truncatedText, currentLang);
+      if (cachedBlob) {
+        console.log("Playing from cache");
+        const audioUrl = URL.createObjectURL(cachedBlob);
+        audioUrlRef.current = audioUrl;
+
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+
+        audio.onloadedmetadata = () => setDuration(audio.duration);
+        audio.ontimeupdate = () => {
+          if (audio.duration) {
+            setProgress((audio.currentTime / audio.duration) * 100);
+          }
+        };
+        audio.onended = () => {
+          setIsPlaying(false);
+          setProgress(100);
+        };
+        audio.onerror = () => {
+          setError("Failed to play audio");
+          setIsPlaying(false);
+        };
+
+        await audio.play();
+        setIsPlaying(true);
+        setIsLoading(false);
+        return;
+      }
+    } catch (cacheErr) {
+      console.log("Cache check failed:", cacheErr);
+    }
+
     try {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/text-to-speech`, {
         method: "POST",
@@ -140,7 +201,7 @@ export function useTTS(options: UseTTSOptions = {}) {
         },
         body: JSON.stringify({
           text: truncatedText,
-          language: optionsRef.current.language || "en",
+          language: currentLang,
           voiceId: optionsRef.current.voiceId,
         }),
       });
@@ -171,6 +232,15 @@ export function useTTS(options: UseTTSOptions = {}) {
       }
 
       const audioBlob = await response.blob();
+      const contentType = response.headers.get("content-type") || "audio/mpeg";
+
+      // Cache the audio for future use
+      try {
+        await setCachedAudio(truncatedText, currentLang, audioBlob, contentType);
+      } catch (cacheErr) {
+        console.log("Failed to cache audio:", cacheErr);
+      }
+
       const audioUrl = URL.createObjectURL(audioBlob);
       audioUrlRef.current = audioUrl;
 
@@ -195,7 +265,7 @@ export function useTTS(options: UseTTSOptions = {}) {
       await audio.play();
       setIsPlaying(true);
     } catch (err) {
-      console.log("ElevenLabs failed, trying browser fallback");
+      console.log("API TTS failed, trying browser fallback");
       try {
         setUsingFallback(true);
         await speakWithBrowser(truncatedText);
