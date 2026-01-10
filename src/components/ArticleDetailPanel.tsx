@@ -396,17 +396,27 @@ export function ArticleDetailPanel({ article, isOpen, onClose }: ArticleDetailPa
               <Textarea
                 placeholder="Share your opinion (max 40 words)..."
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={(e) => {
+                  const words = e.target.value.trim().split(/\s+/).filter(Boolean);
+                  // Only allow if under 40 words or deleting
+                  if (words.length <= 40 || e.target.value.length < newMessage.length) {
+                    setNewMessage(e.target.value);
+                  }
+                }}
                 className="min-h-[60px] resize-none text-sm"
               />
               <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-muted-foreground">
+                <span className={`text-xs ${
+                  newMessage.trim().split(/\s+/).filter(Boolean).length >= 35 
+                    ? "text-destructive font-medium" 
+                    : "text-muted-foreground"
+                }`}>
                   {newMessage.trim().split(/\s+/).filter(Boolean).length}/40 words
                 </span>
                 <Button
                   size="sm"
                   onClick={handleSubmitDiscussion}
-                  disabled={!newMessage.trim() || isSubmitting}
+                  disabled={!newMessage.trim() || isSubmitting || newMessage.trim().split(/\s+/).filter(Boolean).length > 40}
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>
