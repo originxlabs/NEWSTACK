@@ -16,7 +16,7 @@ const navLinks = [
   { name: "World", href: "/world", icon: "🌍" },
   { name: "Places", href: "/places", icon: "📍" },
   { name: "Topics", href: "/topics", icon: "🧠" },
-  { name: "Pricing", href: "/pricing", icon: "💰" },
+  { name: "Support", href: "/support", icon: "❤️" },
 ];
 
 export function Header() {

@@ -445,6 +445,45 @@ export type Database = {
           },
         ]
       }
+      rss_feeds: {
+        Row: {
+          category: string | null
+          country_code: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          language: string | null
+          last_fetched_at: string | null
+          name: string
+          priority: number | null
+          url: string
+        }
+        Insert: {
+          category?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          language?: string | null
+          last_fetched_at?: string | null
+          name: string
+          priority?: number | null
+          url: string
+        }
+        Update: {
+          category?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          language?: string | null
+          last_fetched_at?: string | null
+          name?: string
+          priority?: number | null
+          url?: string
+        }
+        Relationships: []
+      }
       saved_news: {
         Row: {
           created_at: string
@@ -515,6 +554,110 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      stories: {
+        Row: {
+          ai_summary: string | null
+          category: string | null
+          city: string | null
+          country_code: string | null
+          created_at: string
+          engagement_listens: number | null
+          engagement_reads: number | null
+          engagement_saves: number | null
+          first_published_at: string
+          headline: string
+          id: string
+          image_url: string | null
+          is_global: boolean | null
+          last_updated_at: string
+          normalized_headline: string
+          source_count: number | null
+          story_hash: string
+          summary: string | null
+          trend_score: number | null
+        }
+        Insert: {
+          ai_summary?: string | null
+          category?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          engagement_listens?: number | null
+          engagement_reads?: number | null
+          engagement_saves?: number | null
+          first_published_at?: string
+          headline: string
+          id?: string
+          image_url?: string | null
+          is_global?: boolean | null
+          last_updated_at?: string
+          normalized_headline: string
+          source_count?: number | null
+          story_hash: string
+          summary?: string | null
+          trend_score?: number | null
+        }
+        Update: {
+          ai_summary?: string | null
+          category?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          engagement_listens?: number | null
+          engagement_reads?: number | null
+          engagement_saves?: number | null
+          first_published_at?: string
+          headline?: string
+          id?: string
+          image_url?: string | null
+          is_global?: boolean | null
+          last_updated_at?: string
+          normalized_headline?: string
+          source_count?: number | null
+          story_hash?: string
+          summary?: string | null
+          trend_score?: number | null
+        }
+        Relationships: []
+      }
+      story_sources: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          published_at: string
+          source_name: string
+          source_url: string
+          story_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          published_at: string
+          source_name: string
+          source_url: string
+          story_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          published_at?: string
+          source_name?: string
+          source_url?: string
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_sources_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       topics: {
         Row: {

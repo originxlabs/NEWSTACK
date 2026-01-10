@@ -105,11 +105,15 @@ const Support = () => {
               Support Independent Journalism
             </div>
             <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">
-              Keep NEWSTACK <span className="gradient-text">Free & Independent</span>
+              Keep NEWSTACK <span className="gradient-text">Free Forever</span>
             </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              NEWSTACK is free for everyone. No paywalls. No forced subscriptions. 
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-4">
+              NEWSTACK is free for everyone. No paywalls. No forced subscriptions. No ads.
               Your support helps us stay independent and keep quality journalism accessible to all.
+            </p>
+            <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+              We believe everyone deserves access to trustworthy news. NEWSTACK is community-funded 
+              by readers like you who value transparency and accuracy over clickbait.
             </p>
           </motion.div>
 
@@ -239,21 +243,21 @@ const Support = () => {
             <h3 className="font-display text-2xl font-semibold mb-6">Why Support NEWSTACK?</h3>
             <div className="grid md:grid-cols-3 gap-6 text-left">
               <div className="glass-card rounded-xl p-6">
-                <h4 className="font-semibold mb-2">🌍 Free for Everyone</h4>
+                <h4 className="font-semibold mb-2">🌍 Free Forever</h4>
                 <p className="text-sm text-muted-foreground">
-                  Every user gets unlimited news access and 50 free audio plays daily. Your support helps keep it that way.
+                  No paywalls. No ads. No forced subscriptions. Every user gets full access to all news and 50 free audio plays daily.
                 </p>
               </div>
               <div className="glass-card rounded-xl p-6">
-                <h4 className="font-semibold mb-2">📰 No Bias, No Agenda</h4>
+                <h4 className="font-semibold mb-2">📰 Source-First Journalism</h4>
                 <p className="text-sm text-muted-foreground">
-                  We aggregate from multiple sources and use AI to present balanced, fact-checked summaries.
+                  Every story shows its original sources. AI summaries complement, never replace, the original reporting.
                 </p>
               </div>
               <div className="glass-card rounded-xl p-6">
-                <h4 className="font-semibold mb-2">🔒 Your Privacy Matters</h4>
+                <h4 className="font-semibold mb-2">🔒 Community Funded</h4>
                 <p className="text-sm text-muted-foreground">
-                  We don't sell your data. No trackers. No hidden agendas. Just honest journalism.
+                  NEWSTACK is funded entirely by readers. No corporate interests. No data selling. Just honest journalism.
                 </p>
               </div>
             </div>
