@@ -15,6 +15,7 @@ import { NearbyEssentials } from "@/components/places/NearbyEssentials";
 import { MapRoutes } from "@/components/places/MapRoutes";
 import { PlaceChat } from "@/components/places/PlaceChat";
 import { PlaceSkeleton } from "@/components/places/PlaceSkeleton";
+import { WhatsHappening } from "@/components/places/WhatsHappening";
 
 const Places = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,7 +44,8 @@ const Places = () => {
   }, [debouncedSearch, searchPlaces]);
 
   const handleSelectPlace = (placeId: string) => {
-    selectPlace(placeId);
+    const selectedResult = searchResults.find(r => r.place_id === placeId);
+    selectPlace(placeId, selectedResult);
     setSearchQuery("");
   };
 
@@ -140,6 +142,9 @@ const Places = () => {
                 <div className="lg:col-span-2 space-y-8">
                   {/* AI Insight */}
                   <AIPlaceInsight placeData={placeData} />
+
+                  {/* What's Happening */}
+                  <WhatsHappening placeData={placeData} />
                   
                   {/* Best Places Grid */}
                   <BestPlacesGrid placeData={placeData} isLoading={isLoading} />

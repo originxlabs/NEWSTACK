@@ -71,7 +71,6 @@ export function PlaceHero({ placeData }: PlaceHeroProps) {
           place_image_url: place.photos?.[0]?.url,
           place_lat: place.lat,
           place_lng: place.lng,
-          place_rating: place.rating,
         });
         setIsSaved(true);
         toast.success("Saved to your places");
@@ -108,7 +107,6 @@ export function PlaceHero({ placeData }: PlaceHeroProps) {
           place_image_url: place.photos?.[0]?.url,
           place_lat: place.lat,
           place_lng: place.lng,
-          place_rating: place.rating,
           liked: true,
         });
         setIsSaved(true);
@@ -177,10 +175,9 @@ export function PlaceHero({ placeData }: PlaceHeroProps) {
                 <MapPin className="h-3 w-3 mr-1" />
                 {place.types?.[0]?.replace(/_/g, " ") || "Place"}
               </Badge>
-              {place.rating && (
+              {place.country && (
                 <Badge variant="secondary" className="glass-card border-none">
-                  <Star className="h-3 w-3 mr-1 fill-yellow-500 text-yellow-500" />
-                  {place.rating} ({place.user_ratings_total?.toLocaleString()})
+                  🌍 {place.country}
                 </Badge>
               )}
             </div>
