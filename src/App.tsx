@@ -11,7 +11,7 @@ import Listen from "./pages/Listen";
 import World from "./pages/World";
 import Places from "./pages/Places";
 import Topics from "./pages/Topics";
-import Pricing from "./pages/Pricing";
+import Support from "./pages/Support";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,7 +31,8 @@ const App = () => (
               <Route path="/world" element={<World />} />
               <Route path="/places" element={<Places />} />
               <Route path="/topics" element={<Topics />} />
-              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/support" element={<Support />} />
+              <Route path="/pricing" element={<Support />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

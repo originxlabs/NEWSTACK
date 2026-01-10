@@ -7,7 +7,6 @@ const corsHeaders = {
 
 interface TTSRequest {
   text: string;
-  voiceId?: string;
   language?: string;
 }
 
@@ -29,36 +28,6 @@ const sarvamLanguageCodes: Record<string, string> = {
   en: "en-IN",
 };
 
-// Sarvam speakers for different languages
-const sarvamSpeakers: Record<string, string> = {
-  hi: "anushka",
-  ta: "anushka",
-  te: "anushka",
-  kn: "anushka",
-  ml: "anushka",
-  mr: "anushka",
-  gu: "anushka",
-  bn: "anushka",
-  pa: "anushka",
-  or: "anushka",
-  en: "anushka",
-};
-
-// ElevenLabs voice IDs for non-Indian languages
-const elevenLabsVoices: Record<string, string> = {
-  en: "JBFqnCBsd6RMkjVDRZzb",
-  es: "EXAVITQu4vr4xnSDxMaL",
-  fr: "FGY2WhTYpPnrIDTdsKH5",
-  de: "nPczCjzI2devNBz1zQrb",
-  ja: "Xb7hH8MSUJpSbSDYk0k2",
-  zh: "Xb7hH8MSUJpSbSDYk0k2",
-  ar: "onwK4e9ZLuTAKqWW03F9",
-  pt: "TX3LPaxmHKxFdv7VOQHJ",
-  ru: "cjVigY5qzO86Huf0OWal",
-  ko: "Xb7hH8MSUJpSbSDYk0k2",
-  it: "FGY2WhTYpPnrIDTdsKH5",
-};
-
 async function generateWithSarvam(text: string, language: string): Promise<ArrayBuffer> {
   const SARVAM_API_KEY = Deno.env.get("SARVAM_API_KEY");
   if (!SARVAM_API_KEY) {
@@ -66,9 +35,8 @@ async function generateWithSarvam(text: string, language: string): Promise<Array
   }
 
   const languageCode = sarvamLanguageCodes[language] || "hi-IN";
-  const speaker = sarvamSpeakers[language] || "anushka";
 
-  console.log(`Sarvam TTS: language=${languageCode}, speaker=${speaker}, text length=${text.length}`);
+  console.log(`Sarvam TTS: language=${languageCode}, text length=${text.length}`);
 
   const response = await fetch("https://api.sarvam.ai/text-to-speech", {
     method: "POST",
@@ -79,7 +47,7 @@ async function generateWithSarvam(text: string, language: string): Promise<Array
     body: JSON.stringify({
       inputs: [text],
       target_language_code: languageCode,
-      speaker: speaker,
+      speaker: "anushka",
       model: "bulbul:v2",
       pitch: 0,
       pace: 1.0,
@@ -112,99 +80,54 @@ async function generateWithSarvam(text: string, language: string): Promise<Array
   throw new Error("No audio data returned from Sarvam");
 }
 
-async function generateWithElevenLabs(text: string, language: string, voiceId?: string): Promise<ArrayBuffer> {
-  const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
-  if (!ELEVENLABS_API_KEY) {
-    throw new Error("ELEVENLABS_API_KEY not configured");
-  }
-
-  const selectedVoice = voiceId || elevenLabsVoices[language] || elevenLabsVoices["en"];
-
-  console.log(`ElevenLabs TTS: voice=${selectedVoice}, text length=${text.length}`);
-
-  const response = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoice}?output_format=mp3_44100_128`,
-    {
-      method: "POST",
-      headers: {
-        "xi-api-key": ELEVENLABS_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_multilingual_v2",
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.3,
-          use_speaker_boost: true,
-          speed: 1.0,
-        },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("ElevenLabs error:", errorText);
-    
-    // Check for quota exceeded - throw specific error for client to handle
-    if (errorText.includes("quota_exceeded") || response.status === 401 || response.status === 429) {
-      throw new Error("QUOTA_EXCEEDED");
-    }
-    
-    throw new Error(`ElevenLabs TTS failed: ${response.status} - ${errorText}`);
-  }
-
-  return await response.arrayBuffer();
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { text, voiceId, language = "en" } = await req.json() as TTSRequest;
+    const { text, language = "en" } = await req.json() as TTSRequest;
 
     if (!text || text.trim().length === 0) {
       throw new Error("Text is required");
     }
 
-    // Limit text length to save credits
+    // Limit text length
     const truncatedText = text.substring(0, 250);
 
     console.log(`TTS request: language=${language}, isIndian=${indianLanguages.includes(language)}`);
 
-    let audioBuffer: ArrayBuffer;
-    let contentType = "audio/mpeg";
-
-    // Use Sarvam for Indian languages, ElevenLabs for others
+    // Only use Sarvam for Indian languages, otherwise tell client to use browser fallback
     if (indianLanguages.includes(language)) {
-      audioBuffer = await generateWithSarvam(truncatedText, language);
-      contentType = "audio/wav"; // Sarvam returns WAV
+      const audioBuffer = await generateWithSarvam(truncatedText, language);
+      
+      return new Response(audioBuffer, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "audio/wav",
+          "Content-Length": audioBuffer.byteLength.toString(),
+        },
+      });
     } else {
-      audioBuffer = await generateWithElevenLabs(truncatedText, language, voiceId);
-      contentType = "audio/mpeg";
+      // For non-Indian languages, tell client to use browser TTS
+      return new Response(
+        JSON.stringify({ 
+          useBrowserFallback: true, 
+          message: "Use browser speech synthesis for this language" 
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
     }
-
-    return new Response(audioBuffer, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": contentType,
-        "Content-Length": audioBuffer.byteLength.toString(),
-      },
-    });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("TTS Error:", errorMessage);
     
-    // Return 429 for quota errors so client knows to use fallback
-    const status = errorMessage === "QUOTA_EXCEEDED" ? 429 : 500;
-    
     return new Response(
-      JSON.stringify({ error: errorMessage, fallback: true }),
-      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: errorMessage, useBrowserFallback: true }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

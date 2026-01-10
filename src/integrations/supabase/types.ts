@@ -46,6 +46,125 @@ export type Database = {
           },
         ]
       }
+      discussion_reactions: {
+        Row: {
+          anonymous_id: string | null
+          created_at: string
+          discussion_id: string
+          id: string
+          reaction_type: string
+          user_id: string | null
+        }
+        Insert: {
+          anonymous_id?: string | null
+          created_at?: string
+          discussion_id: string
+          id?: string
+          reaction_type: string
+          user_id?: string | null
+        }
+        Update: {
+          anonymous_id?: string | null
+          created_at?: string
+          discussion_id?: string
+          id?: string
+          reaction_type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_reactions_discussion_id_fkey"
+            columns: ["discussion_id"]
+            isOneToOne: false
+            referencedRelation: "discussions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discussions: {
+        Row: {
+          agrees_count: number | null
+          author_name: string | null
+          content_id: string
+          content_type: string
+          created_at: string
+          disagrees_count: number | null
+          id: string
+          is_hidden: boolean | null
+          message: string
+          reported_count: number | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          agrees_count?: number | null
+          author_name?: string | null
+          content_id: string
+          content_type: string
+          created_at?: string
+          disagrees_count?: number | null
+          id?: string
+          is_hidden?: boolean | null
+          message: string
+          reported_count?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          agrees_count?: number | null
+          author_name?: string | null
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          disagrees_count?: number | null
+          id?: string
+          is_hidden?: boolean | null
+          message?: string
+          reported_count?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      donations: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string | null
+          donation_type: string | null
+          email: string | null
+          id: string
+          order_id: string | null
+          payment_id: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string | null
+          donation_type?: string | null
+          email?: string | null
+          id?: string
+          order_id?: string | null
+          payment_id?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string | null
+          donation_type?: string | null
+          email?: string | null
+          id?: string
+          order_id?: string | null
+          payment_id?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       languages: {
         Row: {
           code: string
@@ -172,6 +291,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      newsletter_subscribers: {
+        Row: {
+          email: string
+          id: string
+          is_active: boolean | null
+          subscribed_at: string
+        }
+        Insert: {
+          email: string
+          id?: string
+          is_active?: boolean | null
+          subscribed_at?: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          subscribed_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {

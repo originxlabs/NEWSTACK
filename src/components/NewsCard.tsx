@@ -8,6 +8,7 @@ import { useTTS } from "@/hooks/use-tts";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { toast } from "sonner";
 import { NewsDetailModal } from "@/components/NewsDetailModal";
+import { DiscussionButton } from "@/components/discussions/DiscussionButton";
 
 export interface NewsItem {
   id: string;
@@ -274,6 +275,13 @@ export function NewsCard({ news, index }: NewsCardProps) {
                     <Button variant="ghost" size="iconSm" onClick={handleShare}>
                       <Share2 className="w-4 h-4" />
                     </Button>
+
+                    <DiscussionButton
+                      contentType="news"
+                      contentId={news.id}
+                      contentTitle={news.headline}
+                      variant="compact"
+                    />
                   </div>
 
                   <Button
