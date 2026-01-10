@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useInfiniteNews, NewsArticle } from "@/hooks/use-news";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { TrendingNewsBanner } from "./TrendingNewsBanner";
 
 type FeedType = "recent" | "trending" | "foryou" | "entertainment" | "horoscope";
 
@@ -56,6 +57,7 @@ function transformArticle(article: NewsArticle, feedType: FeedType): NewsItem {
     isGlobal: article.is_global,
     isBreaking: diffHours < 2 && feedType === "recent",
     isTrending: feedType === "trending",
+    sourceCount: article.source_count,
   };
 }
 
@@ -128,12 +130,17 @@ export function NewsFeed() {
       topic = "entertainment";
     }
     
+    // Map feed type to API parameter
+    const apiFeedType = feedType === "recent" || feedType === "trending" || feedType === "foryou" 
+      ? feedType 
+      : "recent";
+    
     return {
       country: country?.code,
       language: language?.code === "en" ? "eng" : language?.code,
       topic,
       pageSize: 15,
-      sortBy: feedType === "recent" ? "published_at" : feedType === "trending" ? "views_count" : undefined,
+      feedType: apiFeedType as "recent" | "trending" | "foryou",
     };
   }, [country?.code, language?.code, selectedTopic, feedType]);
 
@@ -173,6 +180,25 @@ export function NewsFeed() {
     return [];
   }, [feedType]);
 
+  // Get top 3 trending stories for banner
+  const trendingStories = useMemo(() => {
+    if (feedType !== "recent") return [];
+    
+    return newsItems
+      .filter(item => item.sourceCount && item.sourceCount > 1)
+      .slice(0, 3)
+      .map(item => ({
+        id: item.id,
+        headline: item.headline,
+        summary: item.summary,
+        source: item.source,
+        sourceUrl: item.sourceUrl,
+        timestamp: item.timestamp,
+        imageUrl: item.imageUrl,
+        sourceCount: item.sourceCount,
+      }));
+  }, [newsItems, feedType]);
+
   const displayNews = feedType === "horoscope" ? horoscopes : newsItems;
 
   // Filter by topic (only for non-special feeds)
@@ -201,6 +227,17 @@ export function NewsFeed() {
   return (
     <section className="py-12 sm:py-20 px-4">
       <div className="container mx-auto max-w-4xl">
+        {/* Trending News Banner - Show on Recent feed with multi-source stories */}
+        {feedType === "recent" && trendingStories.length > 0 && !isLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <TrendingNewsBanner stories={trendingStories} />
+          </motion.div>
+        )}
+
         {/* Section header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <div className="flex items-center justify-between mb-4">
