@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Menu, X, Search, Bell } from "lucide-react";
+import { Menu, X, Search, Bell, Newspaper, Headphones, Globe, MapPin, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,12 +11,11 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 
 const navLinks = [
-  { name: "Home", href: "/", icon: "🏠" },
-  { name: "News", href: "/news", icon: "📰" },
-  { name: "Listen", href: "/listen", icon: "🎧" },
-  { name: "World", href: "/world", icon: "🌍" },
-  { name: "Places", href: "/places", icon: "📍" },
-  { name: "Support", href: "/support", icon: "❤️" },
+  { name: "News", href: "/news", Icon: Newspaper },
+  { name: "Listen", href: "/listen", Icon: Headphones },
+  { name: "World", href: "/world", Icon: Globe },
+  { name: "Places", href: "/places", Icon: MapPin },
+  { name: "Support", href: "/support", Icon: Heart },
 ];
 
 export function Header() {
@@ -48,19 +47,23 @@ export function Header() {
 
               {/* Desktop Navigation */}
               <nav className="hidden lg:flex items-center gap-1">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.name}
-                    to={link.href}
-                    className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg ${
-                      isActive(link.href)
-                        ? "text-primary bg-primary/10"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                    }`}
-                  >
-                    {link.name}
-                  </Link>
-                ))}
+                {navLinks.map((link) => {
+                  const IconComponent = link.Icon;
+                  return (
+                    <Link
+                      key={link.name}
+                      to={link.href}
+                      className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg flex items-center gap-2 ${
+                        isActive(link.href)
+                          ? "text-primary bg-primary/10"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                      }`}
+                    >
+                      <IconComponent className="w-4 h-4" />
+                      {link.name}
+                    </Link>
+                  );
+                })}
               </nav>
 
               {/* Right side actions */}
@@ -118,21 +121,24 @@ export function Header() {
               className="lg:hidden border-t border-border/50"
             >
               <nav className="container mx-auto px-4 py-4 flex flex-col gap-2">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.name}
-                    to={link.href}
-                    className={`px-4 py-3 text-sm font-medium transition-colors rounded-lg flex items-center gap-3 ${
-                      isActive(link.href)
-                        ? "text-primary bg-primary/10"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                    }`}
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <span>{link.icon}</span>
-                    {link.name}
-                  </Link>
-                ))}
+                {navLinks.map((link) => {
+                  const IconComponent = link.Icon;
+                  return (
+                    <Link
+                      key={link.name}
+                      to={link.href}
+                      className={`px-4 py-3 text-sm font-medium transition-colors rounded-lg flex items-center gap-3 ${
+                        isActive(link.href)
+                          ? "text-primary bg-primary/10"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                      }`}
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <IconComponent className="w-5 h-5" />
+                      {link.name}
+                    </Link>
+                  );
+                })}
                 
                 {!user && (
                   <div className="flex gap-2 mt-4 pt-4 border-t border-border/50">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, Headphones, Bookmark, Heart, Share2, Shield, Clock, Loader2, Pause, MessageCircle, ChevronLeft, Send } from "lucide-react";
+import { X, ExternalLink, Headphones, Bookmark, Heart, Share2, Shield, Clock, Loader2, Pause, MessageCircle, ChevronLeft, Send, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +21,7 @@ interface ArticleDetailPanelProps {
   article: NewsItem | null;
   isOpen: boolean;
   onClose: () => void;
+  onCompare?: (headline: string, id?: string) => void;
 }
 
 interface Discussion {
@@ -52,7 +53,7 @@ const topicColors: Record<string, string> = {
 const discussionCache = new Map<string, { data: Discussion[]; timestamp: number }>();
 const CACHE_TTL = 60000;
 
-export function ArticleDetailPanel({ article, isOpen, onClose }: ArticleDetailPanelProps) {
+export function ArticleDetailPanel({ article, isOpen, onClose, onCompare }: ArticleDetailPanelProps) {
   const isMobile = useIsMobile();
   const { language } = usePreferences();
   const { user, profile } = useAuth();
@@ -434,11 +435,11 @@ export function ArticleDetailPanel({ article, isOpen, onClose }: ArticleDetailPa
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 pt-4 border-t border-border">
+          <div className="flex items-center gap-2 pt-4 border-t border-border flex-wrap">
             <Button
               variant={isSaved ? "default" : "outline"}
               size="sm"
-              className="flex-1"
+              className="flex-1 min-w-[80px]"
               onClick={handleSaveArticle}
               disabled={isSavingArticle}
             >
@@ -448,16 +449,27 @@ export function ArticleDetailPanel({ article, isOpen, onClose }: ArticleDetailPa
             <Button
               variant={isLiked ? "default" : "outline"}
               size="sm"
-              className="flex-1"
+              className="flex-1 min-w-[80px]"
               onClick={() => setIsLiked(!isLiked)}
             >
               <Heart className={`w-4 h-4 mr-2 ${isLiked ? "fill-current" : ""}`} />
               Like
             </Button>
-            <Button variant="outline" size="sm" className="flex-1" onClick={handleShare}>
+            <Button variant="outline" size="sm" className="flex-1 min-w-[80px]" onClick={handleShare}>
               <Share2 className="w-4 h-4 mr-2" />
               Share
             </Button>
+            {onCompare && article.sourceCount && article.sourceCount > 1 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1 min-w-[80px]"
+                onClick={() => onCompare(article.headline, article.id)}
+              >
+                <Scale className="w-4 h-4 mr-2" />
+                Compare
+              </Button>
+            )}
           </div>
 
           {/* Open Discussion */}
