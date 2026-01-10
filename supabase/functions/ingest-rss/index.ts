@@ -510,12 +510,15 @@ serve(async (req) => {
   // 4. Direct call without auth (for testing in config.toml cron - verify_jwt is false)
   const isLocalCron = !authHeader && !secretParam;
   
-  console.log("Auth check:", { 
-    hasSecretParam: !!secretParam, 
-    secretMatch: isValidSecretParam, 
+  console.log("Auth check:", {
+    hasCronSecret: !!cronSecret,
+    cronSecretLen: cronSecret?.length ?? 0,
+    hasSecretParam: !!secretParam,
+    secretParamLen: secretParam?.length ?? 0,
+    secretMatch: isValidSecretParam,
     bearerMatch: isValidBearerToken,
     internalCron: isInternalCron,
-    localCron: isLocalCron
+    localCron: isLocalCron,
   });
 
   // For external calls (cron-job.org), require the secret
