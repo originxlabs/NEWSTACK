@@ -147,6 +147,12 @@ async function generateWithElevenLabs(text: string, language: string, voiceId?: 
   if (!response.ok) {
     const errorText = await response.text();
     console.error("ElevenLabs error:", errorText);
+    
+    // Check for quota exceeded - throw specific error for client to handle
+    if (errorText.includes("quota_exceeded") || response.status === 401 || response.status === 429) {
+      throw new Error("QUOTA_EXCEEDED");
+    }
+    
     throw new Error(`ElevenLabs TTS failed: ${response.status} - ${errorText}`);
   }
 
@@ -192,9 +198,13 @@ serve(async (req) => {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("TTS Error:", errorMessage);
+    
+    // Return 429 for quota errors so client knows to use fallback
+    const status = errorMessage === "QUOTA_EXCEEDED" ? 429 : 500;
+    
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: errorMessage, fallback: true }),
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
