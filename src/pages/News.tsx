@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { 
   Loader2, TrendingUp, Clock, Sparkles, AlertCircle, RefreshCw, 
   Flame, Globe, MapPin, Filter, ChevronDown, X, Calendar, Newspaper,
-  Grid3X3, List, LayoutGrid, Search, SlidersHorizontal
+  Grid3X3, List, LayoutGrid, Search, SlidersHorizontal, Zap, Scale,
+  Radio, Rss
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -16,6 +17,7 @@ import { usePreferences } from "@/contexts/PreferencesContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { TrendingNewsBanner } from "@/components/TrendingNewsBanner";
 import { ArticleDetailPanel } from "@/components/ArticleDetailPanel";
+import { ArticleComparison } from "@/components/ArticleComparison";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
@@ -147,9 +149,20 @@ export default function News() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isVisible, setIsVisible] = useState(false);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
+  const [comparisonStory, setComparisonStory] = useState<{ headline: string; id?: string } | null>(null);
   
   const loaderRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"]
+  });
+  
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, 50]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
 
   // Lazy loading trigger
   useEffect(() => {
@@ -343,60 +356,202 @@ export default function News() {
       <Header />
       
       <main className="pt-20 pb-12" ref={containerRef}>
-        {/* Hero Banner */}
+        {/* Hero Banner with Dynamic Animations */}
         <motion.section 
+          ref={heroRef}
+          style={{ y: heroY, opacity: heroOpacity }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="relative bg-gradient-to-br from-primary/5 via-background to-accent/5 border-b border-border/50"
+          className="relative bg-gradient-to-br from-primary/5 via-background to-accent/5 border-b border-border/50 overflow-hidden"
         >
-          <div className="container mx-auto px-4 py-8 md:py-12">
-            <div className="max-w-4xl mx-auto text-center">
+          {/* Animated Background Elements */}
+          <div className="absolute inset-0 pointer-events-none">
+            {/* Glowing orbs */}
+            <motion.div
+              className="absolute top-10 left-1/4 w-32 h-32 bg-primary/10 rounded-full blur-3xl"
+              animate={{
+                scale: [1, 1.3, 1],
+                opacity: [0.3, 0.6, 0.3],
+              }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="absolute bottom-10 right-1/4 w-40 h-40 bg-accent/10 rounded-full blur-3xl"
+              animate={{
+                scale: [1.2, 1, 1.2],
+                opacity: [0.2, 0.5, 0.2],
+              }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            />
+            
+            {/* Floating particles */}
+            {[...Array(12)].map((_, i) => (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-4"
+                key={i}
+                className="absolute w-1.5 h-1.5 bg-primary/40 rounded-full"
+                style={{
+                  left: `${10 + (i * 8)}%`,
+                  top: `${20 + (i % 3) * 25}%`,
+                }}
+                animate={{
+                  y: [0, -15, 0],
+                  opacity: [0.2, 0.8, 0.2],
+                  scale: [0.8, 1.2, 0.8],
+                }}
+                transition={{
+                  duration: 2 + (i % 3),
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                  ease: "easeInOut",
+                }}
+              />
+            ))}
+
+            {/* Animated grid lines */}
+            <motion.div
+              className="absolute inset-0 opacity-[0.02]"
+              style={{
+                backgroundImage: `linear-gradient(hsl(var(--primary) / 0.3) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / 0.3) 1px, transparent 1px)`,
+                backgroundSize: '60px 60px'
+              }}
+              animate={{
+                opacity: [0.02, 0.04, 0.02],
+              }}
+              transition={{ duration: 3, repeat: Infinity }}
+            />
+          </div>
+
+          <div className="container mx-auto px-4 py-10 md:py-16 relative z-10">
+            <div className="max-w-4xl mx-auto text-center">
+              {/* Live Badge with pulse */}
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.1, type: "spring", damping: 20 }}
+                className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full glass-card mb-6"
               >
-                <Newspaper className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium">Live from 20+ verified sources</span>
+                <motion.div
+                  className="flex items-center gap-2"
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Radio className="w-4 h-4 text-green-500" />
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                </motion.div>
+                <span className="text-sm font-medium text-foreground">Live from 20+ verified sources</span>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                >
+                  <Rss className="w-4 h-4 text-primary" />
+                </motion.div>
               </motion.div>
               
+              {/* Main Headline with letter spacing animation */}
               <motion.h1 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="font-display text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
+                transition={{ delay: 0.2, type: "spring", damping: 20 }}
+                className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight"
               >
-                <span className="text-foreground">Your Daily </span>
-                <span className="gradient-text">News Hub</span>
+                <motion.span 
+                  className="text-foreground inline-block mr-3"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  Your
+                </motion.span>
+                <motion.span 
+                  className="text-foreground inline-block mr-3"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  Daily
+                </motion.span>
+                <br className="sm:hidden" />
+                <motion.span 
+                  className="gradient-text inline-block relative"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.5, type: "spring", damping: 15 }}
+                >
+                  News Hub
+                  <motion.span
+                    className="absolute -right-6 -top-2"
+                    animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Zap className="w-5 h-5 text-yellow-500" />
+                  </motion.span>
+                </motion.span>
               </motion.h1>
               
+              {/* Subtitle with staggered words */}
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto mb-6"
+                transition={{ delay: 0.4 }}
+                className="text-muted-foreground text-base md:text-lg lg:text-xl max-w-2xl mx-auto mb-8 leading-relaxed"
               >
-                Curated news from BBC, Reuters, The Guardian, NYT, and more — with AI summaries, 
-                audio listening, and real-time updates.
+                Curated news from{" "}
+                <motion.span 
+                  className="text-foreground font-medium"
+                  whileHover={{ color: "hsl(var(--primary))" }}
+                >
+                  BBC, Reuters, The Guardian, NYT
+                </motion.span>
+                {" "}and more — with AI summaries, audio listening, and real-time updates.
               </motion.p>
 
-              {/* Search Bar */}
+              {/* Search Bar with animated focus */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="max-w-xl mx-auto relative"
+                transition={{ delay: 0.5 }}
+                className="max-w-xl mx-auto relative group"
               >
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <motion.div
+                  className="absolute inset-0 bg-primary/20 rounded-full blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity"
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                   type="text"
                   placeholder="Search news, topics, or sources..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-12 h-12 text-base rounded-full bg-background/80 backdrop-blur-sm border-border/50"
+                  className="pl-12 pr-4 h-14 text-base rounded-full bg-background/80 backdrop-blur-sm border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
                 />
+              </motion.div>
+
+              {/* Quick Stats */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="flex items-center justify-center gap-6 mt-8"
+              >
+                {[
+                  { icon: Newspaper, label: "300+ Daily", color: "text-primary" },
+                  { icon: Globe, label: "20+ Sources", color: "text-accent" },
+                  { icon: Sparkles, label: "AI Powered", color: "text-yellow-500" },
+                ].map((stat, i) => (
+                  <motion.div
+                    key={stat.label}
+                    className="flex items-center gap-2 text-sm text-muted-foreground"
+                    whileHover={{ scale: 1.05 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 + i * 0.1 }}
+                  >
+                    <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                    <span>{stat.label}</span>
+                  </motion.div>
+                ))}
               </motion.div>
             </div>
           </div>
@@ -761,6 +916,21 @@ export default function News() {
         onClose={() => {
           setIsPanelOpen(false);
           setSelectedArticle(null);
+        }}
+        onCompare={(headline, id) => {
+          setComparisonStory({ headline, id });
+          setComparisonOpen(true);
+        }}
+      />
+
+      {/* Article Comparison Modal */}
+      <ArticleComparison
+        storyHeadline={comparisonStory?.headline || ""}
+        storyId={comparisonStory?.id}
+        isOpen={comparisonOpen}
+        onClose={() => {
+          setComparisonOpen(false);
+          setComparisonStory(null);
         }}
       />
     </div>
