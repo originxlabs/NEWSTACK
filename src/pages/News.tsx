@@ -21,7 +21,7 @@ import { ArticleComparison } from "@/components/ArticleComparison";
 import { StoryTimeline } from "@/components/StoryTimeline";
 import { ReadMoreModal } from "@/components/ReadMoreModal";
 import { DailyTrendingTop10 } from "@/components/DailyTrendingTop10";
-import { StackBot } from "@/components/StackBot";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
@@ -927,9 +927,6 @@ export default function News() {
           setTimelineOpen(true);
         }}
       />
-
-      {/* StackBot - Floating News Assistant */}
-      <StackBot />
     </div>
   );
 }
