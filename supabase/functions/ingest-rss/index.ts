@@ -499,14 +499,16 @@ serve(async (req) => {
   
   const url = new URL(req.url);
   const secretParam = url.searchParams.get("secret");
-  
-  // Trim whitespace from both values before comparison
+
+  // Normalize secrets (URLSearchParams decodes '+' as space)
   const trimmedCronSecret = cronSecret?.trim();
   const trimmedSecretParam = secretParam?.trim();
-  
+  const normalizedSecretParam = trimmedSecretParam?.replace(/\s/g, "+");
+
   // Check various auth methods:
-  // 1. URL parameter with cron secret (with trimming)
-  const isValidSecretParam = trimmedCronSecret && trimmedSecretParam && trimmedSecretParam === trimmedCronSecret;
+  // 1. URL parameter with cron secret (normalized)
+  const isValidSecretParam =
+    trimmedCronSecret && normalizedSecretParam && normalizedSecretParam === trimmedCronSecret;
   // 2. Bearer token with cron secret
   const isValidBearerToken = trimmedCronSecret && authHeader === `Bearer ${trimmedCronSecret}`;
   // 3. Internal Supabase cron (uses anon key in Authorization header)
@@ -521,13 +523,14 @@ serve(async (req) => {
     hasSecretParam: !!secretParam,
     secretParamLen: secretParam?.length ?? 0,
     secretParamTrimmedLen: trimmedSecretParam?.length ?? 0,
+    normalizedSecretParamLen: normalizedSecretParam?.length ?? 0,
     secretMatch: isValidSecretParam,
     bearerMatch: isValidBearerToken,
     internalCron: isInternalCron,
     localCron: isLocalCron,
-    // Log first 10 chars of each for debugging (safe partial reveal)
-    cronSecretPreview: trimmedCronSecret?.substring(0, 10) ?? 'none',
-    secretParamPreview: trimmedSecretParam?.substring(0, 10) ?? 'none',
+    cronSecretPreview: trimmedCronSecret?.substring(0, 10) ?? "none",
+    secretParamPreview: trimmedSecretParam?.substring(0, 10) ?? "none",
+    secretParamNormalizedPreview: normalizedSecretParam?.substring(0, 10) ?? "none",
   });
 
   // For external calls (cron-job.org), require the secret
