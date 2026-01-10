@@ -33,6 +33,9 @@ interface FetchNewsParams {
   pageSize?: number;
   query?: string;
   feedType?: "recent" | "trending" | "foryou";
+  source?: string; // Filter by source name
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 interface NewsResponse {
@@ -56,6 +59,9 @@ async function fetchNews(params: FetchNewsParams): Promise<NewsResponse> {
         country: params.country,
         page: params.page || 1,
         pageSize: params.pageSize || 15,
+        source: params.source,
+        dateFrom: params.dateFrom,
+        dateTo: params.dateTo,
       }),
     });
 

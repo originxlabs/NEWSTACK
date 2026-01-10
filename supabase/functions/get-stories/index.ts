@@ -14,6 +14,9 @@ interface StoryRequest {
   page?: number;
   pageSize?: number;
   sortBy?: "latest" | "sources" | "discussed" | "relevance";
+  source?: string; // Filter by source name
+  dateFrom?: string; // ISO date string for date filtering
+  dateTo?: string;
 }
 
 // Category taxonomy
@@ -41,12 +44,16 @@ serve(async (req) => {
       page = 1,
       pageSize = 15,
       sortBy = "latest",
+      source,
+      dateFrom,
+      dateTo,
     } = params;
 
-    console.log("Fetching stories:", { feedType, category, country, page, sortBy });
+    console.log("Fetching stories:", { feedType, category, country, page, sortBy, source, dateFrom, dateTo });
 
-    // Calculate cutoff for stories (48 hours ago)
-    const cutoffTime = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    // Calculate cutoff for stories - use dateFrom if provided, otherwise 7 days ago for more results
+    const defaultCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const cutoffTime = dateFrom || defaultCutoff;
 
     // Build query
     let query = supabase
@@ -139,15 +146,17 @@ serve(async (req) => {
 
     console.log(`Found ${stories.length} stories`);
 
-    // Fetch sources for each story in parallel
-    const storiesWithSources = await Promise.all(
+    // Fetch sources for each story in parallel and filter by source if specified
+    let storiesWithSources = await Promise.all(
       stories.map(async (story) => {
-        const { data: sources } = await supabase
+        let sourcesQuery = supabase
           .from("story_sources")
           .select("source_name, source_url, published_at")
           .eq("story_id", story.id)
           .order("published_at", { ascending: false })
           .limit(5);
+        
+        const { data: sources } = await sourcesQuery;
 
         // Calculate relative time
         const publishedDate = new Date(story.first_published_at);
@@ -207,6 +216,20 @@ serve(async (req) => {
         };
       })
     );
+
+    // Filter by source name if specified
+    if (source && source !== "all") {
+      const sourceNameLower = source.toLowerCase();
+      storiesWithSources = storiesWithSources.filter(story => {
+        // Check if any of the story's sources match the filter
+        const matchesPrimary = story.source_name.toLowerCase().includes(sourceNameLower);
+        const matchesAny = story.sources?.some((s: { source_name: string }) => 
+          s.source_name.toLowerCase().includes(sourceNameLower)
+        );
+        return matchesPrimary || matchesAny;
+      });
+      console.log(`Filtered to ${storiesWithSources.length} stories from source: ${source}`);
+    }
 
     return new Response(
       JSON.stringify({
