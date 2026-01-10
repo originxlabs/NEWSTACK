@@ -189,10 +189,11 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
     const deltaX = touch.clientX - touchRef.current.startX;
     const deltaY = touch.clientY - touchRef.current.startY;
     
-    // Lock direction on first significant move (lowered threshold for faster response)
+    // Lock direction on first significant move (very low threshold for instant response)
     if (!touchRef.current.direction) {
-      if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
-        touchRef.current.direction = Math.abs(deltaX) > Math.abs(deltaY) ? "horizontal" : "vertical";
+      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+        // Prioritize vertical swipe for news navigation
+        touchRef.current.direction = Math.abs(deltaY) >= Math.abs(deltaX) ? "vertical" : "horizontal";
       }
     }
     
@@ -214,9 +215,9 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
     const velocityX = Math.abs(deltaX) / deltaTime;
     const velocityY = Math.abs(deltaY) / deltaTime;
     
-    // Lowered thresholds for more responsive swipes
-    const minSwipeDistance = 40;
-    const minVelocity = 0.25;
+    // Faster, more responsive thresholds
+    const minSwipeDistance = 30;
+    const minVelocity = 0.15;
     
     // Determine swipe based on direction lock
     if (touchRef.current.direction === "vertical") {
@@ -676,25 +677,6 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
           </motion.button>
         </div>
 
-        {/* Category navigation arrows */}
-        {categoryIndex > 0 && (
-          <motion.button
-            onClick={goToPrevCategory}
-            whileTap={{ scale: 0.9 }}
-            className="fixed left-2 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 active:bg-black/50"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </motion.button>
-        )}
-        {categoryIndex < enabledCategories.length - 1 && (
-          <motion.button
-            onClick={goToNextCategory}
-            whileTap={{ scale: 0.9 }}
-            className="fixed right-2 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 active:bg-black/50"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </motion.button>
-        )}
 
         {/* Swipe container with native-like animations */}
         <div className="h-full w-full relative">
@@ -726,19 +708,19 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
           </AnimatePresence>
         </div>
 
-        {/* Loading more indicator */}
+        {/* Loading more indicator - positioned above bottom nav */}
         {isFetchingNextPage && (
-          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
-            <div className="bg-black/60 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
+          <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-40">
+            <div className="bg-black/70 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
               <Loader2 className="w-4 h-4 animate-spin text-white" />
               <span className="text-xs text-white font-medium">Loading more...</span>
             </div>
           </div>
         )}
 
-        {/* Bottom Navigation Bar */}
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border/50 safe-area-bottom">
-          <div className="flex items-center justify-around py-2 px-2">
+        {/* Bottom Navigation Bar - Fixed with proper safe area */}
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/98 backdrop-blur-xl border-t border-border/50">
+          <div className="flex items-center justify-around py-2 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             {[
               { path: "/", icon: Home, label: "Home" },
               { path: "/news", icon: Newspaper, label: "News" },
@@ -747,20 +729,21 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
               { path: "/profile", icon: User, label: "Profile" },
             ].map((item) => {
               const isActive = location.pathname === item.path || 
+                (item.path === "/" && location.pathname === "/news") ||
                 (item.path === "/news" && location.pathname === "/");
               const Icon = item.icon;
               return (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className="flex flex-col items-center gap-0.5 min-w-[56px] py-1"
+                  className="flex flex-col items-center gap-0.5 flex-1 py-1"
                 >
                   <motion.div
-                    whileTap={{ scale: 0.9 }}
-                    className={`p-2 rounded-xl transition-colors ${
+                    whileTap={{ scale: 0.85 }}
+                    className={`p-2 rounded-2xl transition-all duration-200 ${
                       isActive 
-                        ? "bg-primary/15" 
-                        : "hover:bg-muted"
+                        ? "bg-primary/15 shadow-sm" 
+                        : "active:bg-muted"
                     }`}
                   >
                     <Icon className={`w-5 h-5 transition-colors ${
