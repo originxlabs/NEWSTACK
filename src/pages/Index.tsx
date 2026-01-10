@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { NewsFeed } from "@/components/NewsFeed";
@@ -6,12 +6,29 @@ import { PlacesSection } from "@/components/PlacesSection";
 import { Footer } from "@/components/Footer";
 import { BreakingNewsBanner } from "@/components/BreakingNewsBanner";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { CookieConsent } from "@/components/CookieConsent";
+import { LocationPermission } from "@/components/LocationPermission";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePreferences } from "@/contexts/PreferencesContext";
 
+const COOKIE_CONSENT_KEY = "newstack_cookie_consent";
+
 const Index = () => {
   const { user, profile } = useAuth();
-  const { country } = usePreferences();
+  const { country, loading: preferencesLoading } = usePreferences();
+  const [showCookieConsent, setShowCookieConsent] = useState(false);
+  const [showLocationPermission, setShowLocationPermission] = useState(false);
+  const [consentCompleted, setConsentCompleted] = useState(false);
+
+  // Check if cookie consent is needed
+  useEffect(() => {
+    const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
+    if (!consent) {
+      setShowCookieConsent(true);
+    } else {
+      setConsentCompleted(true);
+    }
+  }, []);
 
   // Enable dark mode by default
   useEffect(() => {
@@ -23,6 +40,17 @@ const Index = () => {
     }
   }, []);
 
+  const handleCookieAccept = useCallback(() => {
+    setShowCookieConsent(false);
+    // Show location permission after cookie consent
+    setShowLocationPermission(true);
+  }, []);
+
+  const handleLocationComplete = useCallback(() => {
+    setShowLocationPermission(false);
+    setConsentCompleted(true);
+  }, []);
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
@@ -32,13 +60,23 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Cookie Consent - shows first */}
+      {showCookieConsent && (
+        <CookieConsent onAccept={handleCookieAccept} />
+      )}
+      
+      {/* Location Permission - shows after cookie consent */}
+      {showLocationPermission && !preferencesLoading && (
+        <LocationPermission onComplete={handleLocationComplete} />
+      )}
+
       <BreakingNewsBanner />
       <Header />
       <main>
         {user && profile ? (
           <section className="pt-24 pb-8 px-4">
             <div className="container mx-auto">
-              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold">
+              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
                 {getGreeting()}, {profile.display_name || profile.email?.split("@")[0] || "there"}! 👋
               </h1>
               <p className="text-muted-foreground mt-2 text-sm sm:text-base">

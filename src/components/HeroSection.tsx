@@ -79,12 +79,10 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
-            className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight mb-4 sm:mb-6"
+            className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight mb-4 sm:mb-6 leading-tight"
           >
-            <span className="text-foreground">Free AI </span>
-            <span className="relative inline-block">
-              <AnimatedWords words={words} />
-            </span>
+            <span className="text-foreground dark:text-white">Free AI </span>
+            <AnimatedWords words={words} />
           </motion.h1>
 
           {/* Brand line */}
@@ -94,8 +92,8 @@ export function HeroSection() {
             transition={{ delay: 0.4, duration: 0.6 }}
             className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-display font-medium mb-4"
           >
-            <span className="text-foreground">NEW</span>
-            <span className="gradient-text">STACK</span>
+            <span className="text-foreground dark:text-white">NEW</span>
+            <span className="gradient-text font-bold">STACK</span>
             <span className="text-muted-foreground hidden sm:inline"> — The World. In Real Time.</span>
           </motion.div>
 
@@ -186,29 +184,34 @@ export function HeroSection() {
 
 function AnimatedWords({ words }: { words: string[] }) {
   return (
-    <span className="gradient-text inline-block min-w-[140px] sm:min-w-[200px] text-left">
+    <span className="relative inline-block min-w-[140px] sm:min-w-[200px] md:min-w-[280px] text-left h-[1.2em]">
       {words.map((word, index) => (
         <motion.span
           key={word}
-          className="absolute left-0"
-          initial={{ opacity: 0, y: 20 }}
+          className="absolute left-0 top-0 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent font-bold"
+          style={{
+            backgroundSize: "200% 100%",
+          }}
+          initial={{ opacity: 0, y: 30, scale: 0.9 }}
           animate={{
             opacity: [0, 1, 1, 0],
-            y: [20, 0, 0, -20],
+            y: [30, 0, 0, -30],
+            scale: [0.9, 1, 1, 0.9],
           }}
           transition={{
-            duration: 3,
-            delay: index * 3,
+            duration: 2.5,
+            delay: index * 2.5,
             repeat: Infinity,
-            repeatDelay: (words.length - 1) * 3,
-            times: [0, 0.1, 0.9, 1],
+            repeatDelay: (words.length - 1) * 2.5,
+            times: [0, 0.15, 0.85, 1],
+            ease: "easeInOut",
           }}
         >
           {word}
         </motion.span>
       ))}
-      {/* Placeholder for layout */}
-      <span className="invisible">{words[0]}</span>
+      {/* Placeholder for layout - ensures proper height */}
+      <span className="invisible font-bold">{words.reduce((a, b) => a.length > b.length ? a : b)}</span>
     </span>
   );
 }
