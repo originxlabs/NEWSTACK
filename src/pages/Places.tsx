@@ -12,10 +12,11 @@ import { LiveStatusStrip } from "@/components/places/LiveStatusStrip";
 import { AIPlaceInsight } from "@/components/places/AIPlaceInsight";
 import { BestPlacesGrid } from "@/components/places/BestPlacesGrid";
 import { NearbyEssentials } from "@/components/places/NearbyEssentials";
-import { MapRoutes } from "@/components/places/MapRoutes";
 import { PlaceChat } from "@/components/places/PlaceChat";
 import { PlaceSkeleton } from "@/components/places/PlaceSkeleton";
 import { WhatsHappening } from "@/components/places/WhatsHappening";
+import { FeaturedCities, type FeaturedCity } from "@/components/places/FeaturedCities";
+import { InteractiveMap } from "@/components/places/InteractiveMap";
 
 const Places = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -34,7 +35,13 @@ const Places = () => {
   } = usePlaces();
 
   useEffect(() => {
-    document.documentElement.classList.add("dark");
+    // Check saved theme preference
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "light") {
+      document.documentElement.classList.remove("dark");
+    } else {
+      document.documentElement.classList.add("dark");
+    }
   }, []);
 
   useEffect(() => {
@@ -49,6 +56,18 @@ const Places = () => {
     setSearchQuery("");
   };
 
+  const handleSelectCity = (city: FeaturedCity) => {
+    selectPlace(city.name, {
+      place_id: city.name,
+      name: city.name,
+      lat: city.lat,
+      lng: city.lng,
+      country: city.country,
+      country_code: city.countryCode,
+      formatted_address: `${city.name}, ${city.country}`,
+    });
+  };
+
   const { place } = placeData;
 
   return (
@@ -57,9 +76,9 @@ const Places = () => {
       
       {/* Search Header */}
       {!place && (
-        <div className="pt-24 pb-16 px-4">
+        <div className="pt-24 pb-8 px-4">
           <div className="container mx-auto max-w-6xl">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm mb-6">
                 <MapPin className="h-4 w-4" />
                 AI-Powered Place Intelligence
@@ -72,7 +91,7 @@ const Places = () => {
               </p>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="max-w-xl mx-auto relative">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="max-w-xl mx-auto relative mb-12">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
@@ -102,6 +121,9 @@ const Places = () => {
                 </div>
               )}
             </motion.div>
+
+            {/* Featured Cities */}
+            <FeaturedCities onSelectCity={handleSelectCity} />
           </div>
         </div>
       )}
@@ -116,78 +138,39 @@ const Places = () => {
       {/* Place Content */}
       <AnimatePresence mode="wait">
         {place && (
-          <motion.div
-            key={place.place_id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {/* Hero */}
+          <motion.div key={place.place_id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <PlaceHero placeData={placeData} />
 
-            {/* Main Content */}
             <div className="container mx-auto max-w-6xl px-4 py-8">
-              {/* Back Button */}
               <Button variant="ghost" onClick={clearPlace} className="mb-6">
                 <X className="h-4 w-4 mr-2" />
                 Search another place
               </Button>
 
-              {/* Live Status Strip */}
               <LiveStatusStrip placeData={placeData} isLoading={isLoading} />
 
-              {/* Two Column Layout */}
               <div className="grid lg:grid-cols-3 gap-8 mt-8">
-                {/* Main Column */}
                 <div className="lg:col-span-2 space-y-8">
-                  {/* AI Insight */}
                   <AIPlaceInsight placeData={placeData} />
-
-                  {/* What's Happening */}
                   <WhatsHappening placeData={placeData} />
-                  
-                  {/* Best Places Grid */}
                   <BestPlacesGrid placeData={placeData} isLoading={isLoading} />
                 </div>
 
-                {/* Sidebar */}
                 <div className="space-y-6">
-                  {/* Map */}
-                  <MapRoutes placeData={placeData} onOpenInMaps={openInMaps} />
-                  
-                  {/* Nearby Essentials */}
-                  <NearbyEssentials
-                    placeData={placeData}
-                    isLoading={isLoading}
-                    onOpenInMaps={(lat, lng) => openInMaps(lat, lng, "google")}
-                  />
+                  <InteractiveMap placeData={placeData} />
+                  <NearbyEssentials placeData={placeData} isLoading={isLoading} onOpenInMaps={(lat, lng) => openInMaps(lat, lng, "google")} />
                 </div>
               </div>
             </div>
 
-            {/* Ask This Place FAB */}
-            <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="fixed bottom-6 right-6 z-40"
-            >
-              <Button
-                size="lg"
-                className="rounded-full shadow-lg h-14 px-6 glow-accent"
-                onClick={() => setIsChatOpen(true)}
-              >
+            <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.5 }} className="fixed bottom-6 right-6 z-40">
+              <Button size="lg" className="rounded-full shadow-lg h-14 px-6 glow-accent" onClick={() => setIsChatOpen(true)}>
                 <MessageCircle className="h-5 w-5 mr-2" />
                 Ask about this place
               </Button>
             </motion.div>
 
-            {/* Chat Sidebar */}
-            <PlaceChat
-              isOpen={isChatOpen}
-              onClose={() => setIsChatOpen(false)}
-              placeData={placeData}
-            />
+            <PlaceChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} placeData={placeData} />
           </motion.div>
         )}
       </AnimatePresence>

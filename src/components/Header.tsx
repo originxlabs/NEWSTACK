@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Menu, X, Search, Bell, Headphones } from "lucide-react";
+import { Menu, X, Search, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { UserMenu } from "@/components/UserMenu";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Logo } from "@/components/Logo";
 
 const navLinks = [
   { name: "Feed", href: "/", icon: "📰" },
@@ -42,14 +44,7 @@ export function Header() {
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between h-16">
               {/* Logo */}
-              <Link to="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                  <span className="font-display font-bold text-primary-foreground text-sm">N</span>
-                </div>
-                <span className="font-display font-bold text-xl tracking-tight">
-                  NEW<span className="text-primary">STACK</span>
-                </span>
-              </Link>
+              <Logo size="md" />
 
               {/* Desktop Navigation */}
               <nav className="hidden lg:flex items-center gap-1">
@@ -73,6 +68,8 @@ export function Header() {
                 <Button variant="ghost" size="icon" className="hidden sm:flex">
                   <Search className="h-4 w-4" />
                 </Button>
+                
+                <ThemeToggle />
                 
                 <LanguageSelector />
                 

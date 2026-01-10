@@ -1,10 +1,14 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Star, MapPin, ChevronRight, ExternalLink } from "lucide-react";
+import { Star, MapPin, ExternalLink, Coffee, Utensils, Hotel, Plane, Train, Hospital } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlaceData } from "@/hooks/use-places";
 import { PlaceSkeleton } from "./PlaceSkeleton";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 interface NearbyEssentialsProps {
   placeData: PlaceData;
@@ -17,11 +21,12 @@ interface PlaceItem {
   name: string;
   vicinity?: string;
   rating?: number;
-  photo_url?: string | null;
-  open_now?: boolean;
-  price_level?: number;
+  distance_km?: number;
   lat: number;
   lng: number;
+  category?: string;
+  cuisine?: string;
+  opening_hours?: string;
 }
 
 function PlaceListItem({ item, onOpenInMaps }: { item: PlaceItem; onOpenInMaps: (lat: number, lng: number) => void }) {
@@ -32,25 +37,16 @@ function PlaceListItem({ item, onOpenInMaps }: { item: PlaceItem; onOpenInMaps: 
       className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-muted/30 transition-colors cursor-pointer group"
       onClick={() => onOpenInMaps(item.lat, item.lng)}
     >
-      <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
-        {item.photo_url ? (
-          <img src={item.photo_url} alt={item.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <MapPin className="h-6 w-6 text-muted-foreground" />
-          </div>
-        )}
+      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted flex items-center justify-center">
+        <MapPin className="h-5 w-5 text-muted-foreground" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <h4 className="font-medium text-sm truncate">{item.name}</h4>
-          {item.open_now !== undefined && (
-            <Badge variant={item.open_now ? "default" : "secondary"} className="text-[10px] py-0">
-              {item.open_now ? "Open" : "Closed"}
-            </Badge>
-          )}
         </div>
-        <p className="text-xs text-muted-foreground truncate mb-1">{item.vicinity}</p>
+        <p className="text-xs text-muted-foreground truncate mb-1">
+          {item.vicinity || item.category}
+        </p>
         <div className="flex items-center gap-3">
           {item.rating && (
             <span className="flex items-center gap-1 text-xs">
@@ -58,10 +54,15 @@ function PlaceListItem({ item, onOpenInMaps }: { item: PlaceItem; onOpenInMaps: 
               {item.rating}
             </span>
           )}
-          {item.price_level && (
+          {item.distance_km && (
             <span className="text-xs text-muted-foreground">
-              {"$".repeat(item.price_level)}
+              {item.distance_km} km
             </span>
+          )}
+          {item.cuisine && (
+            <Badge variant="secondary" className="text-[10px]">
+              {item.cuisine}
+            </Badge>
           )}
         </div>
       </div>
@@ -73,19 +74,114 @@ function PlaceListItem({ item, onOpenInMaps }: { item: PlaceItem; onOpenInMaps: 
 }
 
 export function NearbyEssentials({ placeData, isLoading, onOpenInMaps }: NearbyEssentialsProps) {
-  const { nearbyRestaurants, nearbyHotels, nearbyAttractions, airports } = placeData;
+  const { place, nearbyRestaurants, nearbyHotels, nearbyAttractions, airports } = placeData;
+  
+  const [cafes, setCafes] = useState<PlaceItem[]>([]);
+  const [hospitals, setHospitals] = useState<PlaceItem[]>([]);
+  const [stations, setStations] = useState<PlaceItem[]>([]);
+  const [loadingExtra, setLoadingExtra] = useState(false);
+
+  // Fetch additional categories when place changes
+  useEffect(() => {
+    if (!place?.lat || !place?.lng) return;
+
+    const fetchExtraCategories = async () => {
+      setLoadingExtra(true);
+      
+      try {
+        const [cafesRes, hospitalsRes, stationsRes] = await Promise.allSettled([
+          fetch(`${SUPABASE_URL}/functions/v1/places-nearby`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+            },
+            body: JSON.stringify({ lat: place.lat, lng: place.lng, type: "cafe" }),
+          }).then(r => r.json()),
+          fetch(`${SUPABASE_URL}/functions/v1/places-nearby`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+            },
+            body: JSON.stringify({ lat: place.lat, lng: place.lng, type: "hospital" }),
+          }).then(r => r.json()),
+          fetch(`${SUPABASE_URL}/functions/v1/places-nearby`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+            },
+            body: JSON.stringify({ lat: place.lat, lng: place.lng, type: "station" }),
+          }).then(r => r.json()),
+        ]);
+
+        if (cafesRes.status === "fulfilled") setCafes(cafesRes.value.places || []);
+        if (hospitalsRes.status === "fulfilled") setHospitals(hospitalsRes.value.places || []);
+        if (stationsRes.status === "fulfilled") setStations(stationsRes.value.places || []);
+      } catch (error) {
+        console.error("Failed to fetch extra categories:", error);
+      } finally {
+        setLoadingExtra(false);
+      }
+    };
+
+    fetchExtraCategories();
+  }, [place?.lat, place?.lng]);
 
   const tabs = [
-    { id: "attractions", label: "🏛 Attractions", items: nearbyAttractions },
-    { id: "restaurants", label: "🍽 Restaurants", items: nearbyRestaurants },
-    { id: "hotels", label: "🏨 Hotels", items: nearbyHotels },
-    { id: "transport", label: "✈️ Transport", items: airports.map(a => ({
-      place_id: a.place_id || a.name,
-      name: a.name,
-      vicinity: `${a.distance_km} km away`,
-      lat: a.lat,
-      lng: a.lng,
-    })) },
+    { 
+      id: "attractions", 
+      label: "Attractions", 
+      icon: <MapPin className="h-3.5 w-3.5" />,
+      items: nearbyAttractions 
+    },
+    { 
+      id: "restaurants", 
+      label: "Restaurants", 
+      icon: <Utensils className="h-3.5 w-3.5" />,
+      items: nearbyRestaurants 
+    },
+    { 
+      id: "cafes", 
+      label: "Cafes", 
+      icon: <Coffee className="h-3.5 w-3.5" />,
+      items: cafes 
+    },
+    { 
+      id: "hotels", 
+      label: "Hotels", 
+      icon: <Hotel className="h-3.5 w-3.5" />,
+      items: nearbyHotels 
+    },
+    { 
+      id: "hospitals", 
+      label: "Hospitals", 
+      icon: <Hospital className="h-3.5 w-3.5" />,
+      items: hospitals 
+    },
+    { 
+      id: "airports", 
+      label: "Airports", 
+      icon: <Plane className="h-3.5 w-3.5" />,
+      items: airports.map(a => ({
+        place_id: a.place_id || a.name,
+        name: a.name,
+        vicinity: a.iata_code ? `${a.iata_code} • ${a.distance_km} km` : `${a.distance_km} km away`,
+        lat: a.lat,
+        lng: a.lng,
+        distance_km: a.distance_km,
+      }))
+    },
+    { 
+      id: "stations", 
+      label: "Stations", 
+      icon: <Train className="h-3.5 w-3.5" />,
+      items: stations 
+    },
   ];
 
   return (
@@ -93,16 +189,17 @@ export function NearbyEssentials({ placeData, isLoading, onOpenInMaps }: NearbyE
       <h3 className="font-display text-xl font-semibold mb-4">Nearby Essentials</h3>
       
       <Tabs defaultValue="attractions" className="w-full">
-        <TabsList className="w-full justify-start overflow-x-auto scrollbar-hide mb-4 h-auto flex-wrap">
+        <TabsList className="w-full justify-start overflow-x-auto scrollbar-hide mb-4 h-auto flex-wrap gap-1 bg-transparent p-0">
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.id}
               value={tab.id}
-              className="text-xs sm:text-sm whitespace-nowrap"
+              className="text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-3 py-1.5"
             >
+              {tab.icon}
               {tab.label}
               {tab.items.length > 0 && (
-                <Badge variant="secondary" className="ml-2 text-[10px]">
+                <Badge variant="secondary" className="ml-1 text-[9px] h-4 px-1.5 rounded-full">
                   {tab.items.length}
                 </Badge>
               )}
@@ -112,11 +209,11 @@ export function NearbyEssentials({ placeData, isLoading, onOpenInMaps }: NearbyE
 
         {tabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id} className="mt-0">
-            {isLoading ? (
+            {isLoading || (loadingExtra && ["cafes", "hospitals", "stations"].includes(tab.id)) ? (
               <PlaceSkeleton type="list" />
             ) : tab.items.length > 0 ? (
               <div className="space-y-3 max-h-[400px] overflow-y-auto scrollbar-hide">
-                {tab.items.slice(0, 5).map((item) => (
+                {tab.items.slice(0, 6).map((item) => (
                   <PlaceListItem
                     key={item.place_id}
                     item={item as PlaceItem}
@@ -126,8 +223,8 @@ export function NearbyEssentials({ placeData, isLoading, onOpenInMaps }: NearbyE
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No {tab.id} found nearby</p>
+                {tab.icon}
+                <p className="text-sm mt-2">No {tab.label.toLowerCase()} found nearby</p>
               </div>
             )}
           </TabsContent>
