@@ -4,6 +4,7 @@ import { HeroSection } from "@/components/HeroSection";
 import { NewsFeed } from "@/components/NewsFeed";
 import { PlacesSection } from "@/components/PlacesSection";
 import { Footer } from "@/components/Footer";
+import { BreakingNewsBanner } from "@/components/BreakingNewsBanner";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePreferences } from "@/contexts/PreferencesContext";
 
@@ -30,6 +31,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <BreakingNewsBanner />
       <Header />
       <main>
         {user && profile ? (
