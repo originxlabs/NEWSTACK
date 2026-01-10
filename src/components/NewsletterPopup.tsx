@@ -7,8 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 
-const POPUP_DELAY_MS = 5 * 60 * 1000; // 5 minutes
-const POPUP_SHOWN_KEY = "newstack_newsletter_popup_shown";
+const POPUP_SCHEDULE_MINUTES = [2, 6, 10, 15, 30];
+const POPUP_START_TS_KEY = "newstack_newsletter_popup_start_ts";
+const POPUP_NEXT_INDEX_KEY = "newstack_newsletter_popup_next_index";
 const POPUP_SUBSCRIBED_KEY = "newstack_newsletter_subscribed";
 
 export function NewsletterPopup() {
@@ -18,22 +19,34 @@ export function NewsletterPopup() {
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
-    // Check if already shown or subscribed
-    const alreadyShown = localStorage.getItem(POPUP_SHOWN_KEY);
     const alreadySubscribed = localStorage.getItem(POPUP_SUBSCRIBED_KEY);
+    if (alreadySubscribed || isOpen) return;
 
-    if (alreadySubscribed || alreadyShown) {
-      return;
-    }
+    // Anchor schedule to the user's first visit time (per device/browser)
+    const startTsRaw = localStorage.getItem(POPUP_START_TS_KEY);
+    const startTs = startTsRaw ? Number(startTsRaw) : Date.now();
+    if (!startTsRaw) localStorage.setItem(POPUP_START_TS_KEY, String(startTs));
 
-    // Show popup after delay
+    const nextIndexRaw = localStorage.getItem(POPUP_NEXT_INDEX_KEY);
+    const nextIndex = nextIndexRaw ? Number(nextIndexRaw) : 0;
+    if (!nextIndexRaw) localStorage.setItem(POPUP_NEXT_INDEX_KEY, "0");
+
+    if (Number.isNaN(nextIndex) || nextIndex >= POPUP_SCHEDULE_MINUTES.length) return;
+
+    const elapsedMs = Date.now() - startTs;
+    const targetMs = POPUP_SCHEDULE_MINUTES[nextIndex] * 60 * 1000;
+    const delayMs = Math.max(0, targetMs - elapsedMs);
+
     const timer = setTimeout(() => {
-      setIsOpen(true);
-      localStorage.setItem(POPUP_SHOWN_KEY, "true");
-    }, POPUP_DELAY_MS);
+      setIsOpen((prev) => {
+        if (prev) return prev;
+        localStorage.setItem(POPUP_NEXT_INDEX_KEY, String(nextIndex + 1));
+        return true;
+      });
+    }, delayMs);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [isSubscribed, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,9 +104,9 @@ export function NewsletterPopup() {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-md mx-4"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-[min(92vw,28rem)]"
           >
-            <div className="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+            <div className="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden max-h-[90vh] overflow-y-auto">
               {/* Background decoration */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-full blur-3xl" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-primary/10 to-cyan-500/10 rounded-full blur-2xl" />
