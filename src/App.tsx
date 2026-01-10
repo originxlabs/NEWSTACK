@@ -76,6 +76,7 @@ const App = () => (
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/saved" element={<SavedArticles />} />
+                  <Route path="/settings" element={<Profile />} />
                   <Route path="/admin" element={<Admin />} />
                   {/* Legal pages */}
                   <Route path="/privacy" element={<PrivacyPolicy />} />
