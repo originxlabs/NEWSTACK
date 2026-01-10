@@ -12,6 +12,7 @@ interface StoryRequest {
   country?: string;
   page?: number;
   pageSize?: number;
+  userLocation?: string;
 }
 
 serve(async (req) => {
@@ -35,6 +36,9 @@ serve(async (req) => {
 
     console.log("Fetching stories:", { feedType, category, country, page });
 
+    // Calculate cutoff for stories (48 hours ago)
+    const cutoffTime = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+
     // Build query
     let query = supabase
       .from("stories")
@@ -55,7 +59,7 @@ serve(async (req) => {
         engagement_reads,
         engagement_listens
       `)
-      .gte("first_published_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString());
+      .gte("first_published_at", cutoffTime);
 
     // Apply filters
     if (category && category !== "all" && category !== "world") {
@@ -63,6 +67,7 @@ serve(async (req) => {
     }
 
     if (country) {
+      // Show stories from user's country OR global stories
       query = query.or(`country_code.eq.${country},is_global.eq.true`);
     }
 
@@ -70,10 +75,13 @@ serve(async (req) => {
     if (feedType === "trending") {
       query = query
         .gte("source_count", 2) // Must have at least 2 sources
-        .order("trend_score", { ascending: false });
+        .order("source_count", { ascending: false })
+        .order("last_updated_at", { ascending: false });
     } else if (feedType === "foryou") {
       // For personalized, mix trending with recent
-      query = query.order("trend_score", { ascending: false });
+      query = query
+        .order("source_count", { ascending: false })
+        .order("last_updated_at", { ascending: false });
     } else {
       // Recent - sort by last updated
       query = query.order("last_updated_at", { ascending: false });
@@ -86,12 +94,23 @@ serve(async (req) => {
     const { data: stories, error: storiesError } = await query;
 
     if (storiesError) {
+      console.error("Stories query error:", storiesError);
       throw new Error(`Failed to fetch stories: ${storiesError.message}`);
     }
 
-    // Fetch sources for each story
+    if (!stories || stories.length === 0) {
+      console.log("No stories found, returning empty array");
+      return new Response(
+        JSON.stringify({ articles: [], total: 0, source: "newstack" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Found ${stories.length} stories`);
+
+    // Fetch sources for each story in parallel
     const storiesWithSources = await Promise.all(
-      (stories || []).map(async (story) => {
+      stories.map(async (story) => {
         const { data: sources } = await supabase
           .from("story_sources")
           .select("source_name, source_url, published_at")
@@ -102,13 +121,27 @@ serve(async (req) => {
         // Calculate relative time
         const publishedDate = new Date(story.first_published_at);
         const now = new Date();
-        const diffHours = Math.floor((now.getTime() - publishedDate.getTime()) / (1000 * 60 * 60));
-        const timestamp = diffHours < 1 ? "Just now" : diffHours < 24 ? `${diffHours}h ago` : `${Math.floor(diffHours / 24)}d ago`;
+        const diffMs = now.getTime() - publishedDate.getTime();
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        
+        let timestamp: string;
+        if (diffMins < 1) {
+          timestamp = "Just now";
+        } else if (diffMins < 60) {
+          timestamp = `${diffMins}m ago`;
+        } else if (diffHours < 24) {
+          timestamp = `${diffHours}h ago`;
+        } else {
+          timestamp = `${Math.floor(diffHours / 24)}d ago`;
+        }
 
-        // Determine location relevance
+        // Determine location relevance based on country match
         let locationRelevance = "Global";
         if (story.city) {
           locationRelevance = "Local";
+        } else if (story.country_code && story.country_code === country) {
+          locationRelevance = "Country";
         } else if (story.country_code) {
           locationRelevance = "Country";
         }
@@ -119,7 +152,7 @@ serve(async (req) => {
           summary: story.ai_summary || story.summary || "",
           content: story.summary || "",
           ai_analysis: story.ai_summary || story.summary || "",
-          why_matters: `This ${story.category} story is relevant to current events.`,
+          why_matters: `This ${story.category || "news"} story is relevant to current events.`,
           perspectives: [],
           source_name: sources?.[0]?.source_name || "Unknown",
           source_url: sources?.[0]?.source_url || "",
@@ -127,15 +160,15 @@ serve(async (req) => {
           image_url: story.image_url,
           topic_slug: story.category || "world",
           sentiment: "neutral",
-          trust_score: Math.min(95, 70 + story.source_count * 5),
+          trust_score: Math.min(95, 70 + (story.source_count || 1) * 5),
           published_at: story.first_published_at,
           is_global: story.is_global,
           country_code: story.country_code,
-          source_count: story.source_count,
+          source_count: story.source_count || 1,
           sources: sources || [],
           timestamp,
           location_relevance: locationRelevance,
-          is_trending: story.source_count >= 2 && story.trend_score > 50,
+          is_trending: (story.source_count || 0) >= 2,
         };
       })
     );
