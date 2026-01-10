@@ -73,28 +73,28 @@ export function UserMenu() {
         <DropdownMenuSeparator />
         
         <DropdownMenuItem asChild>
-          <Link to="/feed" className="flex items-center gap-2 cursor-pointer">
+          <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
             <User className="h-4 w-4" />
-            My Feed
+            My Profile
           </Link>
         </DropdownMenuItem>
         
         <DropdownMenuItem asChild>
-          <Link to="/saved" className="flex items-center gap-2 cursor-pointer">
+          <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
             <Bookmark className="h-4 w-4" />
             Saved
           </Link>
         </DropdownMenuItem>
         
         <DropdownMenuItem asChild>
-          <Link to="/pricing" className="flex items-center gap-2 cursor-pointer">
+          <Link to="/support" className="flex items-center gap-2 cursor-pointer">
             <CreditCard className="h-4 w-4" />
-            Subscription
+            Support Us
           </Link>
         </DropdownMenuItem>
         
         <DropdownMenuItem asChild>
-          <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
+          <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
             <Settings className="h-4 w-4" />
             Settings
           </Link>
