@@ -520,7 +520,7 @@ export default function News() {
                 >
                   BBC, Reuters, The Guardian, NYT
                 </motion.span>
-                {" "}and more — with AI summaries, audio listening, and real-time updates.
+                {" "}and more — with smart summaries, audio listening, and real-time updates.
               </motion.p>
 
               {/* Search Bar with animated focus */}
@@ -555,7 +555,7 @@ export default function News() {
                 {[
                   { icon: Newspaper, label: "300+ Daily", color: "text-primary" },
                   { icon: Globe, label: "20+ Sources", color: "text-accent" },
-                  { icon: Sparkles, label: "AI Powered", color: "text-yellow-500" },
+                  { icon: Sparkles, label: "Smart Summaries", color: "text-yellow-500" },
                 ].map((stat, i) => (
                   <motion.div
                     key={stat.label}
