@@ -6,52 +6,59 @@ interface PullToRefreshProps {
   children: ReactNode;
   onRefresh: () => Promise<void>;
   className?: string;
+  disabled?: boolean;
 }
 
-export function PullToRefresh({ children, onRefresh, className = "" }: PullToRefreshProps) {
+export function PullToRefresh({ children, onRefresh, className = "", disabled = false }: PullToRefreshProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
   const currentY = useMotionValue(0);
   const pullDistance = useRef(0);
+  const isAtTop = useRef(true);
   
-  const THRESHOLD = 120;
-  const MAX_PULL = 150;
+  const THRESHOLD = 100;
+  const MAX_PULL = 130;
 
   const opacity = useTransform(currentY, [0, THRESHOLD], [0, 1]);
   const scale = useTransform(currentY, [0, THRESHOLD], [0.5, 1]);
   const rotate = useTransform(currentY, [0, THRESHOLD], [0, 360]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (isRefreshing) return;
-    const scrollTop = containerRef.current?.scrollTop || 0;
-    if (scrollTop <= 0) {
-      startY.current = e.touches[0].clientY;
-    }
-  }, [isRefreshing]);
+    if (isRefreshing || disabled) return;
+    // Only allow pull refresh if we're at the very top
+    isAtTop.current = true;
+    startY.current = e.touches[0].clientY;
+    pullDistance.current = 0;
+  }, [isRefreshing, disabled]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (isRefreshing) return;
-    const scrollTop = containerRef.current?.scrollTop || 0;
-    if (scrollTop > 0) return;
+    if (isRefreshing || disabled || !isAtTop.current) return;
 
     const delta = e.touches[0].clientY - startY.current;
-    if (delta > 0) {
-      pullDistance.current = Math.min(delta * 0.5, MAX_PULL);
+    
+    // Only activate pull-to-refresh for significant downward swipes from the top
+    if (delta > 0 && delta > 20) {
+      pullDistance.current = Math.min(delta * 0.4, MAX_PULL);
       currentY.set(pullDistance.current);
+      
+      // Prevent default to stop scroll
+      if (pullDistance.current > 10) {
+        e.preventDefault();
+      }
     }
-  }, [isRefreshing, currentY]);
+  }, [isRefreshing, disabled, currentY]);
 
   const handleTouchEnd = useCallback(async () => {
-    if (isRefreshing) return;
+    if (isRefreshing || disabled) return;
 
     if (pullDistance.current >= THRESHOLD) {
       setIsRefreshing(true);
       setShowSplash(true);
       
-      // Keep splash visible for at least 1.5 seconds
-      const minSplashTime = new Promise(resolve => setTimeout(resolve, 1500));
+      // Keep splash visible for at least 1.2 seconds
+      const minSplashTime = new Promise(resolve => setTimeout(resolve, 1200));
       
       try {
         await Promise.all([onRefresh(), minSplashTime]);
@@ -59,13 +66,13 @@ export function PullToRefresh({ children, onRefresh, className = "" }: PullToRef
         setShowSplash(false);
         setTimeout(() => {
           setIsRefreshing(false);
-        }, 300);
+        }, 200);
       }
     }
 
     pullDistance.current = 0;
     currentY.set(0);
-  }, [isRefreshing, onRefresh, currentY]);
+  }, [isRefreshing, disabled, onRefresh, currentY]);
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
@@ -79,12 +86,12 @@ export function PullToRefresh({ children, onRefresh, className = "" }: PullToRef
       >
         <motion.div
           style={{ scale, rotate }}
-          className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center"
+          className="w-12 h-12 rounded-full bg-primary/20 backdrop-blur-sm flex items-center justify-center shadow-lg border border-primary/30"
         >
-          <RefreshCw className="w-5 h-5 text-primary" />
+          <RefreshCw className="w-6 h-6 text-primary" />
         </motion.div>
         <motion.p 
-          className="text-xs text-muted-foreground mt-2"
+          className="text-xs text-foreground/70 mt-2 font-medium"
           style={{ opacity }}
         >
           {pullDistance.current >= THRESHOLD ? "Release to refresh" : "Pull to refresh"}
@@ -98,105 +105,107 @@ export function PullToRefresh({ children, onRefresh, className = "" }: PullToRef
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-background via-background to-primary/5"
           >
+            {/* Background glow */}
+            <motion.div
+              animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute w-64 h-64 rounded-full bg-primary/20 blur-3xl"
+            />
+
             {/* Logo Animation */}
             <motion.div
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ 
                 type: "spring", 
-                stiffness: 200, 
+                stiffness: 250, 
                 damping: 15,
-                duration: 0.6 
               }}
-              className="flex flex-col items-center"
+              className="flex flex-col items-center relative z-10"
             >
               {/* Animated Logo */}
               <motion.div
                 animate={{ 
-                  rotate: [0, 360],
-                  scale: [1, 1.1, 1],
+                  rotateY: [0, 360],
                 }}
                 transition={{ 
-                  rotate: { duration: 2, repeat: Infinity, ease: "linear" },
-                  scale: { duration: 1, repeat: Infinity, ease: "easeInOut" }
+                  duration: 1.5, 
+                  repeat: Infinity, 
+                  ease: "easeInOut"
                 }}
-                className="relative mb-6"
+                className="relative mb-5"
               >
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">
-                  <span className="text-3xl font-bold text-primary-foreground font-display">N</span>
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-xl shadow-primary/30">
+                  <span className="text-2xl font-bold text-primary-foreground font-display">N</span>
                 </div>
-                {/* Glow effect */}
+                {/* Pulse ring */}
                 <motion.div
-                  animate={{ opacity: [0.3, 0.7, 0.3] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="absolute inset-0 rounded-2xl bg-primary/30 blur-xl -z-10"
+                  animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="absolute inset-0 rounded-2xl border-2 border-primary"
                 />
               </motion.div>
 
               {/* Text */}
               <motion.h1
-                initial={{ y: 20, opacity: 0 }}
+                initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-3xl font-bold font-display gradient-text mb-2"
+                transition={{ delay: 0.1 }}
+                className="text-xl font-bold font-display text-foreground mb-1"
               >
                 NEWSTACK
               </motion.h1>
 
-              {/* Loading dots */}
-              <motion.div className="flex gap-1.5 mt-4">
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-xs text-muted-foreground mb-4"
+              >
+                Refreshing stories...
+              </motion.p>
+
+              {/* Loading animation */}
+              <motion.div className="flex gap-1.5">
                 {[0, 1, 2].map((i) => (
                   <motion.div
                     key={i}
                     animate={{ 
-                      y: [0, -8, 0],
+                      scale: [1, 1.5, 1],
                       opacity: [0.5, 1, 0.5]
                     }}
                     transition={{ 
                       duration: 0.6, 
                       repeat: Infinity, 
-                      delay: i * 0.15 
+                      delay: i * 0.12 
                     }}
                     className="w-2 h-2 rounded-full bg-primary"
                   />
                 ))}
               </motion.div>
-
-              {/* Powered by text */}
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="text-xs text-muted-foreground mt-8"
-              >
-                Powered by
-              </motion.p>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="text-sm font-semibold text-foreground/70"
-              >
-                CROPXON INNOVATIONS PVT LTD
-              </motion.p>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Content */}
-      <motion.div
+      {/* Content - pass through touch events when not pulling */}
+      <div
         ref={containerRef}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        style={{ y: currentY }}
-        className="h-full overflow-y-auto"
+        className="h-full"
       >
-        {children}
-      </motion.div>
+        <motion.div
+          style={{ y: currentY }}
+          className="h-full"
+        >
+          {children}
+        </motion.div>
+      </div>
     </div>
   );
 }
