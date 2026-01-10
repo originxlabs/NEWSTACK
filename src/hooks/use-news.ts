@@ -21,6 +21,7 @@ export interface NewsArticle {
   published_at: string;
   is_global: boolean;
   country_code: string | null;
+  source_count?: number;
 }
 
 interface FetchNewsParams {
@@ -30,6 +31,7 @@ interface FetchNewsParams {
   page?: number;
   pageSize?: number;
   query?: string;
+  feedType?: "recent" | "trending" | "foryou";
 }
 
 interface NewsResponse {

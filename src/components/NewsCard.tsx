@@ -28,6 +28,7 @@ export interface NewsItem {
   isGlobal?: boolean;
   isBreaking?: boolean;
   isTrending?: boolean;
+  sourceCount?: number;
 }
 
 interface NewsCardProps {
@@ -208,7 +209,7 @@ export function NewsCard({ news, index }: NewsCardProps) {
                 )}
 
                 {/* Source and time */}
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4 flex-wrap">
                   <button 
                     onClick={handleSourceClick}
                     className="flex items-center gap-2 hover:text-primary transition-colors"
@@ -219,6 +220,14 @@ export function NewsCard({ news, index }: NewsCardProps) {
                     <span className="truncate max-w-32">{news.source}</span>
                     <ExternalLink className="w-3 h-3" />
                   </button>
+                  {news.sourceCount && news.sourceCount > 1 && (
+                    <>
+                      <span>•</span>
+                      <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+                        Covered by {news.sourceCount} sources
+                      </Badge>
+                    </>
+                  )}
                   <span>•</span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
