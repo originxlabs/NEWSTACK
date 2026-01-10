@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Sparkles, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,45 @@ const POPUP_SCHEDULE_MINUTES = [2, 6, 10, 15, 30];
 const POPUP_START_TS_KEY = "newstack_newsletter_popup_start_ts";
 const POPUP_NEXT_INDEX_KEY = "newstack_newsletter_popup_next_index";
 const POPUP_SUBSCRIBED_KEY = "newstack_newsletter_subscribed";
+const SESSION_ID_KEY = "newstack_session_id";
+
+// Get or create a stable session ID for analytics
+const getSessionId = (): string => {
+  let sessionId = localStorage.getItem(SESSION_ID_KEY);
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    localStorage.setItem(SESSION_ID_KEY, sessionId);
+  }
+  return sessionId;
+};
 
 export function NewsletterPopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const currentTriggerMinute = useRef<number | null>(null);
+  const hasTrackedView = useRef(false);
+
+  // Track popup events for analytics
+  const trackPopupEvent = useCallback(async (
+    eventType: 'view' | 'close' | 'submit',
+    emailValue?: string
+  ) => {
+    try {
+      await supabase.from("newsletter_popup_events").insert({
+        event_type: eventType,
+        session_id: getSessionId(),
+        user_agent: navigator.userAgent,
+        referrer: document.referrer || null,
+        page_url: window.location.href,
+        popup_trigger_minute: currentTriggerMinute.current,
+        email: eventType === 'submit' ? emailValue : null,
+      });
+    } catch (err) {
+      console.error("Failed to track popup event:", err);
+    }
+  }, []);
 
   useEffect(() => {
     const alreadySubscribed = localStorage.getItem(POPUP_SUBSCRIBED_KEY);
@@ -40,6 +73,7 @@ export function NewsletterPopup() {
     const timer = setTimeout(() => {
       setIsOpen((prev) => {
         if (prev) return prev;
+        currentTriggerMinute.current = POPUP_SCHEDULE_MINUTES[nextIndex];
         localStorage.setItem(POPUP_NEXT_INDEX_KEY, String(nextIndex + 1));
         return true;
       });
@@ -47,6 +81,17 @@ export function NewsletterPopup() {
 
     return () => clearTimeout(timer);
   }, [isSubscribed, isOpen]);
+
+  // Track view when popup opens
+  useEffect(() => {
+    if (isOpen && !hasTrackedView.current) {
+      hasTrackedView.current = true;
+      trackPopupEvent('view');
+    }
+    if (!isOpen) {
+      hasTrackedView.current = false;
+    }
+  }, [isOpen, trackPopupEvent]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +102,9 @@ export function NewsletterPopup() {
 
     setIsSubmitting(true);
     try {
+      const trimmedEmail = email.toLowerCase().trim();
       const { error } = await supabase.from("newsletter_subscribers").insert({
-        email: email.toLowerCase().trim(),
+        email: trimmedEmail,
       });
 
       if (error) {
@@ -66,6 +112,7 @@ export function NewsletterPopup() {
           toast.info("You're already subscribed!");
           setIsSubscribed(true);
           localStorage.setItem(POPUP_SUBSCRIBED_KEY, "true");
+          await trackPopupEvent('submit', trimmedEmail);
         } else {
           throw error;
         }
@@ -73,6 +120,7 @@ export function NewsletterPopup() {
         setIsSubscribed(true);
         localStorage.setItem(POPUP_SUBSCRIBED_KEY, "true");
         toast.success("Welcome to the NEWSTACK newsletter! 📬");
+        await trackPopupEvent('submit', trimmedEmail);
       }
     } catch (err) {
       console.error("Newsletter signup error:", err);
@@ -82,7 +130,10 @@ export function NewsletterPopup() {
     }
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
+    if (!isSubscribed) {
+      await trackPopupEvent('close');
+    }
     setIsOpen(false);
   };
 
