@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { StackBot } from "@/components/StackBot";
 import { NewsletterPopup } from "@/components/NewsletterPopup";
+import { MobileAppWrapper } from "@/components/mobile/MobileAppWrapper";
 import { useEffect } from "react";
 import Index from "./pages/Index";
 import News from "./pages/News";
@@ -25,6 +26,7 @@ import TermsOfService from "./pages/TermsOfService";
 import RefundPolicy from "./pages/RefundPolicy";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
+import Pricing from "./pages/Pricing";
 
 const queryClient = new QueryClient();
 
@@ -60,28 +62,30 @@ const App = () => (
               <ScrollToTop />
               <StackBot />
               <NewsletterPopup />
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/news" element={<News />} />
-                <Route path="/listen" element={<Listen />} />
-                <Route path="/world" element={<World />} />
-                <Route path="/places" element={<Places />} />
-                <Route path="/topics" element={<Topics />} />
-                <Route path="/features" element={<Features />} />
-                <Route path="/compare" element={<Features />} />
-                <Route path="/support" element={<Support />} />
-                <Route path="/pricing" element={<Support />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/saved" element={<SavedArticles />} />
-                <Route path="/admin" element={<Admin />} />
-                {/* Legal pages */}
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/terms" element={<TermsOfService />} />
-                <Route path="/refund" element={<RefundPolicy />} />
-                <Route path="/cookies" element={<PrivacyPolicy />} />
-                <Route path="/licenses" element={<TermsOfService />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <MobileAppWrapper>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/news" element={<News />} />
+                  <Route path="/listen" element={<Listen />} />
+                  <Route path="/world" element={<World />} />
+                  <Route path="/places" element={<Places />} />
+                  <Route path="/topics" element={<Topics />} />
+                  <Route path="/features" element={<Features />} />
+                  <Route path="/compare" element={<Features />} />
+                  <Route path="/support" element={<Support />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/saved" element={<SavedArticles />} />
+                  <Route path="/admin" element={<Admin />} />
+                  {/* Legal pages */}
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/refund" element={<RefundPolicy />} />
+                  <Route path="/cookies" element={<PrivacyPolicy />} />
+                  <Route path="/licenses" element={<TermsOfService />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </MobileAppWrapper>
             </BrowserRouter>
           </TooltipProvider>
         </ThemeProvider>
