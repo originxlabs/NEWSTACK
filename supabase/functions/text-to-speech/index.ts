@@ -44,8 +44,8 @@ serve(async (req) => {
       throw new Error("Text is required");
     }
 
-    // Limit text length to prevent abuse
-    const truncatedText = text.substring(0, 5000);
+    // Limit text length to save credits (250 chars max = ~250 credits)
+    const truncatedText = text.substring(0, 250);
 
     // Select voice based on language or use provided voiceId
     const selectedVoice = voiceId || languageVoices[language] || languageVoices["en"];
