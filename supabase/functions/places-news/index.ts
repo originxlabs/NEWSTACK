@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,6 +20,55 @@ interface NewsArticle {
   image?: string;
 }
 
+// Cache duration: 30 minutes
+const CACHE_DURATION_MINUTES = 30;
+
+function generateCacheKey(placeName: string): string {
+  return `places-news:${placeName.toLowerCase().replace(/\s+/g, "-")}`;
+}
+
+async function fetchFromSerpAPI(placeName: string): Promise<NewsArticle[] | null> {
+  const SERPAPI_KEY = Deno.env.get("SERPAPI_KEY");
+  if (!SERPAPI_KEY) {
+    console.log("SerpAPI key not configured");
+    return null;
+  }
+
+  try {
+    const url = `https://serpapi.com/search?engine=google_news&q=${encodeURIComponent(placeName + " news")}&api_key=${SERPAPI_KEY}`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.warn(`SerpAPI error: ${response.status}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    const articles = data.news_results || [];
+    
+    if (articles.length === 0) return null;
+
+    return articles.slice(0, 5).map((article: {
+      title: string;
+      snippet: string;
+      source: { name: string };
+      date?: string;
+      link: string;
+      thumbnail?: string;
+    }) => ({
+      title: article.title,
+      description: article.snippet || "",
+      source: article.source?.name || "Unknown",
+      publishedAt: article.date || new Date().toISOString(),
+      url: article.link,
+      image: article.thumbnail,
+    }));
+  } catch (error) {
+    console.error("SerpAPI error:", error);
+    return null;
+  }
+}
+
 async function fetchFromGNews(placeName: string): Promise<NewsArticle[] | null> {
   const GNEWS_API_KEY = Deno.env.get("GNEWS_API_KEY");
   if (!GNEWS_API_KEY) {
@@ -31,6 +81,12 @@ async function fetchFromGNews(placeName: string): Promise<NewsArticle[] | null> 
     const url = `https://gnews.io/api/v4/search?q=${query}&lang=en&max=5&apikey=${GNEWS_API_KEY}`;
     
     const response = await fetch(url);
+    
+    if (response.status === 403 || response.status === 429) {
+      console.warn("GNews rate limit reached");
+      return null;
+    }
+    
     const data = await response.json();
 
     if (data.errors) {
@@ -42,7 +98,14 @@ async function fetchFromGNews(placeName: string): Promise<NewsArticle[] | null> 
       return null;
     }
 
-    return data.articles.map((article: any) => ({
+    return data.articles.map((article: {
+      title: string;
+      description: string;
+      source: { name: string };
+      publishedAt: string;
+      url: string;
+      image: string;
+    }) => ({
       title: article.title,
       description: article.description,
       source: article.source?.name || "Unknown",
@@ -79,7 +142,14 @@ async function fetchFromMediaStack(placeName: string): Promise<NewsArticle[] | n
       return null;
     }
 
-    return data.data.map((article: any) => ({
+    return data.data.map((article: {
+      title: string;
+      description: string;
+      source: string;
+      published_at: string;
+      url: string;
+      image: string | null;
+    }) => ({
       title: article.title,
       description: article.description || article.title,
       source: article.source || "MediaStack",
@@ -134,22 +204,78 @@ serve(async (req) => {
 
     console.log("Fetching news for place:", place_name);
 
-    // Try GNews first
-    let news = await fetchFromGNews(place_name);
-    let source = "gnews";
+    // Initialize Supabase client for caching
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fallback to MediaStack if GNews fails
+    const cacheKey = generateCacheKey(place_name);
+
+    // Check cache first
+    const { data: cachedData } = await supabase
+      .from("cached_news")
+      .select("articles, source")
+      .eq("cache_key", cacheKey)
+      .gt("expires_at", new Date().toISOString())
+      .single();
+
+    if (cachedData) {
+      console.log("Cache hit for:", cacheKey);
+      return new Response(
+        JSON.stringify({ news: cachedData.articles, source: cachedData.source, cached: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Try multiple APIs in order
+    let news: NewsArticle[] | null = null;
+    let source = "fallback";
+
+    // Try SerpAPI first (best for discovery)
+    news = await fetchFromSerpAPI(place_name);
+    if (news && news.length > 0) {
+      source = "serpapi";
+      console.log("SerpAPI: Found news");
+    }
+
+    // Try GNews as fallback
+    if (!news) {
+      console.log("SerpAPI failed, trying GNews...");
+      news = await fetchFromGNews(place_name);
+      if (news && news.length > 0) {
+        source = "gnews";
+      }
+    }
+
+    // Try MediaStack as final fallback
     if (!news) {
       console.log("GNews failed, trying MediaStack...");
       news = await fetchFromMediaStack(place_name);
-      source = "mediastack";
+      if (news && news.length > 0) {
+        source = "mediastack";
+      }
     }
 
-    // Use fallback news if both APIs fail
-    if (!news) {
+    // Use fallback news if all APIs fail
+    if (!news || news.length === 0) {
       console.log("All news APIs failed, using fallback news");
       news = generateFallbackNews(place_name);
       source = "fallback";
+    }
+
+    // Cache the result (if not fallback)
+    if (source !== "fallback") {
+      const expiresAt = new Date(Date.now() + CACHE_DURATION_MINUTES * 60 * 1000).toISOString();
+      
+      await supabase
+        .from("cached_news")
+        .upsert({
+          cache_key: cacheKey,
+          articles: news,
+          total: news.length,
+          source,
+          expires_at: expiresAt,
+        }, { onConflict: "cache_key" });
     }
 
     return new Response(

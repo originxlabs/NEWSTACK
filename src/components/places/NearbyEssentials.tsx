@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Star, MapPin, ExternalLink, Coffee, Utensils, Hotel, Plane, Train, Hospital } from "lucide-react";
+import { Star, MapPin, ExternalLink, Coffee, Utensils, Hotel, Plane, Train, Hospital, Bus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -78,7 +78,8 @@ export function NearbyEssentials({ placeData, isLoading, onOpenInMaps }: NearbyE
   
   const [cafes, setCafes] = useState<PlaceItem[]>([]);
   const [hospitals, setHospitals] = useState<PlaceItem[]>([]);
-  const [stations, setStations] = useState<PlaceItem[]>([]);
+  const [railwayStations, setRailwayStations] = useState<PlaceItem[]>([]);
+  const [busStations, setBusStations] = useState<PlaceItem[]>([]);
   const [loadingExtra, setLoadingExtra] = useState(false);
 
   // Fetch additional categories when place changes
@@ -89,7 +90,7 @@ export function NearbyEssentials({ placeData, isLoading, onOpenInMaps }: NearbyE
       setLoadingExtra(true);
       
       try {
-        const [cafesRes, hospitalsRes, stationsRes] = await Promise.allSettled([
+        const [cafesRes, hospitalsRes, railwayRes, busRes] = await Promise.allSettled([
           fetch(`${SUPABASE_URL}/functions/v1/places-nearby`, {
             method: "POST",
             headers: {
@@ -115,13 +116,23 @@ export function NearbyEssentials({ placeData, isLoading, onOpenInMaps }: NearbyE
               apikey: SUPABASE_KEY,
               Authorization: `Bearer ${SUPABASE_KEY}`,
             },
-            body: JSON.stringify({ lat: place.lat, lng: place.lng, type: "station" }),
+            body: JSON.stringify({ lat: place.lat, lng: place.lng, type: "railway_station" }),
+          }).then(r => r.json()),
+          fetch(`${SUPABASE_URL}/functions/v1/places-nearby`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+            },
+            body: JSON.stringify({ lat: place.lat, lng: place.lng, type: "bus_station" }),
           }).then(r => r.json()),
         ]);
 
         if (cafesRes.status === "fulfilled") setCafes(cafesRes.value.places || []);
         if (hospitalsRes.status === "fulfilled") setHospitals(hospitalsRes.value.places || []);
-        if (stationsRes.status === "fulfilled") setStations(stationsRes.value.places || []);
+        if (railwayRes.status === "fulfilled") setRailwayStations(railwayRes.value.places || []);
+        if (busRes.status === "fulfilled") setBusStations(busRes.value.places || []);
       } catch (error) {
         console.error("Failed to fetch extra categories:", error);
       } finally {
@@ -177,10 +188,16 @@ export function NearbyEssentials({ placeData, isLoading, onOpenInMaps }: NearbyE
       }))
     },
     { 
-      id: "stations", 
-      label: "Stations", 
+      id: "railway", 
+      label: "Railway", 
       icon: <Train className="h-3.5 w-3.5" />,
-      items: stations 
+      items: railwayStations 
+    },
+    { 
+      id: "bus", 
+      label: "Bus Stands", 
+      icon: <Bus className="h-3.5 w-3.5" />,
+      items: busStations 
     },
   ];
 
@@ -209,7 +226,7 @@ export function NearbyEssentials({ placeData, isLoading, onOpenInMaps }: NearbyE
 
         {tabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id} className="mt-0">
-            {isLoading || (loadingExtra && ["cafes", "hospitals", "stations"].includes(tab.id)) ? (
+            {isLoading || (loadingExtra && ["cafes", "hospitals", "railway", "bus"].includes(tab.id)) ? (
               <PlaceSkeleton type="list" />
             ) : tab.items.length > 0 ? (
               <div className="space-y-3 max-h-[400px] overflow-y-auto scrollbar-hide">
