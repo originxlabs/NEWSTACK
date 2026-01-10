@@ -1,13 +1,50 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Loader2, Filter, TrendingUp, Clock, Sparkles } from "lucide-react";
+import { Loader2, TrendingUp, Clock, Sparkles, AlertCircle, RefreshCw } from "lucide-react";
 import { NewsCard, NewsItem } from "./NewsCard";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useInfiniteNews, NewsArticle } from "@/hooks/use-news";
+import { usePreferences } from "@/contexts/PreferencesContext";
 
-const topics = ["All", "Business", "Tech", "World", "India", "Sports", "Finance", "AI", "Politics"];
+const topics = [
+  { slug: "all", name: "All" },
+  { slug: "ai", name: "AI" },
+  { slug: "business", name: "Business" },
+  { slug: "finance", name: "Finance" },
+  { slug: "politics", name: "Politics" },
+  { slug: "sports", name: "Sports" },
+  { slug: "entertainment", name: "Entertainment" },
+  { slug: "health", name: "Health" },
+  { slug: "tech", name: "Tech" },
+  { slug: "climate", name: "Climate" },
+];
 
-// Mock news data generator
+// Transform API article to NewsItem format
+function transformArticle(article: NewsArticle): NewsItem {
+  const publishedDate = new Date(article.published_at);
+  const now = new Date();
+  const diffHours = Math.floor((now.getTime() - publishedDate.getTime()) / (1000 * 60 * 60));
+  const timestamp = diffHours < 1 ? "Just now" : diffHours < 24 ? `${diffHours}h ago` : `${Math.floor(diffHours / 24)}d ago`;
+
+  return {
+    id: article.id,
+    headline: article.headline,
+    summary: article.summary || article.ai_analysis || "",
+    content: article.content,
+    topic: article.topic_slug || "world",
+    sentiment: article.sentiment || "neutral",
+    trustScore: article.trust_score || 85,
+    source: article.source_name || "Unknown",
+    sourceIcon: article.source_logo || undefined,
+    timestamp,
+    imageUrl: article.image_url || undefined,
+    whyMatters: article.why_matters || "This story provides insights into developments that could impact global trends and your interests.",
+    countryCode: article.country_code || undefined,
+    isGlobal: article.is_global,
+  };
+}
+
+// Fallback mock data in case API fails
 const generateMockNews = (startIndex: number, count: number): NewsItem[] => {
   const headlines = [
     "AI Breakthrough: New Language Model Achieves Human-Level Reasoning in Complex Tasks",
@@ -20,11 +57,6 @@ const generateMockNews = (startIndex: number, count: number): NewsItem[] => {
     "World Cup 2026: Host Cities Announce Sustainable Stadium Plans",
     "Federal Reserve Holds Rates Steady Amid Economic Uncertainty",
     "Breakthrough in Nuclear Fusion Brings Clean Energy Closer",
-    "Electric Vehicle Sales Surpass Gas Cars in Major European Markets",
-    "New Study Reveals AI Can Detect Early Signs of Disease",
-    "Global Supply Chain Crisis Shows Signs of Recovery",
-    "Renewable Energy Investments Hit Record $500B Globally",
-    "Major Cybersecurity Breach Affects Fortune 500 Companies",
   ];
 
   const summaries = [
@@ -35,12 +67,12 @@ const generateMockNews = (startIndex: number, count: number): NewsItem[] => {
     "World leaders have committed to ambitious carbon reduction targets with binding enforcement mechanisms.",
   ];
 
-  const topicsList = ["Business", "Tech", "World", "India", "Sports", "Finance", "AI", "Politics"];
+  const topicsList = ["business", "ai", "world", "sports", "finance", "politics", "health", "entertainment"];
   const sources = ["Reuters", "Bloomberg", "AP News", "BBC", "CNN", "TechCrunch", "The Guardian"];
   const sentiments: ("positive" | "neutral" | "negative")[] = ["positive", "neutral", "negative"];
 
   return Array.from({ length: count }, (_, i) => ({
-    id: `news-${startIndex + i}`,
+    id: `mock-${startIndex + i}`,
     headline: headlines[(startIndex + i) % headlines.length],
     summary: summaries[(startIndex + i) % summaries.length],
     topic: topicsList[(startIndex + i) % topicsList.length],
@@ -48,44 +80,62 @@ const generateMockNews = (startIndex: number, count: number): NewsItem[] => {
     trustScore: 85 + Math.floor(Math.random() * 15),
     source: sources[(startIndex + i) % sources.length],
     timestamp: `${Math.floor(Math.random() * 23) + 1}h ago`,
-    imageUrl: `https://images.unsplash.com/photo-${1500000000000 + (startIndex + i) * 1000}?w=400&h=300&fit=crop`,
+    imageUrl: undefined,
     whyMatters: "Based on your interest in technology and global markets, this story aligns with topics you frequently engage with.",
   }));
 };
 
 export function NewsFeed() {
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState("All");
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const { country, language } = usePreferences();
+  const [selectedTopic, setSelectedTopic] = useState("all");
   const loaderRef = useRef<HTMLDivElement>(null);
 
-  // Load initial news
+  // Build query params based on preferences
+  const queryParams = useMemo(() => ({
+    country: country?.code,
+    language: language?.code === "en" ? "eng" : language?.code,
+    topic: selectedTopic !== "all" ? selectedTopic : undefined,
+    pageSize: 15,
+  }), [country?.code, language?.code, selectedTopic]);
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useInfiniteNews(queryParams);
+
+  // Transform articles to NewsItem format
+  const newsItems = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap((page) => page.articles.map(transformArticle));
+  }, [data]);
+
+  // Use mock data as fallback if API fails
+  const [mockNews, setMockNews] = useState<NewsItem[]>([]);
   useEffect(() => {
-    setNews(generateMockNews(0, 10));
-  }, []);
+    if (isError && mockNews.length === 0) {
+      setMockNews(generateMockNews(0, 10));
+    }
+  }, [isError, mockNews.length]);
 
-  // Load more news
-  const loadMore = useCallback(() => {
-    if (isLoading || !hasMore) return;
+  const displayNews = newsItems.length > 0 ? newsItems : mockNews;
 
-    setIsLoading(true);
-    setTimeout(() => {
-      const newNews = generateMockNews(news.length, 5);
-      setNews((prev) => [...prev, ...newNews]);
-      setIsLoading(false);
-      if (news.length >= 50) {
-        setHasMore(false);
-      }
-    }, 1000);
-  }, [news.length, isLoading, hasMore]);
+  // Filter by topic (client-side for mock data, server handles real data)
+  const filteredNews = selectedTopic === "all" || newsItems.length > 0
+    ? displayNews
+    : displayNews.filter((n) => n.topic.toLowerCase() === selectedTopic);
 
   // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          loadMore();
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
         }
       },
       { threshold: 0.1 }
@@ -96,11 +146,7 @@ export function NewsFeed() {
     }
 
     return () => observer.disconnect();
-  }, [loadMore]);
-
-  const filteredNews = selectedTopic === "All" 
-    ? news 
-    : news.filter((n) => n.topic === selectedTopic);
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   return (
     <section className="py-20 px-4">
@@ -117,7 +163,11 @@ export function NewsFeed() {
                 Your Feed
               </h2>
               <p className="text-muted-foreground">
-                AI-curated stories tailored to your interests
+                {country ? (
+                  <>News from {country.flag_emoji} {country.name} & around the world</>
+                ) : (
+                  "AI-curated stories tailored to your interests"
+                )}
               </p>
             </div>
             <div className="hidden sm:flex items-center gap-2">
@@ -140,34 +190,71 @@ export function NewsFeed() {
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {topics.map((topic) => (
               <Button
-                key={topic}
-                variant={selectedTopic === topic ? "default" : "glass"}
+                key={topic.slug}
+                variant={selectedTopic === topic.slug ? "default" : "glass"}
                 size="sm"
-                onClick={() => setSelectedTopic(topic)}
+                onClick={() => setSelectedTopic(topic.slug)}
                 className="flex-shrink-0"
               >
-                {topic}
+                {topic.name}
               </Button>
             ))}
           </div>
         </motion.div>
 
+        {/* Error state */}
+        {isError && mockNews.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-12"
+          >
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h3 className="font-display text-xl font-semibold mb-2">Failed to load news</h3>
+            <p className="text-muted-foreground mb-4">
+              {error instanceof Error ? error.message : "Please try again later"}
+            </p>
+            <Button onClick={() => refetch()} className="gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </Button>
+          </motion.div>
+        )}
+
+        {/* Loading state */}
+        {isLoading && (
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="glass-card rounded-xl h-48 animate-pulse" />
+            ))}
+          </div>
+        )}
+
         {/* News cards */}
-        <div className="space-y-4">
-          {filteredNews.map((item, index) => (
-            <NewsCard key={item.id} news={item} index={index} />
-          ))}
-        </div>
+        {!isLoading && (
+          <div className="space-y-4">
+            {filteredNews.map((item, index) => (
+              <NewsCard key={item.id} news={item} index={index} />
+            ))}
+          </div>
+        )}
+
+        {/* No results */}
+        {!isLoading && filteredNews.length === 0 && !isError && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No news found for this topic. Try selecting a different category.</p>
+          </div>
+        )}
 
         {/* Loading indicator */}
         <div ref={loaderRef} className="py-8 flex justify-center">
-          {isLoading && (
+          {isFetchingNextPage && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin" />
               <span>Loading more stories...</span>
             </div>
           )}
-          {!hasMore && (
+          {!hasNextPage && filteredNews.length > 0 && (
             <p className="text-muted-foreground text-sm">
               You've reached the end. Check back later for more stories.
             </p>
