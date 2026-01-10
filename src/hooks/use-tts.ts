@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -6,7 +6,7 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 interface UseTTSOptions {
   language?: string;
   voiceId?: string;
-  maxLength?: number; // Max characters to send to TTS
+  maxLength?: number;
 }
 
 // Language codes for browser speech synthesis
@@ -32,14 +32,20 @@ export function useTTS(options: UseTTSOptions = {}) {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [usingFallback, setUsingFallback] = useState(false);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const optionsRef = useRef(options);
 
-  const maxLength = options.maxLength || 250; // Default 250 chars to save credits
+  // Keep options ref updated
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
+  const maxLength = options.maxLength ?? 250;
 
   const cleanup = useCallback(() => {
-    // Cleanup audio element
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = "";
@@ -49,52 +55,41 @@ export function useTTS(options: UseTTSOptions = {}) {
       URL.revokeObjectURL(audioUrlRef.current);
       audioUrlRef.current = null;
     }
-    // Cleanup browser speech
-    if (utteranceRef.current) {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
-      utteranceRef.current = null;
     }
-    setIsPlaying(false);
-    setProgress(0);
-    setDuration(0);
-    setUsingFallback(false);
+    utteranceRef.current = null;
   }, []);
 
-  // Browser TTS fallback
-  const speakWithBrowser = useCallback((text: string) => {
-    return new Promise<void>((resolve, reject) => {
-      if (!("speechSynthesis" in window)) {
-        reject(new Error("Browser speech synthesis not supported"));
-        return;
-      }
+  const speakWithBrowser = useCallback(async (text: string): Promise<void> => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      throw new Error("Browser speech synthesis not supported");
+    }
 
-      window.speechSynthesis.cancel();
-      
+    window.speechSynthesis.cancel();
+
+    return new Promise((resolve, reject) => {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = browserVoiceLangs[options.language || "en"] || "en-US";
+      const lang = optionsRef.current.language || "en";
+      utterance.lang = browserVoiceLangs[lang] || "en-US";
       utterance.rate = 1.0;
       utterance.pitch = 1.0;
 
-      // Try to find a good voice
       const voices = window.speechSynthesis.getVoices();
       const preferredVoice = voices.find(
-        (v) => v.lang.startsWith(options.language || "en") && !v.localService
-      ) || voices.find((v) => v.lang.startsWith(options.language || "en"));
-      
+        (v) => v.lang.startsWith(lang) && !v.localService
+      ) || voices.find((v) => v.lang.startsWith(lang));
+
       if (preferredVoice) {
         utterance.voice = preferredVoice;
       }
 
-      // Estimate duration (rough: 150 words per minute)
       const wordCount = text.split(/\s+/).length;
-      const estimatedDuration = (wordCount / 150) * 60;
-      setDuration(estimatedDuration);
-
-      let startTime = Date.now();
+      const estimatedDuration = Math.max((wordCount / 150) * 60, 1);
 
       utterance.onstart = () => {
-        startTime = Date.now();
         setIsPlaying(true);
+        setDuration(estimatedDuration);
       };
 
       utterance.onend = () => {
@@ -105,33 +100,33 @@ export function useTTS(options: UseTTSOptions = {}) {
 
       utterance.onerror = (e) => {
         setIsPlaying(false);
-        reject(new Error(e.error));
+        reject(new Error(e.error || "Speech synthesis error"));
       };
-
-      // Update progress periodically
-      const progressInterval = setInterval(() => {
-        if (window.speechSynthesis.speaking) {
-          const elapsed = (Date.now() - startTime) / 1000;
-          const prog = Math.min((elapsed / estimatedDuration) * 100, 99);
-          setProgress(prog);
-        } else {
-          clearInterval(progressInterval);
-        }
-      }, 200);
 
       utteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
+
+      // Progress simulation
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        if (!window.speechSynthesis.speaking) {
+          clearInterval(interval);
+          return;
+        }
+        const elapsed = (Date.now() - startTime) / 1000;
+        setProgress(Math.min((elapsed / estimatedDuration) * 100, 99));
+      }, 200);
     });
-  }, [options.language]);
+  }, []);
 
   const speak = useCallback(async (text: string) => {
     cleanup();
     setIsLoading(true);
     setError(null);
     setUsingFallback(false);
+    setProgress(0);
 
-    // Truncate text to save credits
-    const truncatedText = text.length > maxLength 
+    const truncatedText = text.length > maxLength
       ? text.substring(0, maxLength).trim() + "..."
       : text;
 
@@ -145,16 +140,15 @@ export function useTTS(options: UseTTSOptions = {}) {
         },
         body: JSON.stringify({
           text: truncatedText,
-          language: options.language || "en",
-          voiceId: options.voiceId,
+          language: optionsRef.current.language || "en",
+          voiceId: optionsRef.current.voiceId,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMsg = errorData.error || `TTS request failed: ${response.status}`;
-        
-        // Check if it's a quota error - use fallback
+        const errorMsg = errorData.error || `TTS failed: ${response.status}`;
+
         if (errorMsg.includes("quota") || response.status === 401 || response.status === 429) {
           console.log("ElevenLabs quota exceeded, using browser fallback");
           setUsingFallback(true);
@@ -162,7 +156,7 @@ export function useTTS(options: UseTTSOptions = {}) {
           await speakWithBrowser(truncatedText);
           return;
         }
-        
+
         throw new Error(errorMsg);
       }
 
@@ -173,49 +167,40 @@ export function useTTS(options: UseTTSOptions = {}) {
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
 
-      audio.addEventListener("loadedmetadata", () => {
-        setDuration(audio.duration);
-      });
-
-      audio.addEventListener("timeupdate", () => {
+      audio.onloadedmetadata = () => setDuration(audio.duration);
+      audio.ontimeupdate = () => {
         if (audio.duration) {
           setProgress((audio.currentTime / audio.duration) * 100);
         }
-      });
-
-      audio.addEventListener("ended", () => {
+      };
+      audio.onended = () => {
         setIsPlaying(false);
         setProgress(100);
-      });
-
-      audio.addEventListener("error", (e) => {
-        console.error("Audio playback error:", e);
+      };
+      audio.onerror = () => {
         setError("Failed to play audio");
         setIsPlaying(false);
-      });
+      };
 
       await audio.play();
       setIsPlaying(true);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to generate speech";
-      
-      // Try browser fallback for any error
-      console.log("ElevenLabs failed, trying browser fallback:", message);
+      console.log("ElevenLabs failed, trying browser fallback");
       try {
         setUsingFallback(true);
         await speakWithBrowser(truncatedText);
-      } catch (fallbackErr) {
+      } catch {
+        const message = err instanceof Error ? err.message : "Failed to generate speech";
         setError(message);
-        console.error("Both TTS methods failed:", fallbackErr);
       }
     } finally {
       setIsLoading(false);
     }
-  }, [options.language, options.voiceId, cleanup, maxLength, speakWithBrowser]);
+  }, [cleanup, maxLength, speakWithBrowser]);
 
   const pause = useCallback(() => {
-    if (usingFallback) {
-      window.speechSynthesis.pause();
+    if (usingFallback && typeof window !== "undefined") {
+      window.speechSynthesis?.pause();
     } else if (audioRef.current) {
       audioRef.current.pause();
     }
@@ -223,8 +208,8 @@ export function useTTS(options: UseTTSOptions = {}) {
   }, [usingFallback]);
 
   const resume = useCallback(() => {
-    if (usingFallback) {
-      window.speechSynthesis.resume();
+    if (usingFallback && typeof window !== "undefined") {
+      window.speechSynthesis?.resume();
     } else if (audioRef.current) {
       audioRef.current.play();
     }
@@ -241,23 +226,31 @@ export function useTTS(options: UseTTSOptions = {}) {
 
   const stop = useCallback(() => {
     cleanup();
+    setIsPlaying(false);
+    setProgress(0);
+    setDuration(0);
+    setUsingFallback(false);
   }, [cleanup]);
 
   const seek = useCallback((percent: number) => {
-    if (!usingFallback && audioRef.current && audioRef.current.duration) {
+    if (!usingFallback && audioRef.current?.duration) {
       audioRef.current.currentTime = (percent / 100) * audioRef.current.duration;
       setProgress(percent);
     }
-    // Browser speech synthesis doesn't support seeking
   }, [usingFallback]);
 
   const setPlaybackRate = useCallback((rate: number) => {
-    if (usingFallback && utteranceRef.current) {
-      // Can't change rate mid-speech for browser TTS
-    } else if (audioRef.current) {
+    if (audioRef.current) {
       audioRef.current.playbackRate = rate;
     }
-  }, [usingFallback]);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   return {
     speak,
@@ -272,7 +265,7 @@ export function useTTS(options: UseTTSOptions = {}) {
     error,
     progress,
     duration,
-    hasAudio: !!audioRef.current || !!utteranceRef.current,
+    hasAudio: Boolean(audioRef.current || utteranceRef.current),
     usingFallback,
   };
 }
