@@ -149,8 +149,18 @@ export function useTTS(options: UseTTSOptions = {}) {
         const errorData = await response.json().catch(() => ({}));
         const errorMsg = errorData.error || `TTS failed: ${response.status}`;
 
-        if (errorMsg.includes("quota") || response.status === 401 || response.status === 429) {
-          console.log("ElevenLabs quota exceeded, using browser fallback");
+        // Check for quota exceeded or API errors - fallback to browser TTS
+        const shouldFallback = 
+          errorMsg.toLowerCase().includes("quota") ||
+          errorMsg.toLowerCase().includes("exceeded") ||
+          errorMsg.includes("401") ||
+          errorMsg.includes("429") ||
+          response.status === 401 || 
+          response.status === 429 ||
+          response.status === 500;
+
+        if (shouldFallback) {
+          console.log("API TTS failed, using browser fallback:", errorMsg);
           setUsingFallback(true);
           setIsLoading(false);
           await speakWithBrowser(truncatedText);
