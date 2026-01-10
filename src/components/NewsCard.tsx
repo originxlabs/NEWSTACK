@@ -23,6 +23,7 @@ export interface NewsItem {
   sourceUrl?: string;
   sourceIcon?: string;
   timestamp: string;
+  publishedAt?: string;
   imageUrl?: string;
   whyMatters?: string;
   countryCode?: string;
@@ -38,6 +39,7 @@ interface NewsCardProps {
   index: number;
   onClick?: () => void;
   isActive?: boolean;
+  compact?: boolean;
 }
 
 const topicColors: Record<string, string> = {
@@ -61,7 +63,7 @@ const locationBadgeConfig = {
   Global: { icon: Globe, color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
 };
 
-export function NewsCard({ news, index, onClick, isActive }: NewsCardProps) {
+export function NewsCard({ news, index, onClick, isActive, compact = false }: NewsCardProps) {
   const { language, country } = usePreferences();
   const { speak, toggle, isLoading, isPlaying, progress, stop } = useTTS({
     language: language?.code || "en",

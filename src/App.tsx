@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { useEffect } from "react";
 import Index from "./pages/Index";
+import News from "./pages/News";
 import Listen from "./pages/Listen";
 import World from "./pages/World";
 import Places from "./pages/Places";
@@ -53,6 +54,7 @@ const App = () => (
               <ScrollToTop />
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/news" element={<News />} />
                 <Route path="/listen" element={<Listen />} />
                 <Route path="/world" element={<World />} />
                 <Route path="/places" element={<Places />} />

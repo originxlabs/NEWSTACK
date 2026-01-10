@@ -11,11 +11,11 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 
 const navLinks = [
-  { name: "News", href: "/", icon: "📰" },
+  { name: "Home", href: "/", icon: "🏠" },
+  { name: "News", href: "/news", icon: "📰" },
   { name: "Listen", href: "/listen", icon: "🎧" },
   { name: "World", href: "/world", icon: "🌍" },
   { name: "Places", href: "/places", icon: "📍" },
-  { name: "Features", href: "/features", icon: "✨" },
   { name: "Support", href: "/support", icon: "❤️" },
 ];
 
