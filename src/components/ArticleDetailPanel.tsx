@@ -172,7 +172,7 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
     return () => stop();
   }, [stop]);
 
-  if (!article) return null;
+  // Note: Early return moved after useMemo hook to maintain consistent hook order
 
   const handleListen = async () => {
     if (isPlaying) {
@@ -258,6 +258,8 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
 
   // Build actual sources from article data
   const sources = useMemo(() => {
+    if (!article) return [];
+    
     const sourceList = [
       { name: article.source, url: article.sourceUrl || "#", verified: true },
     ];
@@ -281,7 +283,10 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
     }
     
     return sourceList.slice(0, article.sourceCount || 1);
-  }, [article.source, article.sourceUrl, article.sourceCount]);
+  }, [article]);
+
+  // Early return after all hooks
+  if (!article) return null;
 
   const Content = (
     <motion.div
