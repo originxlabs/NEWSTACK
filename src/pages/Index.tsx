@@ -9,6 +9,7 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { CookieConsent } from "@/components/CookieConsent";
 import { LocationPermission } from "@/components/LocationPermission";
 import { InterestsOnboarding, useInterestsOnboarding } from "@/components/InterestsOnboarding";
+import { TrendingNearYou } from "@/components/TrendingNearYou";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePreferences } from "@/contexts/PreferencesContext";
 
@@ -95,6 +96,10 @@ const Index = () => {
         ) : (
           <HeroSection />
         )}
+        
+        {/* Trending Near You - Lazy loaded */}
+        <TrendingNearYou />
+        
         <NewsFeed />
         <PlacesSection />
       </main>
