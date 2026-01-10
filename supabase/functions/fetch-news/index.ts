@@ -5,21 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface NewsAPIArticle {
-  uri: string;
-  title: string;
-  body: string;
-  source: {
-    title: string;
-    uri: string;
-  };
-  image: string;
-  dateTime: string;
-  sentiment: number;
-  concepts?: Array<{ label: { eng: string }; type: string }>;
-  categories?: Array<{ label: string }>;
-}
-
 interface NewsRequest {
   country?: string;
   topic?: string;
@@ -29,148 +14,164 @@ interface NewsRequest {
   query?: string;
 }
 
+// GNews language codes
+const gnewsLanguageCodes: Record<string, string> = {
+  en: "en",
+  hi: "hi",
+  es: "es",
+  fr: "fr",
+  de: "de",
+  ja: "ja",
+  zh: "zh",
+  ar: "ar",
+  pt: "pt",
+  ru: "ru",
+  ko: "ko",
+  it: "it",
+  ta: "ta",
+  te: "te",
+  mr: "mr",
+  bn: "bn",
+};
+
+// GNews country codes
+const gnewsCountryCodes: Record<string, string> = {
+  US: "us",
+  IN: "in",
+  GB: "gb",
+  CA: "ca",
+  AU: "au",
+  DE: "de",
+  FR: "fr",
+  JP: "jp",
+  CN: "cn",
+  BR: "br",
+  MX: "mx",
+  ES: "es",
+  IT: "it",
+  RU: "ru",
+  KR: "kr",
+  AE: "ae",
+  SA: "sa",
+  SG: "sg",
+};
+
+// Topic to GNews category mapping
+const topicToCategory: Record<string, string> = {
+  business: "business",
+  tech: "technology",
+  ai: "technology",
+  sports: "sports",
+  entertainment: "entertainment",
+  health: "health",
+  world: "world",
+  politics: "nation",
+  finance: "business",
+  science: "science",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const NEWSAPI_AI_KEY = Deno.env.get("NEWSAPI_AI_KEY");
-    if (!NEWSAPI_AI_KEY) {
-      throw new Error("NEWSAPI_AI_KEY not configured");
+    const GNEWS_API_KEY = Deno.env.get("GNEWS_API_KEY");
+    if (!GNEWS_API_KEY) {
+      throw new Error("GNEWS_API_KEY not configured");
     }
 
-    const { country, topic, language = "eng", page = 1, pageSize = 20, query } = await req.json() as NewsRequest;
+    const { country, topic, language = "en", page = 1, pageSize = 10, query } = await req.json() as NewsRequest;
 
-    // Build the query for NewsAPI.ai
-    const baseUrl = "https://eventregistry.org/api/v1/article/getArticles";
-    
-    // Build query object
-    const queryObj: Record<string, unknown> = {
-      apiKey: NEWSAPI_AI_KEY,
-      resultType: "articles",
-      articlesSortBy: "date",
-      articlesCount: pageSize,
-      articlesPage: page,
-      lang: language,
-      includeArticleSocialScore: true,
-      includeArticleSentiment: true,
-      includeArticleConcepts: true,
-      includeArticleCategories: true,
-      includeArticleImage: true,
-      includeSourceTitle: true,
-    };
-
-    // Add filters
-    if (query) {
-      queryObj.keyword = query;
-    }
-    
-    if (country) {
-      // Map country codes to NewsAPI.ai location URIs
-      const countryMap: Record<string, string> = {
-        US: "http://en.wikipedia.org/wiki/United_States",
-        IN: "http://en.wikipedia.org/wiki/India",
-        GB: "http://en.wikipedia.org/wiki/United_Kingdom",
-        CA: "http://en.wikipedia.org/wiki/Canada",
-        AU: "http://en.wikipedia.org/wiki/Australia",
-        DE: "http://en.wikipedia.org/wiki/Germany",
-        FR: "http://en.wikipedia.org/wiki/France",
-        JP: "http://en.wikipedia.org/wiki/Japan",
-        CN: "http://en.wikipedia.org/wiki/China",
-        BR: "http://en.wikipedia.org/wiki/Brazil",
-      };
-      if (countryMap[country]) {
-        queryObj.sourceLocationUri = countryMap[country];
-      }
-    }
-
-    if (topic) {
-      // Map topic slugs to categories
-      const topicMap: Record<string, string> = {
-        ai: "dmoz/Computers/Artificial_Intelligence",
-        business: "news/Business",
-        finance: "news/Economy",
-        politics: "news/Politics",
-        sports: "news/Sports",
-        entertainment: "news/Arts_and_Entertainment",
-        health: "news/Health",
-        tech: "dmoz/Computers",
-        climate: "news/Environment",
-      };
-      if (topicMap[topic]) {
-        queryObj.categoryUri = topicMap[topic];
-      }
-    }
-
-    const response = await fetch(baseUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(queryObj),
+    // Build GNews API URL
+    let apiUrl: string;
+    const params = new URLSearchParams({
+      apikey: GNEWS_API_KEY,
+      lang: gnewsLanguageCodes[language] || "en",
+      max: String(Math.min(pageSize, 10)), // GNews free tier max is 10
     });
+
+    // Add country filter
+    if (country && gnewsCountryCodes[country]) {
+      params.set("country", gnewsCountryCodes[country]);
+    }
+
+    if (query) {
+      // Search endpoint
+      apiUrl = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&${params.toString()}`;
+    } else if (topic && topicToCategory[topic]) {
+      // Top headlines with category
+      params.set("category", topicToCategory[topic]);
+      apiUrl = `https://gnews.io/api/v4/top-headlines?${params.toString()}`;
+    } else {
+      // General top headlines
+      apiUrl = `https://gnews.io/api/v4/top-headlines?${params.toString()}`;
+    }
+
+    console.log(`Fetching news from: ${apiUrl.replace(GNEWS_API_KEY, "***")}`);
+
+    const response = await fetch(apiUrl);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("NewsAPI.ai error:", errorText);
-      throw new Error(`NewsAPI.ai request failed: ${response.status}`);
+      console.error("GNews error:", errorText);
+      throw new Error(`GNews API failed: ${response.status}`);
     }
 
     const data = await response.json();
-    
-    // Transform articles to our format
-    const articles = (data.articles?.results || []).map((article: NewsAPIArticle) => {
-      // Determine sentiment label
-      let sentimentLabel = "neutral";
-      if (article.sentiment > 0.2) sentimentLabel = "positive";
-      else if (article.sentiment < -0.2) sentimentLabel = "negative";
 
-      // Extract topic from categories
-      let topicSlug = "world";
-      if (article.categories && article.categories.length > 0) {
-        const category = article.categories[0].label.toLowerCase();
-        if (category.includes("business")) topicSlug = "business";
-        else if (category.includes("tech") || category.includes("computer")) topicSlug = "ai";
-        else if (category.includes("sport")) topicSlug = "sports";
-        else if (category.includes("health")) topicSlug = "health";
-        else if (category.includes("politic")) topicSlug = "politics";
-        else if (category.includes("entertainment") || category.includes("arts")) topicSlug = "entertainment";
-        else if (category.includes("economy") || category.includes("finance")) topicSlug = "finance";
-      }
+    // Transform GNews articles to our format
+    const articles = (data.articles || []).map((article: {
+      url: string;
+      title: string;
+      description: string;
+      content: string;
+      image: string;
+      publishedAt: string;
+      source: { name: string; url: string };
+    }, index: number) => {
+      // Determine sentiment based on keywords (simple heuristic)
+      const text = `${article.title} ${article.description}`.toLowerCase();
+      let sentiment = "neutral";
+      const positiveWords = ["success", "growth", "win", "breakthrough", "record", "surge", "gain"];
+      const negativeWords = ["crisis", "fail", "crash", "loss", "drop", "concern", "threat", "war"];
+      
+      if (positiveWords.some(w => text.includes(w))) sentiment = "positive";
+      else if (negativeWords.some(w => text.includes(w))) sentiment = "negative";
 
-      // Generate AI summary (first 200 chars of body as fallback)
-      const summary = article.body ? article.body.substring(0, 250) + "..." : "";
-
-      // Generate "why this matters"
-      const whyMatters = `This story provides insights into ${topicSlug} developments that could impact global trends and your interests.`;
+      // Determine topic from category or keywords
+      let topicSlug = topic || "world";
+      if (text.includes("tech") || text.includes("ai") || text.includes("software")) topicSlug = "ai";
+      else if (text.includes("sport") || text.includes("game") || text.includes("match")) topicSlug = "sports";
+      else if (text.includes("business") || text.includes("market") || text.includes("stock")) topicSlug = "business";
+      else if (text.includes("health") || text.includes("medical")) topicSlug = "health";
 
       return {
-        id: article.uri,
+        id: article.url || `gnews-${index}`,
         headline: article.title,
-        summary,
-        content: article.body,
-        ai_analysis: summary,
-        why_matters: whyMatters,
-        perspectives: [
-          { viewpoint: "Analysis", content: "Multiple sources confirm these developments." }
-        ],
-        source_name: article.source?.title || "Unknown",
-        source_url: article.source?.uri || "",
+        summary: article.description || "",
+        content: article.content || article.description || "",
+        ai_analysis: article.description || "",
+        why_matters: `This ${topicSlug} story is relevant to current events in ${country || "the world"}.`,
+        perspectives: [],
+        source_name: article.source?.name || "Unknown",
+        source_url: article.source?.url || "",
         source_logo: null,
         image_url: article.image || null,
         topic_slug: topicSlug,
-        sentiment: sentimentLabel,
-        trust_score: Math.floor(70 + Math.random() * 25), // 70-95
-        published_at: article.dateTime,
+        sentiment,
+        trust_score: 75 + Math.floor(Math.random() * 20),
+        published_at: article.publishedAt,
         is_global: !country,
         country_code: country || null,
+        language_code: language,
       };
     });
 
-    return new Response(JSON.stringify({ articles, total: data.articles?.totalResults || 0 }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ articles, total: data.totalArticles || articles.length }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Error fetching news:", errorMessage);
