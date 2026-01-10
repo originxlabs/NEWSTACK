@@ -471,6 +471,17 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
                 Compare
               </Button>
             )}
+            {onViewTimeline && article.sourceCount && article.sourceCount > 1 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1 min-w-[80px]"
+                onClick={() => onViewTimeline(article.id, article.headline)}
+              >
+                <History className="w-4 h-4 mr-2" />
+                Timeline
+              </Button>
+            )}
           </div>
 
           {/* Open Discussion */}

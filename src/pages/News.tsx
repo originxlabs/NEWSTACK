@@ -19,6 +19,8 @@ import { TrendingNewsBanner } from "@/components/TrendingNewsBanner";
 import { ArticleDetailPanel } from "@/components/ArticleDetailPanel";
 import { ArticleComparison } from "@/components/ArticleComparison";
 import { StoryTimeline } from "@/components/StoryTimeline";
+import { ReadMoreModal } from "@/components/ReadMoreModal";
+import { DailyTrendingTop10 } from "@/components/DailyTrendingTop10";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
@@ -154,6 +156,8 @@ export default function News() {
   const [comparisonStory, setComparisonStory] = useState<{ headline: string; id?: string } | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [timelineStory, setTimelineStory] = useState<{ id: string; headline: string } | null>(null);
+  const [readMoreOpen, setReadMoreOpen] = useState(false);
+  const [readMoreArticle, setReadMoreArticle] = useState<NewsItem | null>(null);
   
   const loaderRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -766,6 +770,18 @@ export default function News() {
             <div className={`flex gap-6 ${!isMobile && isPanelOpen ? "max-w-7xl" : "max-w-5xl"} mx-auto`}>
               {/* Main Feed */}
               <div className={`flex-1 min-w-0 ${!isMobile && isPanelOpen ? "max-w-[calc(100%-520px)]" : ""}`}>
+                {/* Daily Trending Top 10 */}
+                {feedType === "trending" && !isLoading && filteredNews.length > 0 && (
+                  <DailyTrendingTop10 
+                    articles={filteredNews}
+                    onArticleClick={handleArticleClick}
+                    onReadMore={(article) => {
+                      setReadMoreArticle(article);
+                      setReadMoreOpen(true);
+                    }}
+                  />
+                )}
+
                 {/* Trending Banner */}
                 {feedType === "recent" && trendingStories.length > 0 && !isLoading && (
                   <motion.div
@@ -863,6 +879,10 @@ export default function News() {
                                   news={item} 
                                   index={index} 
                                   onClick={() => handleArticleClick(item)}
+                                  onReadMore={() => {
+                                    setReadMoreArticle(item);
+                                    setReadMoreOpen(true);
+                                  }}
                                   isActive={selectedArticle?.id === item.id && isPanelOpen}
                                   compact={viewMode === "compact"}
                                 />
@@ -959,6 +979,29 @@ export default function News() {
         onClose={() => {
           setTimelineOpen(false);
           setTimelineStory(null);
+        }}
+      />
+
+      {/* Read More Modal */}
+      <ReadMoreModal
+        article={readMoreArticle}
+        isOpen={readMoreOpen}
+        onClose={() => {
+          setReadMoreOpen(false);
+          setReadMoreArticle(null);
+        }}
+        onOpenPanel={() => {
+          if (readMoreArticle) {
+            handleArticleClick(readMoreArticle);
+          }
+        }}
+        onCompare={(headline, id) => {
+          setComparisonStory({ headline, id });
+          setComparisonOpen(true);
+        }}
+        onViewTimeline={(id, headline) => {
+          setTimelineStory({ id, headline });
+          setTimelineOpen(true);
         }}
       />
     </div>
