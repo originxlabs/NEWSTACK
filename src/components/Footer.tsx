@@ -11,11 +11,11 @@ const footerLinks = {
     { name: "Places", href: "/places" },
     { name: "World", href: "/world" },
   ],
-  Explore: [
-    { name: "World News", href: "/world" },
-    { name: "Topics", href: "/topics" },
-    { name: "Places", href: "/places" },
-    { name: "Profile", href: "/profile" },
+  Features: [
+    { name: "AI Summaries", href: "/features" },
+    { name: "Audio News", href: "/features" },
+    { name: "Place Intelligence", href: "/features" },
+    { name: "Compare Apps", href: "/compare" },
   ],
   Support: [
     { name: "Support Us", href: "/support" },

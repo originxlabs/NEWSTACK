@@ -15,6 +15,7 @@ import Places from "./pages/Places";
 import Topics from "./pages/Topics";
 import Support from "./pages/Support";
 import Profile from "./pages/Profile";
+import Features from "./pages/Features";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,8 @@ const App = () => (
                 <Route path="/world" element={<World />} />
                 <Route path="/places" element={<Places />} />
                 <Route path="/topics" element={<Topics />} />
+                <Route path="/features" element={<Features />} />
+                <Route path="/compare" element={<Features />} />
                 <Route path="/support" element={<Support />} />
                 <Route path="/pricing" element={<Support />} />
                 <Route path="/profile" element={<Profile />} />
