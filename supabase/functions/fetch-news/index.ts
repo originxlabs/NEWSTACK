@@ -70,18 +70,93 @@ const topicToCategory: Record<string, string> = {
   science: "science",
 };
 
+// Generate fallback news when API limit is reached
+function generateFallbackNews(country?: string, topic?: string, language?: string): { articles: unknown[]; total: number } {
+  const fallbackArticles = [
+    {
+      id: "fallback-1",
+      headline: "Stay Connected with NEWSTACK",
+      summary: "We're experiencing high demand. News will refresh soon. Thank you for your patience!",
+      content: "NEWSTACK is working to bring you the latest news. Our news sources are being refreshed. Please check back shortly for updated content.",
+      ai_analysis: "This is a temporary notice while we refresh our news sources.",
+      why_matters: "Stay informed with NEWSTACK - your trusted news companion.",
+      perspectives: [],
+      source_name: "NEWSTACK",
+      source_url: "",
+      source_logo: null,
+      image_url: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800",
+      topic_slug: topic || "world",
+      sentiment: "neutral",
+      trust_score: 100,
+      published_at: new Date().toISOString(),
+      is_global: !country,
+      country_code: country || null,
+      language_code: language || "en",
+    },
+    {
+      id: "fallback-2",
+      headline: "Explore Places While You Wait",
+      summary: "Discover amazing places around the world with our Places feature.",
+      content: "While news refreshes, explore our Places section to discover cities, restaurants, and attractions worldwide.",
+      ai_analysis: "Explore our Places feature for travel inspiration.",
+      why_matters: "Discover new destinations and local gems.",
+      perspectives: [],
+      source_name: "NEWSTACK Places",
+      source_url: "",
+      source_logo: null,
+      image_url: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800",
+      topic_slug: "world",
+      sentiment: "positive",
+      trust_score: 100,
+      published_at: new Date().toISOString(),
+      is_global: true,
+      country_code: null,
+      language_code: language || "en",
+    },
+    {
+      id: "fallback-3",
+      headline: "Support NEWSTACK",
+      summary: "Help us keep the news flowing by supporting NEWSTACK.",
+      content: "Your support helps us maintain free access to quality news for everyone. Consider donating to keep NEWSTACK running.",
+      ai_analysis: "Support independent news aggregation.",
+      why_matters: "Your contribution helps maintain free access to news.",
+      perspectives: [],
+      source_name: "NEWSTACK",
+      source_url: "",
+      source_logo: null,
+      image_url: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800",
+      topic_slug: "world",
+      sentiment: "positive",
+      trust_score: 100,
+      published_at: new Date().toISOString(),
+      is_global: true,
+      country_code: null,
+      language_code: language || "en",
+    },
+  ];
+
+  return { articles: fallbackArticles, total: fallbackArticles.length };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const GNEWS_API_KEY = Deno.env.get("GNEWS_API_KEY");
-    if (!GNEWS_API_KEY) {
-      throw new Error("GNEWS_API_KEY not configured");
-    }
-
     const { country, topic, language = "en", page = 1, pageSize = 10, query } = await req.json() as NewsRequest;
+
+    const GNEWS_API_KEY = Deno.env.get("GNEWS_API_KEY");
+    
+    // If no API key, return fallback
+    if (!GNEWS_API_KEY) {
+      console.log("No GNEWS_API_KEY configured, returning fallback news");
+      const fallback = generateFallbackNews(country, topic, language);
+      return new Response(
+        JSON.stringify(fallback),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Build GNews API URL
     let apiUrl: string;
@@ -112,6 +187,17 @@ serve(async (req) => {
 
     const response = await fetch(apiUrl);
 
+    // Handle rate limit / quota exceeded - return fallback gracefully
+    if (response.status === 403 || response.status === 429) {
+      const errorText = await response.text();
+      console.warn("GNews rate limit reached:", errorText);
+      const fallback = generateFallbackNews(country, topic, language);
+      return new Response(
+        JSON.stringify({ ...fallback, rateLimited: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error("GNews error:", errorText);
@@ -120,8 +206,18 @@ serve(async (req) => {
 
     const data = await response.json();
 
+    // If no articles returned, use fallback
+    if (!data.articles || data.articles.length === 0) {
+      console.log("No articles returned from GNews, using fallback");
+      const fallback = generateFallbackNews(country, topic, language);
+      return new Response(
+        JSON.stringify(fallback),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Transform GNews articles to our format
-    const articles = (data.articles || []).map((article: {
+    const articles = data.articles.map((article: {
       url: string;
       title: string;
       description: string;
@@ -175,9 +271,12 @@ serve(async (req) => {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Error fetching news:", errorMessage);
+    
+    // On any error, return fallback news instead of failing
+    const fallback = generateFallbackNews();
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ ...fallback, error: errorMessage }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
