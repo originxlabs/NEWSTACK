@@ -68,8 +68,8 @@ export function NewsCard({ news, index }: NewsCardProps) {
     } else if (isLoading) {
       // Do nothing while loading
     } else {
-      // Build text for TTS
-      const textToSpeak = `${news.headline}. ${news.summary}`;
+      // Build shorter text for TTS to save credits (headline only, ~100 chars)
+      const textToSpeak = news.headline.substring(0, 150);
       await speak(textToSpeak);
     }
   };
