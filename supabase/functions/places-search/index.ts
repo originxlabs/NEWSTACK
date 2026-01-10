@@ -9,6 +9,7 @@ interface PlaceSearchRequest {
   query: string;
   lat?: number;
   lng?: number;
+  countryCode?: string;
 }
 
 serve(async (req) => {
@@ -17,51 +18,60 @@ serve(async (req) => {
   }
 
   try {
-    const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
-    if (!GOOGLE_PLACES_API_KEY) {
-      throw new Error("GOOGLE_PLACES_API_KEY not configured");
-    }
-
-    const { query, lat, lng } = await req.json() as PlaceSearchRequest;
+    const { query, lat, lng, countryCode } = await req.json() as PlaceSearchRequest;
 
     if (!query || query.trim().length === 0) {
       throw new Error("Query is required");
     }
 
-    // Use Google Places Text Search API
-    let url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}`;
+    // Use Nominatim API (OpenStreetMap)
+    let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10&extratags=1`;
+    
+    if (countryCode) {
+      url += `&countrycodes=${countryCode}`;
+    }
     
     if (lat && lng) {
-      url += `&location=${lat},${lng}&radius=50000`;
+      // Add viewbox for location bias (50km radius)
+      const delta = 0.5; // roughly 50km
+      url += `&viewbox=${lng - delta},${lat + delta},${lng + delta},${lat - delta}&bounded=0`;
     }
 
-    console.log("Places search for:", query);
+    console.log("Nominatim search for:", query);
 
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "NEWSTACK/1.0 (contact@newstack.live)",
+        "Accept": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Nominatim API error: ${response.status}`);
+    }
+
     const data = await response.json();
 
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      console.error("Google Places error:", data);
-      throw new Error(data.error_message || `Places API error: ${data.status}`);
-    }
-
-    // Transform results
-    const places = (data.results || []).slice(0, 10).map((place: any) => ({
-      place_id: place.place_id,
-      name: place.name,
-      formatted_address: place.formatted_address,
-      lat: place.geometry?.location?.lat,
-      lng: place.geometry?.location?.lng,
-      rating: place.rating,
-      user_ratings_total: place.user_ratings_total,
-      types: place.types,
-      photo_reference: place.photos?.[0]?.photo_reference,
-      icon: place.icon,
-      business_status: place.business_status,
+    // Transform Nominatim results to our format
+    const places = data.map((place: any) => ({
+      place_id: place.place_id.toString(),
+      osm_id: place.osm_id,
+      osm_type: place.osm_type,
+      name: place.name || place.display_name.split(",")[0],
+      formatted_address: place.display_name,
+      lat: parseFloat(place.lat),
+      lng: parseFloat(place.lon),
+      types: [place.type, place.class].filter(Boolean),
+      importance: place.importance,
+      country: place.address?.country,
+      country_code: place.address?.country_code?.toUpperCase(),
+      state: place.address?.state,
+      city: place.address?.city || place.address?.town || place.address?.village,
+      category: getCategoryFromType(place.type, place.class),
     }));
 
     return new Response(
-      JSON.stringify({ places, status: data.status }),
+      JSON.stringify({ places, status: "OK" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
@@ -73,3 +83,28 @@ serve(async (req) => {
     );
   }
 });
+
+function getCategoryFromType(type: string, osmClass: string): string {
+  const typeMap: Record<string, string> = {
+    city: "City",
+    town: "Town",
+    village: "Village",
+    suburb: "Neighborhood",
+    neighbourhood: "Neighborhood",
+    administrative: "Region",
+    country: "Country",
+    state: "State",
+    county: "County",
+    attraction: "Attraction",
+    museum: "Museum",
+    beach: "Beach",
+    park: "Park",
+    hotel: "Hotel",
+    restaurant: "Restaurant",
+    cafe: "Cafe",
+    airport: "Airport",
+    station: "Station",
+  };
+
+  return typeMap[type] || typeMap[osmClass] || "Place";
+}

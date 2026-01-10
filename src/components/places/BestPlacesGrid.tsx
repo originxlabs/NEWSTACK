@@ -75,17 +75,9 @@ export function BestPlacesGrid({ placeData, isLoading, onSelectPlace }: BestPlac
             onClick={() => onSelectPlace?.(place.place_id)}
           >
             <div className="relative h-32">
-              {place.photo_url ? (
-                <img
-                  src={place.photo_url}
-                  alt={place.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                  <span className="text-4xl">📍</span>
-                </div>
-              )}
+              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                <span className="text-4xl">{getCategoryIcon([place.category || ""])}</span>
+              </div>
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
               
               {/* Category badge */}
@@ -93,14 +85,13 @@ export function BestPlacesGrid({ placeData, isLoading, onSelectPlace }: BestPlac
                 variant="secondary"
                 className="absolute top-2 left-2 text-[10px] glass-card border-none"
               >
-                📍 Attraction
+                {getCategoryIcon([place.category || ""])} {place.category || "Attraction"}
               </Badge>
 
-              {/* Rating */}
-              {place.rating && (
+              {/* Distance */}
+              {place.distance_km && (
                 <div className="absolute bottom-2 right-2 flex items-center gap-1 text-xs bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full">
-                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                  {place.rating}
+                  📍 {place.distance_km} km
                 </div>
               )}
             </div>

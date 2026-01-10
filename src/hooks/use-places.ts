@@ -5,6 +5,8 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 interface Place {
   place_id: string;
+  osm_id?: number;
+  osm_type?: string;
   name: string;
   formatted_address?: string;
   lat: number;
@@ -13,23 +15,33 @@ interface Place {
   user_ratings_total?: number;
   types?: string[];
   photo_reference?: string;
+  country?: string;
+  country_code?: string;
+  state?: string;
+  city?: string;
+  category?: string;
+  importance?: number;
 }
 
 interface PlaceDetails {
   place_id: string;
+  osm_id?: number;
+  osm_type?: string;
   name: string;
   formatted_address: string;
   phone?: string;
   website?: string;
-  google_maps_url?: string;
+  email?: string;
+  wikipedia?: string;
   lat: number;
   lng: number;
-  rating?: number;
-  user_ratings_total?: number;
-  price_level?: number;
+  country?: string;
+  country_code?: string;
+  state?: string;
+  city?: string;
   types?: string[];
+  importance?: number;
   opening_hours?: {
-    open_now?: boolean;
     weekday_text?: string[];
   };
   photos?: Array<{
@@ -37,12 +49,7 @@ interface PlaceDetails {
     width: number;
     height: number;
   }>;
-  reviews?: Array<{
-    author: string;
-    rating: number;
-    text: string;
-    time: string;
-  }>;
+  boundingbox?: string[];
 }
 
 interface Weather {
@@ -83,14 +90,19 @@ interface AQI {
 
 interface NearbyPlace {
   place_id: string;
+  osm_id?: number;
+  osm_type?: string;
   name: string;
   vicinity: string;
   lat: number;
   lng: number;
+  distance_km?: number;
+  category?: string;
   rating?: number;
-  photo_url?: string;
-  open_now?: boolean;
-  price_level?: number;
+  website?: string;
+  phone?: string;
+  cuisine?: string;
+  opening_hours?: string;
 }
 
 interface Airport {
@@ -177,13 +189,22 @@ export function usePlaces() {
     }
   }, []);
 
-  const selectPlace = useCallback(async (placeId: string) => {
+  const selectPlace = useCallback(async (placeId: string, searchResult?: Place) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Get place details first
-      const details = await fetchAPI("places-details", { place_id: placeId });
+      // Get place details - pass extra info if we have it from search
+      const detailsBody: any = { place_id: placeId };
+      if (searchResult) {
+        detailsBody.osm_id = searchResult.osm_id;
+        detailsBody.osm_type = searchResult.osm_type;
+        detailsBody.lat = searchResult.lat;
+        detailsBody.lng = searchResult.lng;
+        detailsBody.name = searchResult.name;
+      }
+      
+      const details = await fetchAPI("places-details", detailsBody);
       const lat = details.lat;
       const lng = details.lng;
 
@@ -228,6 +249,7 @@ export function usePlaces() {
       try {
         const aiSummary = await fetchAPI("places-ai-summary", {
           place_name: details.name,
+          country: details.country,
           weather: weather?.current ? { temp: weather.current.temp, condition: weather.current.condition } : undefined,
           aqi: aqi?.aqi,
           attractions: attractions.slice(0, 5).map((a: NearbyPlace) => a.name),
