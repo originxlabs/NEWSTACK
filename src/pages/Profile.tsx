@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Bookmark, MapPin, MessageCircle, Settings, LogOut, Edit, Camera, Loader2, Trash2 } from "lucide-react";
+import { User, Bookmark, MapPin, MessageCircle, Settings, LogOut, Edit, Camera, Loader2, Trash2, Crown, Sparkles, Shield } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { NewsCard, NewsItem } from "@/components/NewsCard";
 import { DiscussionPanel } from "@/components/discussions/DiscussionPanel";
+import { useAdmin } from "@/hooks/use-admin";
 
 interface SavedPlace {
   id: string;
@@ -40,6 +41,7 @@ interface UserDiscussion {
 
 const Profile = () => {
   const { user, profile, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const [savedNews, setSavedNews] = useState<any[]>([]);
   const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
@@ -166,21 +168,40 @@ const Profile = () => {
                 </h1>
                 <p className="text-muted-foreground text-sm mb-3">{user.email}</p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary">
-                    {profile?.subscription_tier === "pro" || profile?.subscription_tier === "enterprise" 
-                      ? "Premium" 
-                      : "Free"} Member
-                  </Badge>
+                  {profile?.subscription_tier === "pro" || profile?.subscription_tier === "lifetime" || profile?.subscription_tier === "enterprise" ? (
+                    <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+                      <Crown className="h-3 w-3 mr-1" />
+                      Premium Member
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">Free Member</Badge>
+                  )}
+                  {isAdmin && (
+                    <Badge variant="outline" className="border-primary text-primary">
+                      <Shield className="h-3 w-3 mr-1" />
+                      Admin
+                    </Badge>
+                  )}
                   {profile?.country_code && (
                     <Badge variant="outline">{profile.country_code}</Badge>
                   )}
                 </div>
               </div>
 
-              <Button variant="outline" onClick={handleSignOut} className="gap-2">
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </Button>
+              <div className="flex gap-2">
+                {isAdmin && (
+                  <Link to="/admin">
+                    <Button variant="outline" className="gap-2">
+                      <Shield className="h-4 w-4" />
+                      Admin
+                    </Button>
+                  </Link>
+                )}
+                <Button variant="outline" onClick={handleSignOut} className="gap-2">
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </Button>
+              </div>
             </div>
           </motion.div>
 
