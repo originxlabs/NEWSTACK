@@ -1,102 +1,225 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Headphones, Play, Pause, Clock, SkipBack, SkipForward, Volume2 } from "lucide-react";
+import { Headphones, Play, Pause, Clock, SkipBack, SkipForward, Volume2, Loader2, AlertCircle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { usePreferences } from "@/contexts/PreferencesContext";
+import { useNews } from "@/hooks/use-news";
+import { toast } from "sonner";
 
-interface AudioPlaylist {
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+interface Playlist {
   id: string;
   title: string;
   description: string;
-  duration: string;
   icon: string;
-  items: number;
+  topic?: string;
 }
 
-const playlists: AudioPlaylist[] = [
-  {
-    id: "daily-briefing",
-    title: "Today's Briefing",
-    description: "Your personalized morning news digest",
-    duration: "15 min",
-    icon: "☀️",
-    items: 12,
-  },
-  {
-    id: "business",
-    title: "Business Digest",
-    description: "Markets, companies, and economy",
-    duration: "10 min",
-    icon: "💼",
-    items: 8,
-  },
-  {
-    id: "tech",
-    title: "Tech Updates",
-    description: "Latest in technology and innovation",
-    duration: "8 min",
-    icon: "💻",
-    items: 6,
-  },
-  {
-    id: "sports",
-    title: "Sports Update",
-    description: "Scores, highlights, and analysis",
-    duration: "7 min",
-    icon: "⚽",
-    items: 5,
-  },
-  {
-    id: "local",
-    title: "Local News",
-    description: "News from your location",
-    duration: "5 min",
-    icon: "📍",
-    items: 4,
-  },
-  {
-    id: "world",
-    title: "World Report",
-    description: "Global news and events",
-    duration: "12 min",
-    icon: "🌍",
-    items: 10,
-  },
+const playlists: Playlist[] = [
+  { id: "daily-briefing", title: "Today's Briefing", description: "Your personalized morning news digest", icon: "☀️" },
+  { id: "business", title: "Business Digest", description: "Markets, companies, and economy", icon: "💼", topic: "business" },
+  { id: "tech", title: "Tech Updates", description: "Latest in technology and innovation", icon: "💻", topic: "tech" },
+  { id: "sports", title: "Sports Update", description: "Scores, highlights, and analysis", icon: "⚽", topic: "sports" },
+  { id: "local", title: "Local News", description: "News from your location", icon: "📍" },
+  { id: "world", title: "World Report", description: "Global news and events", icon: "🌍", topic: "world" },
 ];
 
 const Listen = () => {
-  const { country } = usePreferences();
-  const [isPlaying, setIsPlaying] = useState(false);
+  const { country, language } = usePreferences();
   const [currentPlaylist, setCurrentPlaylist] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState([75]);
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+  const [stories, setStories] = useState<string[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+
+  // Fetch news for the selected topic
+  const selectedPlaylist = playlists.find((p) => p.id === currentPlaylist);
+  const { data: newsData } = useNews({
+    topic: selectedPlaylist?.topic,
+    country: selectedPlaylist?.id === "local" ? country?.code : undefined,
+    language: language?.code === "en" ? "eng" : language?.code,
+    pageSize: 5,
+  });
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
   }, []);
 
-  const handlePlay = (playlistId: string) => {
-    if (currentPlaylist === playlistId) {
-      setIsPlaying(!isPlaying);
-    } else {
-      setCurrentPlaylist(playlistId);
+  // Update volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume[0] / 100;
+    }
+  }, [volume]);
+
+  const cleanup = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+  }, []);
+
+  const generateAudio = useCallback(async (text: string) => {
+    cleanup();
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/text-to-speech`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+        },
+        body: JSON.stringify({
+          text,
+          language: language?.code || "en",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate audio");
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audioUrlRef.current = audioUrl;
+
+      const audio = new Audio(audioUrl);
+      audio.volume = volume[0] / 100;
+      audioRef.current = audio;
+
+      audio.addEventListener("loadedmetadata", () => {
+        setDuration(audio.duration);
+      });
+
+      audio.addEventListener("timeupdate", () => {
+        if (audio.duration) {
+          setProgress((audio.currentTime / audio.duration) * 100);
+        }
+      });
+
+      audio.addEventListener("ended", () => {
+        // Play next story
+        if (currentStoryIndex < stories.length - 1) {
+          setCurrentStoryIndex((prev) => prev + 1);
+        } else {
+          setIsPlaying(false);
+          setProgress(100);
+        }
+      });
+
+      await audio.play();
       setIsPlaying(true);
-      setProgress(0);
+    } catch (error) {
+      console.error("TTS Error:", error);
+      toast.error("Failed to generate audio. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [cleanup, language?.code, volume, currentStoryIndex, stories.length]);
+
+  // Play next story when index changes
+  useEffect(() => {
+    if (stories.length > 0 && currentStoryIndex < stories.length && isPlaying) {
+      generateAudio(stories[currentStoryIndex]);
+    }
+  }, [currentStoryIndex, stories, isPlaying, generateAudio]);
+
+  const handlePlay = async (playlistId: string) => {
+    if (currentPlaylist === playlistId && isPlaying) {
+      // Pause current
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+      return;
+    }
+
+    if (currentPlaylist === playlistId && !isPlaying && audioRef.current) {
+      // Resume
+      audioRef.current.play();
+      setIsPlaying(true);
+      return;
+    }
+
+    // Start new playlist
+    cleanup();
+    setCurrentPlaylist(playlistId);
+    setCurrentStoryIndex(0);
+    setProgress(0);
+
+    // Build stories from news data
+    const articles = newsData?.articles || [];
+    if (articles.length === 0) {
+      toast.error("No news available for this playlist. Please try again later.");
+      return;
+    }
+
+    const storyTexts = articles.map((article) => 
+      `${article.headline}. ${article.summary || article.ai_analysis || ""}`
+    );
+    
+    setStories(storyTexts);
+    
+    // Start playing first story
+    setIsLoading(true);
+    await generateAudio(storyTexts[0]);
+  };
+
+  const handlePlayPause = () => {
+    if (!audioRef.current) return;
+    
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
     }
   };
 
-  // Simulate progress
-  useEffect(() => {
-    if (isPlaying) {
-      const interval = setInterval(() => {
-        setProgress((prev) => (prev >= 100 ? 0 : prev + 0.5));
-      }, 500);
-      return () => clearInterval(interval);
+  const handleSkipBack = () => {
+    if (currentStoryIndex > 0) {
+      setCurrentStoryIndex((prev) => prev - 1);
     }
-  }, [isPlaying]);
+  };
+
+  const handleSkipForward = () => {
+    if (currentStoryIndex < stories.length - 1) {
+      setCurrentStoryIndex((prev) => prev + 1);
+    }
+  };
+
+  const handleSeek = (value: number[]) => {
+    if (audioRef.current && audioRef.current.duration) {
+      audioRef.current.currentTime = (value[0] / 100) * audioRef.current.duration;
+      setProgress(value[0]);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const currentTime = duration * (progress / 100);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -117,7 +240,7 @@ const Listen = () => {
               Listen to the World
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              AI-powered audio news briefings. Listen while you commute, exercise, or relax.
+              AI-powered audio news briefings with ElevenLabs voices.
               {country && ` Personalized for ${country.flag_emoji} ${country.name}`}
             </p>
           </motion.div>
@@ -152,30 +275,43 @@ const Listen = () => {
                 {/* Now Playing Info */}
                 <div className="flex-1 min-w-0">
                   <h3 className="font-display font-semibold truncate">
-                    {playlists.find((p) => p.id === currentPlaylist)?.title}
+                    {selectedPlaylist?.title}
                   </h3>
                   <p className="text-sm text-muted-foreground truncate">
-                    {playlists.find((p) => p.id === currentPlaylist)?.description}
+                    Story {currentStoryIndex + 1} of {stories.length}
                   </p>
                 </div>
 
                 {/* Controls */}
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={handleSkipBack}
+                    disabled={currentStoryIndex === 0 || isLoading}
+                  >
                     <SkipBack className="h-5 w-5" />
                   </Button>
                   <Button
                     size="icon"
                     className="h-12 w-12 rounded-full"
-                    onClick={() => setIsPlaying(!isPlaying)}
+                    onClick={handlePlayPause}
+                    disabled={isLoading}
                   >
-                    {isPlaying ? (
+                    {isLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : isPlaying ? (
                       <Pause className="h-5 w-5" />
                     ) : (
                       <Play className="h-5 w-5 ml-0.5" />
                     )}
                   </Button>
-                  <Button variant="ghost" size="icon">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={handleSkipForward}
+                    disabled={currentStoryIndex >= stories.length - 1 || isLoading}
+                  >
                     <SkipForward className="h-5 w-5" />
                   </Button>
                 </div>
@@ -197,15 +333,13 @@ const Listen = () => {
               <div className="mt-4">
                 <Slider
                   value={[progress]}
-                  onValueChange={(v) => setProgress(v[0])}
+                  onValueChange={handleSeek}
                   max={100}
                   step={0.1}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>
-                    {Math.floor((progress / 100) * 15)}:{String(Math.floor(((progress / 100) * 15 * 60) % 60)).padStart(2, "0")}
-                  </span>
-                  <span>{playlists.find((p) => p.id === currentPlaylist)?.duration}</span>
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(duration)}</span>
                 </div>
               </div>
             </motion.div>
@@ -234,21 +368,24 @@ const Listen = () => {
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {playlist.duration}
+                        ~5 min
                       </span>
-                      <span>{playlist.items} stories</span>
+                      <span>5 stories</span>
                     </div>
                   </div>
                   <Button
                     variant={currentPlaylist === playlist.id && isPlaying ? "default" : "outline"}
                     size="icon"
                     className="shrink-0"
+                    disabled={isLoading && currentPlaylist === playlist.id}
                     onClick={(e) => {
                       e.stopPropagation();
                       handlePlay(playlist.id);
                     }}
                   >
-                    {currentPlaylist === playlist.id && isPlaying ? (
+                    {isLoading && currentPlaylist === playlist.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : currentPlaylist === playlist.id && isPlaying ? (
                       <Pause className="h-4 w-4" />
                     ) : (
                       <Play className="h-4 w-4 ml-0.5" />

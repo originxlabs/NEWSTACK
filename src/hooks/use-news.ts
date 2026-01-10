@@ -1,0 +1,83 @@
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+export interface NewsArticle {
+  id: string;
+  headline: string;
+  summary: string;
+  content: string;
+  ai_analysis: string;
+  why_matters: string;
+  perspectives: Array<{ viewpoint: string; content: string }>;
+  source_name: string;
+  source_url: string;
+  source_logo: string | null;
+  image_url: string | null;
+  topic_slug: string;
+  sentiment: "positive" | "negative" | "neutral";
+  trust_score: number;
+  published_at: string;
+  is_global: boolean;
+  country_code: string | null;
+}
+
+interface FetchNewsParams {
+  country?: string;
+  topic?: string;
+  language?: string;
+  page?: number;
+  pageSize?: number;
+  query?: string;
+}
+
+interface NewsResponse {
+  articles: NewsArticle[];
+  total: number;
+}
+
+async function fetchNews(params: FetchNewsParams): Promise<NewsResponse> {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/fetch-news`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || `Failed to fetch news: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export function useNews(params: FetchNewsParams = {}) {
+  return useQuery({
+    queryKey: ["news", params],
+    queryFn: () => fetchNews(params),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+  });
+}
+
+export function useInfiniteNews(params: Omit<FetchNewsParams, "page"> = {}) {
+  return useInfiniteQuery({
+    queryKey: ["infinite-news", params],
+    queryFn: ({ pageParam = 1 }) => fetchNews({ ...params, page: pageParam }),
+    getNextPageParam: (lastPage, allPages) => {
+      const loadedCount = allPages.reduce((acc, page) => acc + page.articles.length, 0);
+      if (loadedCount < lastPage.total) {
+        return allPages.length + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+}
