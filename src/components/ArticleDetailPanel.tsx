@@ -63,10 +63,70 @@ export function ArticleDetailPanel({ article, isOpen, onClose }: ArticleDetailPa
   
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isSavingArticle, setIsSavingArticle] = useState(false);
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [isLoadingDiscussions, setIsLoadingDiscussions] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check if article is already saved
+  useEffect(() => {
+    const checkSavedStatus = async () => {
+      if (!user || !article) return;
+      
+      const { data } = await supabase
+        .from("saved_news")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("news_id", article.id)
+        .maybeSingle();
+      
+      setIsSaved(!!data);
+    };
+    
+    if (isOpen && article && user) {
+      checkSavedStatus();
+    }
+  }, [isOpen, article?.id, user]);
+
+  const handleSaveArticle = async () => {
+    if (!article) return;
+    
+    if (!user) {
+      toast.error("Please sign in to save articles");
+      return;
+    }
+
+    setIsSavingArticle(true);
+    try {
+      if (isSaved) {
+        // Remove from saved
+        await supabase
+          .from("saved_news")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("news_id", article.id);
+        
+        setIsSaved(false);
+        toast.success("Removed from saved");
+      } else {
+        // Add to saved
+        await supabase
+          .from("saved_news")
+          .insert({
+            user_id: user.id,
+            news_id: article.id,
+          });
+        
+        setIsSaved(true);
+        toast.success("Saved for later");
+      }
+    } catch (err) {
+      toast.error("Failed to save article");
+    } finally {
+      setIsSavingArticle(false);
+    }
+  };
 
   const fetchDiscussions = async () => {
     if (!article) return;
@@ -144,10 +204,9 @@ export function ArticleDetailPanel({ article, isOpen, onClose }: ArticleDetailPa
   const handleSubmitDiscussion = async () => {
     if (!newMessage.trim()) return;
     
-    // Max 40 words
-    const wordCount = newMessage.trim().split(/\s+/).length;
-    if (wordCount > 40) {
-      toast.error("Max 40 words per comment.");
+    // Max 50 characters
+    if (newMessage.length > 50) {
+      toast.error("Max 50 characters per comment.");
       return;
     }
 
@@ -206,13 +265,15 @@ export function ArticleDetailPanel({ article, isOpen, onClose }: ArticleDetailPa
 
   const Content = (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+      transition={{ type: "spring", damping: 25, stiffness: 200 }}
       className="h-full flex flex-col"
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4 flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={handleClose}>
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-xl border-b border-border p-4 flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={handleClose} className="hover:bg-accent">
           {isMobile ? <ChevronLeft className="h-5 w-5" /> : <X className="h-5 w-5" />}
         </Button>
         <div className="flex-1 min-w-0">
@@ -228,15 +289,32 @@ export function ArticleDetailPanel({ article, isOpen, onClose }: ArticleDetailPa
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Hero Image */}
+        {/* Hero Image with Gradient Overlay */}
         {article.imageUrl && (
-          <div className="relative h-48 sm:h-56 overflow-hidden">
-            <img
+          <div className="relative h-56 sm:h-64 overflow-hidden">
+            <motion.img
+              initial={{ scale: 1.1 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5 }}
               src={article.imageUrl}
               alt={article.headline}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+            
+            {/* Floating badges on image */}
+            <div className="absolute bottom-4 left-4 flex items-center gap-2">
+              {article.isBreaking && (
+                <Badge variant="destructive" className="animate-pulse">
+                  Breaking
+                </Badge>
+              )}
+              {article.isTrending && (
+                <Badge className="bg-orange-500/90 hover:bg-orange-500">
+                  🔥 Trending
+                </Badge>
+              )}
+            </div>
           </div>
         )}
 
@@ -361,13 +439,11 @@ export function ArticleDetailPanel({ article, isOpen, onClose }: ArticleDetailPa
               variant={isSaved ? "default" : "outline"}
               size="sm"
               className="flex-1"
-              onClick={() => {
-                setIsSaved(!isSaved);
-                toast.success(isSaved ? "Removed from saved" : "Saved for later");
-              }}
+              onClick={handleSaveArticle}
+              disabled={isSavingArticle}
             >
               <Bookmark className={`w-4 h-4 mr-2 ${isSaved ? "fill-current" : ""}`} />
-              Save
+              {isSaved ? "Saved" : "Save"}
             </Button>
             <Button
               variant={isLiked ? "default" : "outline"}
@@ -394,29 +470,28 @@ export function ArticleDetailPanel({ article, isOpen, onClose }: ArticleDetailPa
             {/* New Comment */}
             <div className="mb-4">
               <Textarea
-                placeholder="Share your opinion (max 40 words)..."
+                placeholder="Share your opinion (max 50 characters)..."
                 value={newMessage}
                 onChange={(e) => {
-                  const words = e.target.value.trim().split(/\s+/).filter(Boolean);
-                  // Only allow if under 40 words or deleting
-                  if (words.length <= 40 || e.target.value.length < newMessage.length) {
-                    setNewMessage(e.target.value);
-                  }
+                  // Enforce 50 character limit including paste
+                  const value = e.target.value.slice(0, 50);
+                  setNewMessage(value);
                 }}
+                maxLength={50}
                 className="min-h-[60px] resize-none text-sm"
               />
               <div className="flex items-center justify-between mt-2">
                 <span className={`text-xs ${
-                  newMessage.trim().split(/\s+/).filter(Boolean).length >= 35 
+                  newMessage.length >= 45 
                     ? "text-destructive font-medium" 
                     : "text-muted-foreground"
                 }`}>
-                  {newMessage.trim().split(/\s+/).filter(Boolean).length}/40 words
+                  {newMessage.length}/50 characters
                 </span>
                 <Button
                   size="sm"
                   onClick={handleSubmitDiscussion}
-                  disabled={!newMessage.trim() || isSubmitting || newMessage.trim().split(/\s+/).filter(Boolean).length > 40}
+                  disabled={!newMessage.trim() || isSubmitting || newMessage.length > 50}
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>

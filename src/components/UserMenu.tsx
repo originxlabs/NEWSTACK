@@ -80,9 +80,9 @@ export function UserMenu() {
         </DropdownMenuItem>
         
         <DropdownMenuItem asChild>
-          <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
+          <Link to="/saved" className="flex items-center gap-2 cursor-pointer">
             <Bookmark className="h-4 w-4" />
-            Saved
+            Saved Articles
           </Link>
         </DropdownMenuItem>
         

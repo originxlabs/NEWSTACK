@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 
 const navLinks = [
-  { name: "Feed", href: "/", icon: "📰" },
+  { name: "News", href: "/", icon: "📰" },
   { name: "Listen", href: "/listen", icon: "🎧" },
   { name: "World", href: "/world", icon: "🌍" },
   { name: "Places", href: "/places", icon: "📍" },

@@ -16,6 +16,7 @@ import Topics from "./pages/Topics";
 import Support from "./pages/Support";
 import Profile from "./pages/Profile";
 import Features from "./pages/Features";
+import SavedArticles from "./pages/SavedArticles";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ const App = () => (
                 <Route path="/support" element={<Support />} />
                 <Route path="/pricing" element={<Support />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/saved" element={<SavedArticles />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

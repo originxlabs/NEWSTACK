@@ -242,7 +242,7 @@ export function NewsFeed() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="font-display text-2xl sm:text-3xl font-bold mb-1">Your Feed</h2>
+                  <h2 className="font-display text-2xl sm:text-3xl font-bold mb-1">Your News</h2>
                   <p className="text-sm text-muted-foreground">
                     {country ? `${country.flag_emoji} ${country.name} & World` : "AI-curated stories"}
                   </p>
