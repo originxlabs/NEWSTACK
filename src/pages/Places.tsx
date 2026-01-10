@@ -17,10 +17,14 @@ import { PlaceSkeleton } from "@/components/places/PlaceSkeleton";
 import { WhatsHappening } from "@/components/places/WhatsHappening";
 import { FeaturedCities, type FeaturedCity } from "@/components/places/FeaturedCities";
 import { InteractiveMap } from "@/components/places/InteractiveMap";
+import { useSearchParams } from "react-router-dom";
 
 const Places = () => {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSearch = searchParams.get("search") || "";
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [hasInitialSearch, setHasInitialSearch] = useState(!!initialSearch);
   const debouncedSearch = useDebounce(searchQuery, 300);
   
   const {
@@ -44,11 +48,31 @@ const Places = () => {
     }
   }, []);
 
+  // Handle initial search from URL params
   useEffect(() => {
-    if (debouncedSearch) {
+    if (hasInitialSearch && initialSearch) {
+      searchPlaces(initialSearch);
+      setHasInitialSearch(false);
+    }
+  }, [hasInitialSearch, initialSearch, searchPlaces]);
+
+  useEffect(() => {
+    if (debouncedSearch && !hasInitialSearch) {
       searchPlaces(debouncedSearch);
     }
-  }, [debouncedSearch, searchPlaces]);
+  }, [debouncedSearch, searchPlaces, hasInitialSearch]);
+
+  // Auto-select first result when coming from URL search
+  useEffect(() => {
+    if (searchResults.length > 0 && initialSearch && !placeData.place) {
+      const firstResult = searchResults[0];
+      if (firstResult) {
+        selectPlace(firstResult.place_id, firstResult);
+        // Clear the URL search param after selecting
+        setSearchParams({});
+      }
+    }
+  }, [searchResults, initialSearch, placeData.place, selectPlace, setSearchParams]);
 
   const handleSelectPlace = (placeId: string) => {
     const selectedResult = searchResults.find(r => r.place_id === placeId);
