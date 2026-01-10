@@ -35,6 +35,15 @@ export function StackBot() {
   const [sources, setSources] = useState<LatestSource[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedStory, setExpandedStory] = useState<string | null>(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Check if on mobile PWA - hide StackBot on mobile to avoid clutter
+  const isMobileView = typeof window !== "undefined" && window.innerWidth < 768;
+  const isPWA = typeof window !== "undefined" && (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true
+  );
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -82,12 +91,26 @@ export function StackBot() {
     }
   }, [isOpen]);
 
+  // Don't render on mobile PWA to avoid overlap with bottom nav
+  if (isMobileView && isPWA) {
+    return null;
+  }
+
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - Draggable on desktop */}
       <motion.button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
+        onClick={() => !isDragging && setIsOpen(!isOpen)}
+        drag={!isMobileView}
+        dragMomentum={false}
+        dragElastic={0.1}
+        onDragStart={() => setIsDragging(true)}
+        onDragEnd={(e, info) => {
+          setTimeout(() => setIsDragging(false), 100);
+          setPosition({ x: position.x + info.offset.x, y: position.y + info.offset.y });
+        }}
+        style={{ x: position.x, y: position.y }}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-110 transition-transform cursor-grab active:cursor-grabbing"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         initial={{ scale: 0, opacity: 0 }}

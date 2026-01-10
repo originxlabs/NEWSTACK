@@ -207,8 +207,8 @@ export function SwipeNewsCard({
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent h-40" />
         </div>
 
-        {/* Content */}
-        <div className="relative flex-1 flex flex-col justify-end p-4 pb-8 z-10 safe-area-bottom">
+        {/* Content - Add extra padding bottom for bottom nav (72px nav + safe area) */}
+        <div className="relative flex-1 flex flex-col justify-end p-4 pb-24 z-10">
           {/* Top badges */}
           <div className="absolute top-16 left-4 right-4 flex items-center justify-between">
             <div className="flex gap-2 flex-wrap">
@@ -404,15 +404,15 @@ export function SwipeNewsCard({
             </div>
           </div>
 
-          {/* Next hint */}
+          {/* Next hint - positioned above bottom nav */}
           {hasNext && (
             <motion.div
               animate={{ y: [0, 4, 0] }}
               transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-              className="flex flex-col items-center mt-4 text-muted-foreground/60"
+              className="flex flex-col items-center mt-2 text-muted-foreground/60"
             >
               <span className="text-[10px]">Swipe up for next</span>
-              <ChevronDown className="w-5 h-5" />
+              <ChevronDown className="w-4 h-4" />
             </motion.div>
           )}
         </div>

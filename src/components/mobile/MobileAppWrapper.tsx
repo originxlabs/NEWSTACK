@@ -130,7 +130,7 @@ export function MobileAppWrapper({ children }: MobileAppWrapperProps) {
         )}
       </AnimatePresence>
 
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-background pb-24">
         {/* Main Content */}
         {shouldShowSwipe ? (
           <SwipeNewsFeed />
@@ -219,24 +219,26 @@ export function MobileAppWrapper({ children }: MobileAppWrapperProps) {
           </div>
         )}
 
-        {/* Bottom Navigation */}
+        {/* Bottom Navigation - Fixed with proper safe area */}
         {!shouldShowSwipe && (
-          <nav className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border/50 safe-area-bottom">
-            <div className="flex items-center justify-around py-2 px-2">
+          <nav className="fixed bottom-0 left-0 right-0 z-40 bg-background/98 backdrop-blur-xl border-t border-border/50">
+            <div className="flex items-center justify-around py-2 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
               {navItems.map((item) => {
-                const isActive = location.pathname === item.path;
+                const isActive = location.pathname === item.path || 
+                  (item.path === "/" && location.pathname === "/news") ||
+                  (item.path === "/news" && location.pathname === "/");
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className="flex flex-col items-center gap-0.5 min-w-[56px] py-1"
+                    className="flex flex-col items-center gap-0.5 flex-1 py-1"
                   >
                     <motion.div
-                      whileTap={{ scale: 0.9 }}
-                      className={`p-2 rounded-xl transition-colors ${
+                      whileTap={{ scale: 0.85 }}
+                      className={`p-2 rounded-2xl transition-all duration-200 ${
                         isActive 
-                          ? "bg-primary/15" 
-                          : "hover:bg-muted"
+                          ? "bg-primary/15 shadow-sm" 
+                          : "active:bg-muted"
                       }`}
                     >
                       <item.icon className={`w-5 h-5 transition-colors ${
