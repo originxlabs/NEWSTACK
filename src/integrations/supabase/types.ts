@@ -262,6 +262,48 @@ export type Database = {
           },
         ]
       }
+      saved_places: {
+        Row: {
+          created_at: string
+          id: string
+          liked: boolean | null
+          place_address: string | null
+          place_id: string
+          place_image_url: string | null
+          place_lat: number | null
+          place_lng: number | null
+          place_name: string
+          place_rating: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          liked?: boolean | null
+          place_address?: string | null
+          place_id: string
+          place_image_url?: string | null
+          place_lat?: number | null
+          place_lng?: number | null
+          place_name: string
+          place_rating?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          liked?: boolean | null
+          place_address?: string | null
+          place_id?: string
+          place_image_url?: string | null
+          place_lat?: number | null
+          place_lng?: number | null
+          place_name?: string
+          place_rating?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       topics: {
         Row: {
           color: string | null
