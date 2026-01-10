@@ -8,7 +8,7 @@ const corsHeaders = {
 interface NearbyRequest {
   lat: number;
   lng: number;
-  type?: string; // restaurant, hotel, tourist_attraction, cafe, etc.
+  type?: string; // tourist_attraction, restaurant, lodging, cafe, hospital, airport, station
   radius?: number;
 }
 
@@ -18,56 +18,139 @@ serve(async (req) => {
   }
 
   try {
-    const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
-    if (!GOOGLE_PLACES_API_KEY) {
-      throw new Error("GOOGLE_PLACES_API_KEY not configured");
-    }
+    const { lat, lng, type = "tourist_attraction", radius = 5000 } = (await req.json()) as NearbyRequest;
 
-    const { lat, lng, type = "tourist_attraction", radius = 5000 } = await req.json() as NearbyRequest;
-
-    if (lat === undefined || lng === undefined) {
+    if (typeof lat !== "number" || typeof lng !== "number") {
       throw new Error("lat and lng are required");
     }
 
-    console.log("Getting nearby", type, "for:", lat, lng);
+    console.log("Overpass nearby:", { lat, lng, type, radius });
 
-    const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${GOOGLE_PLACES_API_KEY}`;
+    const osmTags = getOSMTags(type);
+    const overpassQuery = buildOverpassQuery(lat, lng, osmTags, radius);
 
-    const response = await fetch(url);
-    const data = await response.json();
+    const response = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `data=${encodeURIComponent(overpassQuery)}`,
+    });
 
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      console.error("Google Places nearby error:", data);
-      throw new Error(data.error_message || `Places API error: ${data.status}`);
+    if (!response.ok) {
+      throw new Error(`Overpass API error: ${response.status}`);
     }
 
-    const places = (data.results || []).slice(0, 10).map((place: any) => ({
-      place_id: place.place_id,
-      name: place.name,
-      vicinity: place.vicinity,
-      lat: place.geometry?.location?.lat,
-      lng: place.geometry?.location?.lng,
-      rating: place.rating,
-      user_ratings_total: place.user_ratings_total,
-      price_level: place.price_level,
-      types: place.types,
-      photo_url: place.photos?.[0]?.photo_reference
-        ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${place.photos[0].photo_reference}&key=${GOOGLE_PLACES_API_KEY}`
-        : null,
-      open_now: place.opening_hours?.open_now,
-      business_status: place.business_status,
-    }));
+    const data = await response.json();
 
-    return new Response(
-      JSON.stringify({ places, type }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const places = (data.elements || [])
+      .filter((el: any) => el.tags?.name)
+      .slice(0, 15)
+      .map((el: any) => {
+        const placeLat = el.lat ?? el.center?.lat;
+        const placeLng = el.lon ?? el.center?.lon;
+        const distance_km =
+          typeof placeLat === "number" && typeof placeLng === "number"
+            ? calculateDistance(lat, lng, placeLat, placeLng)
+            : undefined;
+
+        return {
+          place_id: `osm_${el.type}_${el.id}`,
+          osm_id: el.id,
+          osm_type: el.type,
+          name: el.tags.name,
+          vicinity: formatVicinity(el.tags),
+          lat: placeLat,
+          lng: placeLng,
+          distance_km,
+          category: el.tags.tourism || el.tags.amenity || el.tags.leisure || el.tags.historic || type,
+          rating: el.tags.stars ? parseFloat(el.tags.stars) : undefined,
+          website: el.tags.website,
+          phone: el.tags.phone,
+          cuisine: el.tags.cuisine,
+          opening_hours: el.tags.opening_hours,
+        };
+      })
+      .sort((a: any, b: any) => (a.distance_km ?? 999) - (b.distance_km ?? 999));
+
+    return new Response(JSON.stringify({ places, type }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Nearby places error:", message);
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // Graceful failure: return empty list with 200 so UI can continue.
+    return new Response(JSON.stringify({ places: [], error: message }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
+
+function getOSMTags(type: string): string[] {
+  const tagMap: Record<string, string[]> = {
+    tourist_attraction: [
+      "tourism=attraction",
+      "tourism=museum",
+      "tourism=viewpoint",
+      "tourism=artwork",
+      "historic=monument",
+      "historic=castle",
+      "historic=ruins",
+      "leisure=park",
+      "leisure=garden",
+      "amenity=place_of_worship",
+    ],
+    restaurant: ["amenity=restaurant", "amenity=fast_food", "amenity=food_court"],
+    cafe: ["amenity=cafe", "amenity=ice_cream"],
+    lodging: [
+      "tourism=hotel",
+      "tourism=hostel",
+      "tourism=motel",
+      "tourism=guest_house",
+      "tourism=apartment",
+    ],
+    hospital: ["amenity=hospital", "amenity=clinic", "amenity=doctors"],
+    airport: ["aeroway=aerodrome"],
+    station: ["railway=station", "public_transport=station", "amenity=bus_station"],
+  };
+
+  return tagMap[type] || [`tourism=${type}`, `amenity=${type}`];
+}
+
+function buildOverpassQuery(lat: number, lng: number, tags: string[], radius: number): string {
+  const tagFilters = tags
+    .map((tag) => {
+      const [key, value] = tag.split("=");
+      return `node["${key}"="${value}"](around:${radius},${lat},${lng});\nway["${key}"="${value}"](around:${radius},${lat},${lng});`;
+    })
+    .join("\n");
+
+  return `
+[out:json][timeout:25];
+(
+${tagFilters}
+);
+out center;
+`;
+}
+
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+}
+
+function toRad(deg: number): number {
+  return deg * (Math.PI / 180);
+}
+
+function formatVicinity(tags: Record<string, string>): string {
+  const street = tags["addr:street"];
+  const city = tags["addr:city"] || tags["addr:town"] || tags["addr:village"];
+  const suburb = tags["addr:suburb"];
+  return [street, suburb, city].filter(Boolean).join(", ");
+}
