@@ -1,22 +1,11 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, lazy, Suspense } from "react";
 import { motion } from "framer-motion";
-import { Globe, TrendingUp, AlertTriangle, Thermometer, DollarSign, Leaf, MapPin, Newspaper, ExternalLink, Clock } from "lucide-react";
+import { Globe, TrendingUp, AlertTriangle, Thermometer, DollarSign, Leaf, MapPin, Newspaper, ExternalLink, Clock, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePreferences } from "@/contexts/PreferencesContext";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-
-// Fix for default marker icons in react-leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-});
 
 interface Region {
   code: string;
@@ -69,49 +58,8 @@ const newsEvents: NewsEvent[] = [
   { id: "8", headline: "G20 Finance Ministers Discuss Global Economy", location: "New Delhi, India", lat: 28.6139, lng: 77.2090, category: "Finance", timestamp: "3h ago", source: "NDTV" },
 ];
 
-// Custom marker icons based on category
-const createCustomIcon = (category: string) => {
-  const colors: Record<string, string> = {
-    Business: "#3b82f6",
-    Politics: "#f59e0b",
-    Finance: "#10b981",
-    Climate: "#84cc16",
-    Tech: "#8b5cf6",
-  };
-  
-  return L.divIcon({
-    className: "custom-marker",
-    html: `
-      <div style="
-        background: ${colors[category] || "#6366f1"};
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        color: white;
-        font-size: 14px;
-      ">
-        📰
-      </div>
-    `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
-};
-
-// Map controller component
-function MapController({ center }: { center: [number, number] }) {
-  const map = useMap();
-  useEffect(() => {
-    map.flyTo(center, 4, { duration: 1.5 });
-  }, [center, map]);
-  return null;
-}
+// Lazy load the map component to avoid SSR issues
+const WorldMap = lazy(() => import("@/components/WorldMap"));
 
 const World = () => {
   const { country } = usePreferences();
@@ -129,7 +77,6 @@ const World = () => {
 
   const filteredEvents = useMemo(() => {
     if (!selectedRegion) return newsEvents;
-    // Filter events near selected region (simplified distance check)
     return newsEvents.filter(event => {
       const latDiff = Math.abs(event.lat - selectedRegion.lat);
       const lngDiff = Math.abs(event.lng - selectedRegion.lng);
@@ -213,46 +160,20 @@ const World = () => {
             </div>
             
             <div className="h-[400px] md:h-[500px] relative">
-              <MapContainer
-                center={mapCenter}
-                zoom={2}
-                style={{ height: "100%", width: "100%" }}
-                scrollWheelZoom={true}
-                className="z-0"
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              <Suspense fallback={
+                <div className="w-full h-full flex items-center justify-center bg-muted/20">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Loading map...</span>
+                  </div>
+                </div>
+              }>
+                <WorldMap 
+                  center={mapCenter} 
+                  events={filteredEvents}
+                  onCenterChange={setMapCenter}
                 />
-                <MapController center={mapCenter} />
-                
-                {/* News Event Markers */}
-                {filteredEvents.map((event) => (
-                  <Marker
-                    key={event.id}
-                    position={[event.lat, event.lng]}
-                    icon={createCustomIcon(event.category)}
-                  >
-                    <Popup className="custom-popup">
-                      <div className="p-1 min-w-[200px]">
-                        <Badge className="mb-2 text-xs">{event.category}</Badge>
-                        <h3 className="font-semibold text-sm mb-2">{event.headline}</h3>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                          <MapPin className="w-3 h-3" />
-                          {event.location}
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{event.source}</span>
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {event.timestamp}
-                          </div>
-                        </div>
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
+              </Suspense>
             </div>
           </motion.div>
 
