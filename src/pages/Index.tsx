@@ -8,6 +8,7 @@ import { BreakingNewsBanner } from "@/components/BreakingNewsBanner";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { CookieConsent } from "@/components/CookieConsent";
 import { LocationPermission } from "@/components/LocationPermission";
+import { InterestsOnboarding, useInterestsOnboarding } from "@/components/InterestsOnboarding";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePreferences } from "@/contexts/PreferencesContext";
 
@@ -19,6 +20,7 @@ const Index = () => {
   const [showCookieConsent, setShowCookieConsent] = useState(false);
   const [showLocationPermission, setShowLocationPermission] = useState(false);
   const [consentCompleted, setConsentCompleted] = useState(false);
+  const { showOnboarding, completeOnboarding } = useInterestsOnboarding();
 
   // Check if cookie consent is needed
   useEffect(() => {
@@ -68,6 +70,11 @@ const Index = () => {
       {/* Location Permission - shows after cookie consent */}
       {showLocationPermission && !preferencesLoading && (
         <LocationPermission onComplete={handleLocationComplete} />
+      )}
+
+      {/* Interests Onboarding - shows after location permission */}
+      {consentCompleted && showOnboarding && (
+        <InterestsOnboarding isOpen={showOnboarding} onComplete={completeOnboarding} />
       )}
 
       <BreakingNewsBanner />
