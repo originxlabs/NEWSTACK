@@ -346,7 +346,10 @@ export function ReadMoreModal({ article, isOpen, onClose, onOpenPanel, onCompare
                         variant="outline" 
                         size="sm"
                         className="flex-1"
-                        onClick={() => onCompare(article.headline, article.id)}
+                        onClick={() => {
+                          onClose(); // Close modal first
+                          setTimeout(() => onCompare(article.headline, article.id), 100);
+                        }}
                       >
                         <Scale className="w-4 h-4 mr-2" />
                         Compare Sources
@@ -357,7 +360,10 @@ export function ReadMoreModal({ article, isOpen, onClose, onOpenPanel, onCompare
                         variant="outline" 
                         size="sm"
                         className="flex-1"
-                        onClick={() => onViewTimeline(article.id, article.headline)}
+                        onClick={() => {
+                          onClose(); // Close modal first
+                          setTimeout(() => onViewTimeline(article.id, article.headline), 100);
+                        }}
                       >
                         <History className="w-4 h-4 mr-2" />
                         View Timeline

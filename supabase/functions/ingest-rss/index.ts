@@ -492,6 +492,24 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Verify cron secret for scheduled calls
+  const authHeader = req.headers.get("Authorization");
+  const cronSecret = Deno.env.get("CRON_INGEST_SECRET");
+  
+  // Allow calls with valid cron secret OR service role key
+  const url = new URL(req.url);
+  const secretParam = url.searchParams.get("secret");
+  const isValidCron = secretParam === cronSecret || authHeader?.includes(cronSecret || "");
+  const isServiceRole = authHeader?.includes("Bearer");
+
+  if (!isValidCron && !isServiceRole) {
+    console.log("Unauthorized access attempt");
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
