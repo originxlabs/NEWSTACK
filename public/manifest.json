@@ -1,60 +1,129 @@
 {
-  "name": "NEWSTACK — Free AI News App",
+  "name": "NEWSTACK — Global News App",
   "short_name": "NEWSTACK",
-  "description": "Free AI-powered news app with trusted summaries, audio news, trending topics, and local intelligence. No paywalls, ever.",
+  "description": "Real-time global news app with trusted sources, audio listening, trending topics, and local intelligence. Quality journalism without paywalls.",
   "start_url": "/?source=pwa",
   "id": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#6366f1",
+  "background_color": "#0a0a0a",
+  "theme_color": "#14b8a6",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
   "dir": "ltr",
   "icons": [
     {
-      "src": "/logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "maskable"
+      "purpose": "any"
     }
   ],
   "categories": ["news", "lifestyle", "productivity", "education"],
-  "screenshots": [],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Home Screen"
+    },
+    {
+      "src": "/screenshots/news.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "News Feed"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Latest News",
-      "short_name": "Feed",
-      "description": "View the latest AI-curated news",
-      "url": "/?source=pwa",
-      "icons": [{ "src": "/logo.svg", "sizes": "any" }]
+      "short_name": "News",
+      "description": "View the latest curated news",
+      "url": "/news?source=pwa",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "Listen to News",
       "short_name": "Listen",
       "description": "Audio news briefings",
       "url": "/listen?source=pwa",
-      "icons": [{ "src": "/logo.svg", "sizes": "any" }]
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "Explore Places",
       "short_name": "Places",
       "description": "Local intelligence & place insights",
       "url": "/places?source=pwa",
-      "icons": [{ "src": "/logo.svg", "sizes": "any" }]
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
-      "name": "Trending Now",
-      "short_name": "Trending",
-      "description": "What's trending globally",
+      "name": "World News",
+      "short_name": "World",
+      "description": "Global news overview",
       "url": "/world?source=pwa",
-      "icons": [{ "src": "/logo.svg", "sizes": "any" }]
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ],
   "share_target": {
@@ -68,10 +137,8 @@
   },
   "prefer_related_applications": false,
   "display_override": ["standalone", "minimal-ui"],
-  "protocol_handlers": [
-    {
-      "protocol": "web+newstack",
-      "url": "/?url=%s"
-    }
-  ]
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }
