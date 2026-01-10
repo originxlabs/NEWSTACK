@@ -38,6 +38,7 @@ interface NewsCardProps {
   news: NewsItem;
   index: number;
   onClick?: () => void;
+  onReadMore?: () => void;
   isActive?: boolean;
   compact?: boolean;
 }
@@ -63,7 +64,7 @@ const locationBadgeConfig = {
   Global: { icon: Globe, color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
 };
 
-export function NewsCard({ news, index, onClick, isActive, compact = false }: NewsCardProps) {
+export function NewsCard({ news, index, onClick, onReadMore, isActive, compact = false }: NewsCardProps) {
   const { language, country } = usePreferences();
   const { speak, toggle, isLoading, isPlaying, progress, stop } = useTTS({
     language: language?.code || "en",
@@ -312,7 +313,11 @@ export function NewsCard({ news, index, onClick, isActive, compact = false }: Ne
                     className="text-xs gap-1 h-8"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onClick?.();
+                      if (onReadMore) {
+                        onReadMore();
+                      } else {
+                        onClick?.();
+                      }
                     }}
                   >
                     Read more
