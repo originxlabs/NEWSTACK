@@ -187,6 +187,192 @@ const KEY_ENTITIES = [
   "champions league", "super bowl",
 ];
 
+// ===== RSS CONTENT NORMALIZATION (MANDATORY) =====
+// These functions clean raw RSS content before storage
+
+/**
+ * Strip CDATA wrappers from content
+ * CDATA must NEVER appear in UI or database
+ */
+function stripCDATA(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, "$1")
+    .trim();
+}
+
+/**
+ * Decode HTML entities to plain text
+ * Handles both named and numeric entities
+ */
+function decodeHTMLEntities(text: string): string {
+  if (!text) return "";
+  
+  const entityMap: Record<string, string> = {
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": "\"",
+    "&apos;": "'",
+    "&nbsp;": " ",
+    "&ndash;": "-",
+    "&mdash;": "-",
+    "&lsquo;": "'",
+    "&rsquo;": "'",
+    "&ldquo;": "\"",
+    "&rdquo;": "\"",
+    "&hellip;": "...",
+    "&copy;": "(c)",
+    "&reg;": "(R)",
+    "&trade;": "(TM)",
+    "&euro;": "EUR",
+    "&pound;": "GBP",
+    "&yen;": "JPY",
+    "&cent;": "c",
+    "&deg;": " degrees",
+    "&plusmn;": "+/-",
+    "&times;": "x",
+    "&divide;": "/",
+  };
+  
+  let decoded = text;
+  
+  // Decode named entities
+  for (const [entity, char] of Object.entries(entityMap)) {
+    decoded = decoded.replace(new RegExp(entity, "gi"), char);
+  }
+  
+  // Decode numeric entities (decimal)
+  decoded = decoded.replace(/&#(\d+);/g, (_, num) => 
+    String.fromCharCode(parseInt(num, 10))
+  );
+  
+  // Decode numeric entities (hexadecimal)
+  decoded = decoded.replace(/&#x([0-9a-f]+);/gi, (_, hex) => 
+    String.fromCharCode(parseInt(hex, 16))
+  );
+  
+  // Clean up any remaining entities
+  decoded = decoded.replace(/&[a-z]+;/gi, "");
+  
+  return decoded;
+}
+
+/**
+ * Remove all HTML tags from content
+ * Preserves text content only
+ */
+function stripHTMLTags(text: string): string {
+  if (!text) return "";
+  
+  // Remove script and style content entirely
+  let cleaned = text
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+  
+  // Replace block elements with line breaks before stripping
+  cleaned = cleaned
+    .replace(/<\/?(p|div|br|h[1-6]|li|tr)[^>]*>/gi, "\n")
+    .replace(/<[^>]+>/g, "");
+  
+  return cleaned;
+}
+
+/**
+ * Normalize whitespace in text
+ * Collapses multiple spaces, trims, and removes excessive line breaks
+ */
+function normalizeWhitespace(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/[\r\n]+/g, " ") // Replace line breaks with spaces
+    .replace(/\s+/g, " ")     // Collapse multiple spaces
+    .replace(/^\s+|\s+$/gm, "") // Trim each line
+    .trim();
+}
+
+/**
+ * Remove tracking parameters from URLs
+ */
+function cleanURL(url: string): string {
+  if (!url) return "";
+  try {
+    const urlObj = new URL(url);
+    // Remove common tracking params
+    const trackingParams = [
+      "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
+      "fbclid", "gclid", "ref", "source", "mc_cid", "mc_eid"
+    ];
+    trackingParams.forEach(param => urlObj.searchParams.delete(param));
+    return urlObj.toString();
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Full content normalization pipeline
+ * Applies all normalization steps in correct order
+ */
+function normalizeRSSContent(text: string): string {
+  if (!text) return "";
+  
+  let normalized = text;
+  
+  // Step 1: Strip CDATA wrappers
+  normalized = stripCDATA(normalized);
+  
+  // Step 2: Decode HTML entities
+  normalized = decodeHTMLEntities(normalized);
+  
+  // Step 3: Strip HTML tags
+  normalized = stripHTMLTags(normalized);
+  
+  // Step 4: Normalize whitespace
+  normalized = normalizeWhitespace(normalized);
+  
+  return normalized;
+}
+
+/**
+ * Normalize a headline for storage and display
+ * Applies full normalization + length limit
+ */
+function normalizeTitle(title: string): string {
+  const normalized = normalizeRSSContent(title);
+  
+  // Remove source suffixes
+  let cleaned = removeSourceSuffix(normalized);
+  
+  // Capitalize properly
+  cleaned = cleaned.trim();
+  if (cleaned.length > 0) {
+    cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
+  
+  // Limit to 200 characters
+  if (cleaned.length > 200) {
+    cleaned = cleaned.substring(0, 197) + "...";
+  }
+  
+  return cleaned;
+}
+
+/**
+ * Normalize a description/summary for storage
+ * Applies full normalization + length limit
+ */
+function normalizeDescription(description: string): string {
+  const normalized = normalizeRSSContent(description);
+  
+  // Limit to 500 characters
+  if (normalized.length > 500) {
+    return normalized.substring(0, 497) + "...";
+  }
+  
+  return normalized;
+}
+
 // ===== IMPROVED NORMALIZATION FUNCTIONS =====
 
 function removeSourceSuffix(title: string): string {
@@ -220,18 +406,13 @@ function extractNumbers(text: string): string[] {
   });
 }
 
-// Improved normalization that creates a semantic fingerprint
+// Improved normalization that creates a semantic fingerprint for deduplication
 function normalizeHeadline(title: string): string {
-  // Step 1: Remove source suffixes
-  let cleaned = removeSourceSuffix(title);
+  // Step 1: Apply full content normalization
+  let cleaned = normalizeRSSContent(title);
   
-  // Step 2: Decode HTML entities
-  cleaned = cleaned
-    .replace(/&amp;/g, "and")
-    .replace(/&apos;/g, "")
-    .replace(/&quot;/g, "")
-    .replace(/&#\d+;/g, "")
-    .replace(/&[a-z]+;/g, "");
+  // Step 2: Remove source suffixes
+  cleaned = removeSourceSuffix(cleaned);
   
   // Step 3: Normalize special characters
   cleaned = cleaned
@@ -506,7 +687,14 @@ async function processItems(
 
   for (const item of items) {
     try {
-      const normalizedHeadline = normalizeHeadline(item.title);
+      // ===== NORMALIZE ALL CONTENT BEFORE PROCESSING =====
+      // This ensures CDATA, HTML entities, and tags never reach the database
+      const cleanTitle = normalizeTitle(item.title);
+      const cleanDescription = normalizeDescription(item.description);
+      const cleanUrl = cleanURL(item.link);
+      
+      // Create fingerprint for deduplication
+      const normalizedHeadline = normalizeHeadline(cleanTitle);
       const storyHash = await createHash(normalizedHeadline);
 
       // Parse publish date
@@ -526,8 +714,8 @@ async function processItems(
         continue;
       }
 
-      // Classify the story
-      const classification = classifyStory(item.title, item.description, item.link, feed);
+      // Classify the story using normalized content
+      const classification = classifyStory(cleanTitle, cleanDescription, cleanUrl, feed);
 
       // Get image URL
       const imageUrl = item.enclosure?.url || item["media:content"]?.url || null;
@@ -583,19 +771,19 @@ async function processItems(
           .from("story_sources")
           .select("id")
           .eq("story_id", matchedStory.id)
-          .eq("source_url", item.link)
+          .eq("source_url", cleanUrl)
           .maybeSingle();
 
         if (!existingSource) {
-          // Add new source
+          // Add new source with normalized content
           const { error: sourceError } = await supabase
             .from("story_sources")
             .insert({
               story_id: matchedStory.id,
               source_name: feed.name,
-              source_url: item.link,
+              source_url: cleanUrl,
               published_at: publishedAt.toISOString(),
-              description: item.description,
+              description: cleanDescription,
             });
 
           if (!sourceError) {
@@ -661,14 +849,14 @@ async function processItems(
           }
         }
       } else {
-        // Create new story with enhanced classification
+        // Create new story with normalized content
         const { data: newStory, error: storyError } = await supabase
           .from("stories")
           .insert({
             story_hash: storyHash,
-            headline: item.title,
+            headline: cleanTitle,
             normalized_headline: normalizedHeadline,
-            summary: item.description,
+            summary: cleanDescription,
             category: classification.primary_category,
             country_code: feed.country_code,
             city: classification.locality,
@@ -682,12 +870,13 @@ async function processItems(
           .single();
 
         if (newStory && !storyError) {
+          // Insert source with normalized content
           await supabase.from("story_sources").insert({
             story_id: newStory.id,
             source_name: feed.name,
-            source_url: item.link,
+            source_url: cleanUrl,
             published_at: publishedAt.toISOString(),
-            description: item.description,
+            description: cleanDescription,
           });
 
           created++;
