@@ -20,11 +20,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-// API Domain Configuration - Updated for Vercel deployment
-const API_DOMAINS = {
-  sandbox: "https://sandbox.newstack.online/v1",
-  production: "https://api.newstack.live/v1",
-};
+// API Domain Configuration - Single domain, environment determined by API key
+const API_DOMAIN = "https://api.newstack.online/v1";
 
 // For testing via Supabase edge functions
 const SUPABASE_API_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
@@ -136,7 +133,7 @@ function ApiTester() {
   const getDisplayUrl = () => {
     switch (endpoint) {
       case "news":
-        let newsUrl = `${API_DOMAINS.sandbox}/news`;
+        let newsUrl = `${API_DOMAIN}/news`;
         const params = [];
         if (category) params.push(`category=${category}`);
         if (confidence) params.push(`confidence=${confidence}`);
@@ -144,17 +141,17 @@ function ApiTester() {
         if (params.length) newsUrl += `?${params.join("&")}`;
         return newsUrl;
       case "world":
-        return `${API_DOMAINS.sandbox}/world`;
+        return `${API_DOMAIN}/world`;
       case "world-region":
-        return `${API_DOMAINS.sandbox}/world/regions/${region || "asia-pacific"}`;
+        return `${API_DOMAIN}/world/regions/${region || "asia-pacific"}`;
       case "places":
-        return `${API_DOMAINS.sandbox}/places/${placeId || "mumbai"}`;
+        return `${API_DOMAIN}/places/${placeId || "mumbai"}`;
       case "places-intelligence":
-        return `${API_DOMAINS.sandbox}/places/${placeId || "mumbai"}/intelligence`;
+        return `${API_DOMAIN}/places/${placeId || "mumbai"}/intelligence`;
       case "places-news":
-        return `${API_DOMAINS.sandbox}/places/${placeId || "mumbai"}/news?window=${window}`;
+        return `${API_DOMAIN}/places/${placeId || "mumbai"}/news?window=${window}`;
       default:
-        return `${API_DOMAINS.sandbox}/news`;
+        return `${API_DOMAIN}/news`;
     }
   };
 

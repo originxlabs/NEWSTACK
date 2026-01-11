@@ -72,9 +72,18 @@ async function validateApiKey(
   supabase: any,
   apiKey: string | null,
   endpoint: string
-): Promise<{ valid: boolean; keyData?: ApiKeyData; error?: string; remaining?: number }> {
+): Promise<{ valid: boolean; keyData?: ApiKeyData; error?: string; remaining?: number; isSandbox?: boolean }> {
+  // Check for missing API key
   if (!apiKey) {
     return { valid: false, error: "API key required. Pass X-API-Key header." };
+  }
+
+  // Validate API key format - must start with nsk_test_ or nsk_live_
+  const isTestKey = apiKey.startsWith("nsk_test_");
+  const isLiveKey = apiKey.startsWith("nsk_live_");
+  
+  if (!isTestKey && !isLiveKey) {
+    return { valid: false, error: "Invalid API key format. Keys must start with nsk_test_ or nsk_live_" };
   }
 
   const { data, error } = await supabase
@@ -96,15 +105,22 @@ async function validateApiKey(
     return { valid: false, error: `Endpoint '${endpoint}' not available on your plan. Upgrade to access.` };
   }
 
+  // For sandbox keys, enforce 100 requests/day limit
+  const effectiveLimit = isTestKey ? 100 : data.requests_limit;
+  
   // Check rate limit (requests used vs limit)
-  if (data.requests_used >= data.requests_limit) {
-    return { valid: false, error: "Monthly request limit exceeded. Upgrade your plan or wait until next billing cycle." };
+  if (data.requests_used >= effectiveLimit) {
+    const limitMessage = isTestKey 
+      ? "Sandbox daily limit (100 requests) exceeded. Wait until tomorrow or upgrade to production."
+      : "Monthly request limit exceeded. Upgrade your plan or wait until next billing cycle.";
+    return { valid: false, error: limitMessage };
   }
 
   return { 
     valid: true, 
     keyData: data,
-    remaining: data.requests_limit - data.requests_used
+    remaining: effectiveLimit - data.requests_used,
+    isSandbox: isTestKey
   };
 }
 
@@ -154,31 +170,54 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
   
-  // Check for API key
+  // Check for API key - environment determined by key prefix, not headers
   const apiKey = req.headers.get("x-api-key");
-  const isSandbox = url.searchParams.get("sandbox") === "true";
+  const sandboxQueryParam = url.searchParams.get("sandbox") === "true";
   
-  // For sandbox/demo mode, allow without key but with limited data
+  // Variables for tracking
   let keyData: ApiKeyData | undefined;
   let requestsRemaining = 100;
+  let isSandboxMode = sandboxQueryParam; // Default to query param for demo mode
+  let rateLimitReset = Math.floor(Date.now() / 1000) + 86400; // Default: 24h from now
   
-  if (!isSandbox) {
+  // If API key provided, validate it and determine environment from key prefix
+  if (apiKey) {
     const validation = await validateApiKey(supabase, apiKey, "news");
     if (!validation.valid) {
+      const statusCode = validation.error?.includes("format") ? 403 : 401;
       return new Response(
         JSON.stringify({ error: validation.error }),
         { 
-          status: 401, 
+          status: statusCode, 
           headers: { 
             ...corsHeaders, 
             "Content-Type": "application/json",
-            "X-RateLimit-Remaining": "0"
+            "X-RateLimit-Limit": "0",
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": String(rateLimitReset),
+            "X-Sandbox": "false"
           } 
         }
       );
     }
     keyData = validation.keyData;
     requestsRemaining = validation.remaining || 0;
+    isSandboxMode = validation.isSandbox || false;
+  } else if (!sandboxQueryParam) {
+    // No API key and not in demo sandbox mode
+    return new Response(
+      JSON.stringify({ error: "API key required. Pass X-API-Key header." }),
+      { 
+        status: 401, 
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "application/json",
+          "X-RateLimit-Limit": "0",
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(rateLimitReset)
+        } 
+      }
+    );
   }
 
   try {
@@ -274,7 +313,7 @@ serve(async (req) => {
         .gte("first_published_at", cutoffTime)
         .order("source_count", { ascending: false })
         .order("first_published_at", { ascending: false })
-        .limit(isSandbox ? 10 : 50); // Limit sandbox to 10 results
+        .limit(isSandboxMode ? 10 : 50); // Limit sandbox to 10 results
 
       // Apply filters
       if (category) {
@@ -343,9 +382,10 @@ serve(async (req) => {
         headers: { 
           ...corsHeaders, 
           "Content-Type": "application/json",
-          "X-Sandbox": isSandbox ? "true" : "false",
-          "X-RateLimit-Limit": keyData ? String(keyData.requests_limit) : "100",
-          "X-RateLimit-Remaining": String(requestsRemaining - 1),
+          "X-Sandbox": isSandboxMode ? "true" : "false",
+          "X-RateLimit-Limit": keyData ? String(isSandboxMode ? 100 : keyData.requests_limit) : "100",
+          "X-RateLimit-Remaining": String(Math.max(0, requestsRemaining - 1)),
+          "X-RateLimit-Reset": String(rateLimitReset),
           "X-Response-Time": `${responseTimeMs}ms`
         } 
       }

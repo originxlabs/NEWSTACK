@@ -1,0 +1,625 @@
+openapi: 3.0.3
+info:
+  title: NEWSTACK Intelligence API
+  version: 1.0.0
+  description: |
+    Structured, auditable news and place intelligence derived from open sources.
+
+    ## Sandbox & Production
+
+    NEWSTACK uses the same API endpoints for sandbox and production.
+    The environment is determined by your API key:
+
+    - `nsk_test_*` → Sandbox (100 requests/day, no billing)
+    - `nsk_live_*` → Production (plan-based limits)
+
+    Sandbox responses include the `X-Sandbox: true` header.
+
+    ## Rate Limiting
+
+    All responses include rate limit headers:
+    - `X-RateLimit-Limit`: Request limit for the current period
+    - `X-RateLimit-Remaining`: Remaining requests in the current period
+    - `X-RateLimit-Reset`: UNIX timestamp when the limit resets
+
+    ## Authentication
+
+    All endpoints require an API key passed in the `X-API-Key` header.
+    The key prefix determines your environment and access level.
+
+  contact:
+    name: NEWSTACK API Support
+    email: api@newstack.live
+  license:
+    name: Proprietary
+    url: https://newstack.live/terms
+
+servers:
+  - url: https://api.newstack.online/v1
+    description: Production & Sandbox (environment determined by API key)
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API key used to authenticate requests.
+
+        Environment is determined by key prefix:
+        - `nsk_test_*` → Sandbox (100 requests/day)
+        - `nsk_live_*` → Production (plan-based)
+
+        The environment header cannot override key type.
+
+  parameters:
+    XEnvironment:
+      in: header
+      name: X-Environment
+      required: false
+      schema:
+        type: string
+        enum: [sandbox, production]
+      description: |
+        Optional environment hint.
+        This header is ignored if it conflicts with API key type.
+
+    CategoryParam:
+      in: query
+      name: category
+      required: false
+      schema:
+        type: string
+        enum: [technology, business, politics, science, health, climate, sports, entertainment]
+      description: Filter stories by category
+
+    ConfidenceParam:
+      in: query
+      name: confidence
+      required: false
+      schema:
+        type: string
+        enum: [low, medium, high]
+      description: Filter stories by confidence level
+
+    WindowParam:
+      in: query
+      name: window
+      required: false
+      schema:
+        type: string
+        default: "24h"
+        pattern: "^\\d+(h|d)$"
+      description: Time window for stories (e.g., 6h, 24h, 48h, 7d)
+
+  headers:
+    XRateLimitLimit:
+      description: Request limit for the current period
+      schema:
+        type: integer
+        example: 100000
+    XRateLimitRemaining:
+      description: Remaining requests in the current period
+      schema:
+        type: integer
+        example: 99500
+    XRateLimitReset:
+      description: UNIX timestamp when the limit resets
+      schema:
+        type: integer
+        example: 1704067200
+    XSandbox:
+      description: Present and true when request is served in sandbox mode
+      schema:
+        type: boolean
+        example: true
+    XResponseTime:
+      description: Server response time in milliseconds
+      schema:
+        type: string
+        example: "45ms"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+      required:
+        - error
+
+    StoryState:
+      type: string
+      enum: [single-source, developing, confirmed]
+      description: |
+        Story verification state:
+        - `single-source`: Only one source reporting
+        - `developing`: Multiple sources, still evolving
+        - `confirmed`: Multiple verified sources agree
+
+    ConfidenceLevel:
+      type: string
+      enum: [Low, Medium, High]
+      description: |
+        Confidence assessment:
+        - `Low`: Single source or unverified
+        - `Medium`: Multiple sources, partial verification
+        - `High`: 4+ sources with 2+ verified
+
+    StorySummary:
+      type: object
+      properties:
+        story_id:
+          type: string
+          format: uuid
+          description: Unique story identifier
+        headline:
+          type: string
+          description: Sanitized headline text
+        state:
+          $ref: "#/components/schemas/StoryState"
+        confidence:
+          $ref: "#/components/schemas/ConfidenceLevel"
+        sources_count:
+          type: integer
+          description: Number of sources reporting this story
+        category:
+          type: string
+          description: Story category
+        first_published_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of first publication
+        timeline:
+          type: array
+          items:
+            type: string
+          description: Recent timeline entries (max 3)
+      required:
+        - story_id
+        - headline
+        - state
+        - confidence
+        - sources_count
+        - first_published_at
+
+    StoryDetail:
+      type: object
+      properties:
+        story_id:
+          type: string
+          format: uuid
+        headline:
+          type: string
+        summary:
+          type: string
+          description: AI-generated or extracted summary
+        state:
+          $ref: "#/components/schemas/StoryState"
+        confidence:
+          $ref: "#/components/schemas/ConfidenceLevel"
+        sources_count:
+          type: integer
+        verified_sources_count:
+          type: integer
+          description: Count of sources from verified publishers
+        has_contradictions:
+          type: boolean
+          description: Whether conflicting reports exist
+        first_published_at:
+          type: string
+          format: date-time
+        last_updated_at:
+          type: string
+          format: date-time
+        category:
+          type: string
+        location:
+          type: object
+          properties:
+            country_code:
+              type: string
+            city:
+              type: string
+            is_global:
+              type: boolean
+        image_url:
+          type: string
+          format: uri
+        timeline:
+          type: array
+          items:
+            type: string
+          description: Full timeline of source publications
+        sources:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              url:
+                type: string
+                format: uri
+              published_at:
+                type: string
+                format: date-time
+              is_primary:
+                type: boolean
+                description: Whether this source did original reporting
+      required:
+        - story_id
+        - headline
+        - state
+        - confidence
+        - sources_count
+        - first_published_at
+        - sources
+
+    NewsFeed:
+      type: object
+      properties:
+        updated_at:
+          type: string
+          format: date-time
+        stories:
+          type: array
+          items:
+            $ref: "#/components/schemas/StorySummary"
+      required:
+        - updated_at
+        - stories
+
+    RegionStats:
+      type: object
+      properties:
+        region:
+          type: string
+        active_narratives:
+          type: integer
+        confidence_distribution:
+          type: object
+          properties:
+            high:
+              type: integer
+            medium:
+              type: integer
+            low:
+              type: integer
+        top_stories:
+          type: array
+          items:
+            $ref: "#/components/schemas/StorySummary"
+
+    WorldOverview:
+      type: object
+      properties:
+        updated_at:
+          type: string
+          format: date-time
+        global_summary:
+          type: object
+          properties:
+            total_active_stories:
+              type: integer
+            high_confidence_count:
+              type: integer
+            developing_count:
+              type: integer
+        regions:
+          type: array
+          items:
+            $ref: "#/components/schemas/RegionStats"
+        hotspots:
+          type: array
+          items:
+            type: object
+            properties:
+              region:
+                type: string
+              intensity:
+                type: string
+                enum: [normal, elevated, high]
+              reason:
+                type: string
+
+    PlaceIntelligence:
+      type: object
+      properties:
+        place_id:
+          type: string
+        place_name:
+          type: string
+        country_code:
+          type: string
+        coordinates:
+          type: object
+          properties:
+            lat:
+              type: number
+            lng:
+              type: number
+        weather:
+          type: object
+          properties:
+            temperature:
+              type: number
+            condition:
+              type: string
+            humidity:
+              type: number
+        air_quality:
+          type: object
+          properties:
+            aqi:
+              type: integer
+            category:
+              type: string
+        local_news:
+          type: array
+          items:
+            $ref: "#/components/schemas/StorySummary"
+        ai_summary:
+          type: string
+          description: AI-generated place insight
+
+    WebhookEvent:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [story.created, confidence.changed, story.contradicted, region.hotspot]
+        timestamp:
+          type: string
+          format: date-time
+        payload:
+          type: object
+          additionalProperties: true
+
+paths:
+  /news:
+    get:
+      summary: Get clustered news intelligence
+      description: |
+        Returns a feed of news stories with confidence signals, source counts, and timeline data.
+        Stories are clustered by topic and include verification metadata.
+      operationId: getNewsFeed
+      tags:
+        - News
+      parameters:
+        - $ref: "#/components/parameters/CategoryParam"
+        - $ref: "#/components/parameters/ConfidenceParam"
+        - $ref: "#/components/parameters/WindowParam"
+      responses:
+        "200":
+          description: News intelligence feed
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/XRateLimitLimit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/XRateLimitRemaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/XRateLimitReset"
+            X-Sandbox:
+              $ref: "#/components/headers/XSandbox"
+            X-Response-Time:
+              $ref: "#/components/headers/XResponseTime"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsFeed"
+              example:
+                updated_at: "2026-01-11T12:00:00Z"
+                stories:
+                  - story_id: "abc123"
+                    headline: "Major tech announcement expected"
+                    state: "developing"
+                    confidence: "Medium"
+                    sources_count: 3
+                    category: "technology"
+                    first_published_at: "2026-01-11T10:30:00Z"
+                    timeline:
+                      - "2026-01-11T10:30:00Z: Reuters"
+                      - "2026-01-11T10:45:00Z: Bloomberg"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Invalid API key format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /news/{story_id}:
+    get:
+      summary: Get detailed story intelligence
+      description: |
+        Returns full story details including all sources, complete timeline,
+        contradiction detection, and verification metadata.
+      operationId: getStoryDetail
+      tags:
+        - News
+      parameters:
+        - name: story_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique story identifier
+      responses:
+        "200":
+          description: Story detail with full intelligence
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/XRateLimitLimit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/XRateLimitRemaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/XRateLimitReset"
+            X-Sandbox:
+              $ref: "#/components/headers/XSandbox"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoryDetail"
+        "404":
+          description: Story not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /world:
+    get:
+      summary: Get global intelligence overview
+      description: |
+        Returns a high-level overview of global news activity,
+        including regional breakdowns and hotspot detection.
+      operationId: getWorldOverview
+      tags:
+        - World
+      responses:
+        "200":
+          description: Global intelligence overview
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/XRateLimitLimit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/XRateLimitRemaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/XRateLimitReset"
+            X-Sandbox:
+              $ref: "#/components/headers/XSandbox"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorldOverview"
+
+  /world/regions/{region}:
+    get:
+      summary: Get regional intelligence
+      description: Returns detailed intelligence for a specific region.
+      operationId: getRegionIntelligence
+      tags:
+        - World
+      parameters:
+        - name: region
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [north-america, europe, asia-pacific, middle-east, africa, south-america]
+          description: Region identifier
+      responses:
+        "200":
+          description: Regional intelligence data
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/XRateLimitLimit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/XRateLimitRemaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/XRateLimitReset"
+            X-Sandbox:
+              $ref: "#/components/headers/XSandbox"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegionStats"
+
+  /places/{place_id}:
+    get:
+      summary: Get place intelligence
+      description: |
+        Returns comprehensive intelligence for a place including
+        weather, air quality, local news, and AI-generated insights.
+      operationId: getPlaceIntelligence
+      tags:
+        - Places
+      parameters:
+        - name: place_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Place identifier (city name or country code)
+      responses:
+        "200":
+          description: Place intelligence data
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/XRateLimitLimit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/XRateLimitRemaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/XRateLimitReset"
+            X-Sandbox:
+              $ref: "#/components/headers/XSandbox"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaceIntelligence"
+
+  /places/{place_id}/news:
+    get:
+      summary: Get place-specific news
+      description: Returns news stories relevant to a specific place.
+      operationId: getPlaceNews
+      tags:
+        - Places
+      parameters:
+        - name: place_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/WindowParam"
+      responses:
+        "200":
+          description: Place news feed
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/XRateLimitLimit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/XRateLimitRemaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/XRateLimitReset"
+            X-Sandbox:
+              $ref: "#/components/headers/XSandbox"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsFeed"
+
+tags:
+  - name: News
+    description: |
+      Clustered news intelligence with confidence signals, source attribution,
+      and verification metadata. Stories are grouped by topic and include
+      timeline data showing how narratives evolve.
+
+  - name: World
+    description: |
+      Global and regional intelligence overviews. Provides high-level
+      metrics on news activity, hotspot detection, and regional breakdowns.
+
+  - name: Places
+    description: |
+      Place-specific intelligence including weather, air quality,
+      local news, and AI-generated insights. Available on Pro and Enterprise plans.
