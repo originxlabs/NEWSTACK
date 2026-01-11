@@ -12,6 +12,7 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { toast } from "sonner";
 import { TTSLimitModal } from "@/components/TTSLimitModal";
 import { DiscussionButton } from "@/components/discussions/DiscussionButton";
+import { SourcesPopover } from "@/components/SourcesPopover";
 
 export interface NewsSource {
   source_name: string;
@@ -257,12 +258,15 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
                     <span className="truncate max-w-28">{news.source}</span>
                     <ExternalLink className="w-3 h-3" />
                   </button>
-                  {news.sourceCount && news.sourceCount > 1 && (
+                  {news.sourceCount && news.sourceCount >= 1 && (
                     <>
                       <span>•</span>
-                      <Badge variant="outline" className="text-[9px] h-4 px-1">
-                        {news.sourceCount} sources
-                      </Badge>
+                      <SourcesPopover 
+                        storyId={news.id}
+                        sourceCount={news.sourceCount}
+                        primarySource={news.source}
+                        primarySourceUrl={news.sourceUrl}
+                      />
                     </>
                   )}
                   <span>•</span>
