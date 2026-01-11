@@ -241,6 +241,96 @@ export type Database = {
         }
         Relationships: []
       }
+      ingestion_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          error_step: string | null
+          id: string
+          started_at: string
+          status: string
+          step_classify: string | null
+          step_classify_count: number | null
+          step_cleanup: string | null
+          step_cleanup_deleted: number | null
+          step_dedupe: string | null
+          step_dedupe_merged: number | null
+          step_fetch_feeds: string | null
+          step_fetch_feeds_count: number | null
+          step_normalize: string | null
+          step_normalize_count: number | null
+          step_store: string | null
+          step_store_created: number | null
+          step_validate: string | null
+          step_validate_rejected: number | null
+          tier1_feeds: number | null
+          tier2_feeds: number | null
+          tier3_feeds: number | null
+          total_feeds_processed: number | null
+          total_stories_created: number | null
+          total_stories_merged: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          error_step?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          step_classify?: string | null
+          step_classify_count?: number | null
+          step_cleanup?: string | null
+          step_cleanup_deleted?: number | null
+          step_dedupe?: string | null
+          step_dedupe_merged?: number | null
+          step_fetch_feeds?: string | null
+          step_fetch_feeds_count?: number | null
+          step_normalize?: string | null
+          step_normalize_count?: number | null
+          step_store?: string | null
+          step_store_created?: number | null
+          step_validate?: string | null
+          step_validate_rejected?: number | null
+          tier1_feeds?: number | null
+          tier2_feeds?: number | null
+          tier3_feeds?: number | null
+          total_feeds_processed?: number | null
+          total_stories_created?: number | null
+          total_stories_merged?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          error_step?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          step_classify?: string | null
+          step_classify_count?: number | null
+          step_cleanup?: string | null
+          step_cleanup_deleted?: number | null
+          step_dedupe?: string | null
+          step_dedupe_merged?: number | null
+          step_fetch_feeds?: string | null
+          step_fetch_feeds_count?: number | null
+          step_normalize?: string | null
+          step_normalize_count?: number | null
+          step_store?: string | null
+          step_store_created?: number | null
+          step_validate?: string | null
+          step_validate_rejected?: number | null
+          tier1_feeds?: number | null
+          tier2_feeds?: number | null
+          tier3_feeds?: number | null
+          total_feeds_processed?: number | null
+          total_stories_created?: number | null
+          total_stories_merged?: number | null
+        }
+        Relationships: []
+      }
       languages: {
         Row: {
           code: string
