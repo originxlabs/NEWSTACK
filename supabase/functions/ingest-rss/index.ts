@@ -599,14 +599,57 @@ async function processItems(
             .select("*", { count: "exact", head: true })
             .eq("story_id", matchedStory.id);
           
+          const newSourceCount = count || (matchedStory.source_count || 1) + 1;
+          
           await supabase
             .from("stories")
             .update({
-              source_count: count || (matchedStory.source_count || 1) + 1,
+              source_count: newSourceCount,
               last_updated_at: new Date().toISOString(),
               image_url: imageUrl || undefined,
             })
             .eq("id", matchedStory.id);
+
+          // Trigger breaking news alert if story just reached 3+ sources
+          if (newSourceCount === 3 && matchedStory.source_count < 3) {
+            try {
+              const { data: sourceNames } = await supabase
+                .from("story_sources")
+                .select("source_name")
+                .eq("story_id", matchedStory.id)
+                .limit(5);
+              
+              const sources = sourceNames?.map((s: { source_name: string }) => s.source_name) || [];
+              
+              // Fetch story headline
+              const { data: storyData } = await supabase
+                .from("stories")
+                .select("headline, category")
+                .eq("id", matchedStory.id)
+                .single();
+              
+              // Call breaking news alert function
+              const alertUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-breaking-news-alert`;
+              fetch(alertUrl, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                },
+                body: JSON.stringify({
+                  storyId: matchedStory.id,
+                  headline: storyData?.headline || item.title,
+                  sourceCount: newSourceCount,
+                  sources,
+                  category: storyData?.category || classification.primary_category,
+                }),
+              }).catch(err => console.log("Alert trigger failed:", err.message));
+              
+              console.log(`Breaking news alert triggered for story: ${matchedStory.id}`);
+            } catch (alertError) {
+              console.log("Error triggering alert:", alertError);
+            }
+          }
 
           merged++;
         }
