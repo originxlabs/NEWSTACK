@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useNavigate } from "react-router-dom";
+import { GlobalPulse } from "@/components/intelligence";
 
 interface Region {
   code: string;
@@ -154,11 +155,21 @@ const World = () => {
             </p>
           </motion.div>
 
-          {/* Global Stats */}
+          {/* Global Pulse - Intelligence Component */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
+            className="mb-8"
+          >
+            <GlobalPulse />
+          </motion.div>
+
+          {/* Global Stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
             className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8"
           >
             {globalStats.map((stat) => (

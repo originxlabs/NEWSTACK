@@ -10,8 +10,10 @@ import { CookieConsent } from "@/components/CookieConsent";
 import { LocationPermission } from "@/components/LocationPermission";
 import { InterestsOnboarding, useInterestsOnboarding } from "@/components/InterestsOnboarding";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
+import { WhatChangedToday } from "@/components/intelligence";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePreferences } from "@/contexts/PreferencesContext";
+import { useNews } from "@/hooks/use-news";
 
 const COOKIE_CONSENT_KEY = "newstack_cookie_consent";
 
@@ -22,6 +24,16 @@ const Index = () => {
   const [showLocationPermission, setShowLocationPermission] = useState(false);
   const [consentCompleted, setConsentCompleted] = useState(false);
   const { showOnboarding, completeOnboarding } = useInterestsOnboarding();
+  
+  // Fetch trending stories for "What Changed Today"
+  const { data: newsData } = useNews({ feedType: "trending", pageSize: 20 });
+  const trendingStories = (newsData?.articles || []).map(a => ({
+    id: a.id,
+    headline: a.headline,
+    topic: a.topic_slug,
+    sourceCount: a.source_count,
+    publishedAt: a.published_at,
+  }));
 
   // Check if cookie consent is needed
   useEffect(() => {
@@ -80,6 +92,13 @@ const Index = () => {
 
       <BreakingNewsBanner />
       <Header />
+      
+      {/* What Changed Today - Intelligence Strip */}
+      {trendingStories.length > 0 && (
+        <div className="pt-16">
+          <WhatChangedToday stories={trendingStories} />
+        </div>
+      )}
       <main>
         {user && profile ? (
           <section className="pt-24 pb-8 px-4">
