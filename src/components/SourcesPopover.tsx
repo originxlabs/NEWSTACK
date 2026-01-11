@@ -40,6 +40,7 @@ interface SourcesPopoverProps {
   sourceCount: number;
   primarySource?: string;
   primarySourceUrl?: string;
+  initialSources?: StorySource[]; // Pre-loaded sources from API
 }
 
 function isVerifiedSource(sourceName: string): boolean {
@@ -51,17 +52,25 @@ export function SourcesPopover({
   storyId, 
   sourceCount, 
   primarySource,
-  primarySourceUrl 
+  primarySourceUrl,
+  initialSources 
 }: SourcesPopoverProps) {
-  const [sources, setSources] = useState<StorySource[]>([]);
+  const [sources, setSources] = useState<StorySource[]>(initialSources || []);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    // If we have initial sources, use them
+    if (initialSources && initialSources.length > 0) {
+      setSources(initialSources);
+      return;
+    }
+    
+    // Otherwise fetch when popover opens
     if (isOpen && storyId && sources.length === 0) {
       fetchSources();
     }
-  }, [isOpen, storyId]);
+  }, [isOpen, storyId, initialSources]);
 
   const fetchSources = async () => {
     setIsLoading(true);
@@ -81,6 +90,8 @@ export function SourcesPopover({
     }
   };
 
+  // Use actual sources count for display
+  const actualSourceCount = sources.length || sourceCount;
   const verifiedCount = sources.filter(s => isVerifiedSource(s.source_name)).length;
 
   // If only 1 source, just show a simple clickable link

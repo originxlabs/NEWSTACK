@@ -98,8 +98,10 @@ export function useNews(params: FetchNewsParams = {}) {
   return useQuery({
     queryKey: ["news", params],
     queryFn: () => fetchNews(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 1 * 60 * 1000, // 1 minute for fresher data
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     retry: 2,
+    refetchOnWindowFocus: true, // Refetch when user focuses window
   });
 }
 
@@ -115,7 +117,9 @@ export function useInfiniteNews(params: Omit<FetchNewsParams, "page"> = {}) {
       return undefined;
     },
     initialPageParam: 1,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 1 * 60 * 1000, // 1 minute for fresher data
+    gcTime: 5 * 60 * 1000,
     retry: 2,
+    refetchOnWindowFocus: true,
   });
 }

@@ -52,17 +52,20 @@ serve(async (req) => {
     console.log("Fetching stories:", { feedType, category, country, page, sortBy, source, dateFrom, dateTo });
 
     // Calculate cutoff for stories
-    // For "recent" feed without date filter, only show last 24 hours for fresh news
-    // For other feeds or with date filter, use 7 days
+    // Use 48 hours by default to ensure fresh news availability
+    // For trending/foryou, use 7 days to show more content
     const now = new Date();
     let defaultCutoff: string;
     
     if (feedType === "recent" && !dateFrom) {
-      // Show fresh news from last 24 hours by default for "recent" feed
-      defaultCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-    } else {
-      // 7 days for other feeds
+      // Show fresh news from last 48 hours by default for "recent" feed
+      defaultCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
+    } else if (feedType === "trending" || feedType === "foryou") {
+      // 7 days for trending/personalized feeds to show more content
       defaultCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    } else {
+      // 3 days for other feeds
+      defaultCutoff = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
     }
     const cutoffTime = dateFrom || defaultCutoff;
 
@@ -198,8 +201,11 @@ serve(async (req) => {
           locationRelevance = "Global";
         }
 
+        // Use actual fetched sources count for accuracy
+        const actualSourceCount = sources?.length || 1;
+        
         // Calculate trust score based on source count
-        const trustScore = Math.min(95, 70 + (story.source_count || 1) * 5);
+        const trustScore = Math.min(95, 70 + actualSourceCount * 5);
 
         return {
           id: story.id,
@@ -220,11 +226,11 @@ serve(async (req) => {
           is_global: story.is_global,
           country_code: story.country_code,
           city: story.city,
-          source_count: story.source_count || 1,
+          source_count: actualSourceCount,
           sources: sources || [],
           timestamp,
           location_relevance: locationRelevance,
-          is_trending: (story.source_count || 0) >= 2,
+          is_trending: actualSourceCount >= 2,
         };
       })
     );
