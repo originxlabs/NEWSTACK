@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, FileText, Shield, Bell, 
-  Settings, Plug, LogOut, ChevronLeft, Rss, Lock
+  Settings, Plug, LogOut, ChevronLeft, Rss, Lock, Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -21,6 +21,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/newsroom" },
+  { icon: Activity, label: "API Health", href: "/newsroom/api-health", restricted: true },
   { icon: Rss, label: "Ingestion", href: "/newsroom/ingestion", restricted: true },
   { icon: Rss, label: "RSS Feeds", href: "/newsroom/feeds", restricted: true },
   { icon: FileText, label: "Stories", href: "/newsroom/stories" },

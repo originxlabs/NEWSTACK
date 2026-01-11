@@ -29,6 +29,7 @@ import ApiLanding from "./pages/ApiLanding";
 import NewsroomLayout from "./pages/newsroom/NewsroomLayout";
 import NewsroomLogin from "./pages/newsroom/NewsroomLogin";
 import NewsroomDashboard from "./pages/newsroom/NewsroomDashboard";
+import NewsroomApiHealth from "./pages/newsroom/NewsroomApiHealth";
 import NewsroomIngestion from "./pages/newsroom/NewsroomIngestion";
 import NewsroomFeeds from "./pages/newsroom/NewsroomFeeds";
 import NewsroomStories from "./pages/newsroom/NewsroomStories";
@@ -139,6 +140,7 @@ function AppContent() {
           <Route path="/newsroom/login" element={<NewsroomLogin />} />
           <Route path="/newsroom" element={<NewsroomLayout />}>
             <Route index element={<NewsroomDashboard />} />
+            <Route path="api-health" element={<NewsroomApiHealth />} />
             <Route path="ingestion" element={<NewsroomIngestion />} />
             <Route path="feeds" element={<NewsroomFeeds />} />
             <Route path="stories" element={<NewsroomStories />} />
