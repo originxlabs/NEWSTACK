@@ -453,6 +453,10 @@ export default function ApiLanding() {
                 <Key className="w-4 h-4" />
                 Get Sandbox API Key
               </Button>
+              <Button size="lg" variant="secondary" className="gap-2" onClick={() => window.location.href = "/api/dashboard"}>
+                <Activity className="w-4 h-4" />
+                My Dashboard
+              </Button>
               <Button size="lg" variant="ghost" className="gap-2" onClick={() => scrollToSection("pricing")}>
                 Pricing
                 <ChevronRight className="w-4 h-4" />
