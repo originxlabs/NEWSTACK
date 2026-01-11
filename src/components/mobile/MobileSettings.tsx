@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { 
-  ArrowLeft, ChevronUp, ChevronDown, Bell, BellOff, 
+  ArrowLeft, ChevronUp, ChevronDown, Bell, 
   Trash2, Database, RefreshCw, GripVertical, Eye, EyeOff,
-  Loader2, Check
+  Loader2, Vibrate
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { useCategoryPreferences } from "@/hooks/use-category-preferences";
 import { useOfflineCache } from "@/hooks/use-offline-cache";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { useHaptic } from "@/hooks/use-haptic";
+import { NLogo } from "@/components/NLogo";
 
 export function MobileSettings() {
   const { 
@@ -121,19 +122,52 @@ export function MobileSettings() {
         {hapticSupported && (
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Haptic Feedback</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Vibrate className="w-4 h-4" />
+                Haptic Feedback
+              </CardTitle>
               <CardDescription className="text-sm">
-                Feel vibrations when swiping through news
+                Feel vibrations when interacting with the app
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Enable vibration</span>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">Swipe Vibration</p>
+                  <p className="text-xs text-muted-foreground">
+                    Vibrate when swiping through news
+                  </p>
+                </div>
                 <Switch
                   checked={hapticEnabled}
                   onCheckedChange={toggleHaptic}
                 />
               </div>
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">Action Feedback</p>
+                  <p className="text-xs text-muted-foreground">
+                    Vibrate on likes, saves, and interactions
+                  </p>
+                </div>
+                <Switch
+                  checked={hapticEnabled}
+                  onCheckedChange={toggleHaptic}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  haptic("success");
+                  toast.success("Haptic test triggered!");
+                }}
+                disabled={!hapticEnabled}
+                className="w-full gap-2"
+              >
+                <Vibrate className="w-4 h-4" />
+                Test Haptic Feedback
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -286,9 +320,9 @@ export function MobileSettings() {
         {/* App Info */}
         <Card>
           <CardContent className="pt-6">
-            <div className="text-center space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center mx-auto">
-                <span className="text-xl font-bold text-primary-foreground font-display">N</span>
+            <div className="text-center space-y-3">
+              <div className="w-14 h-14 flex items-center justify-center mx-auto">
+                <NLogo size={56} color="hsl(var(--primary))" />
               </div>
               <h3 className="font-display font-bold text-lg">NEWSTACK</h3>
               <p className="text-xs text-muted-foreground">
