@@ -1,21 +1,18 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Menu, X, Search, Bell, Newspaper, Headphones, Globe, MapPin, Heart } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Menu, X, Radio, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { LanguageSelector } from "@/components/LanguageSelector";
 import { UserMenu } from "@/components/UserMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Logo } from "@/components/Logo";
 
 const navLinks = [
-  { name: "News", href: "/news", Icon: Newspaper },
-  { name: "Listen", href: "/listen", Icon: Headphones },
-  { name: "World", href: "/world", Icon: Globe },
-  { name: "Places", href: "/places", Icon: MapPin },
-  { name: "Support", href: "/support", Icon: Heart },
+  { name: "News", href: "/news", description: "Signal stream" },
+  { name: "World", href: "/world", description: "Global pulse" },
+  { name: "Places", href: "/places", description: "Local intelligence" },
 ];
 
 export function Header() {
@@ -25,9 +22,7 @@ export function Header() {
   const location = useLocation();
 
   const isActive = (href: string) => {
-    if (href === "/") {
-      return location.pathname === "/";
-    }
+    if (href === "/") return location.pathname === "/";
     return location.pathname.startsWith(href);
   };
 
@@ -36,60 +31,70 @@ export function Header() {
       <motion.header
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
         className="fixed top-0 left-0 right-0 z-50"
       >
-        <div className="glass-card border-b border-border/50">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between h-16">
+        <div className="bg-background/80 backdrop-blur-xl border-b border-border/40">
+          <div className="container mx-auto max-w-6xl px-4">
+            <div className="flex items-center justify-between h-14">
               {/* Logo */}
-              <Logo size="md" />
+              <Link to="/" className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground font-semibold text-sm">N</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-sm tracking-tight">Newsify</span>
+                  <span className="text-[10px] text-muted-foreground -mt-0.5 hidden sm:block">Intelligence Platform</span>
+                </div>
+              </Link>
 
               {/* Desktop Navigation */}
-              <nav className="hidden lg:flex items-center gap-1">
-                {navLinks.map((link) => {
-                  const IconComponent = link.Icon;
-                  return (
-                    <Link
-                      key={link.name}
-                      to={link.href}
-                      className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg flex items-center gap-2 ${
-                        isActive(link.href)
-                          ? "text-primary bg-primary/10"
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                      }`}
-                    >
-                      <IconComponent className="w-4 h-4" />
-                      {link.name}
-                    </Link>
-                  );
-                })}
+              <nav className="hidden md:flex items-center">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.name}
+                    to={link.href}
+                    className={`px-4 py-2 text-sm transition-colors relative ${
+                      isActive(link.href)
+                        ? "text-foreground font-medium"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {link.name}
+                    {isActive(link.href) && (
+                      <motion.div
+                        layoutId="nav-indicator"
+                        className="absolute bottom-0 left-4 right-4 h-0.5 bg-primary"
+                        transition={{ duration: 0.2 }}
+                      />
+                    )}
+                  </Link>
+                ))}
               </nav>
 
-              {/* Right side actions */}
+              {/* Right side */}
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="hidden sm:flex">
-                  <Search className="h-4 w-4" />
-                </Button>
-                
-                <ThemeToggle />
-                
-                <LanguageSelector />
-                
-                {user && (
-                  <Button variant="ghost" size="icon" className="hidden sm:flex">
-                    <Bell className="h-4 w-4" />
-                  </Button>
-                )}
+                {/* Live indicator */}
+                <Badge variant="outline" className="hidden sm:flex gap-1.5 h-6 px-2 text-[10px] bg-emerald-500/5 text-emerald-600 border-emerald-500/20">
+                  <Radio className="w-2 h-2 animate-pulse" />
+                  LIVE
+                </Badge>
 
-                <div className="hidden md:flex items-center gap-2 ml-2">
+                <ThemeToggle />
+
+                <div className="hidden md:flex items-center gap-2 ml-1">
                   {loading ? (
-                    <div className="h-9 w-20 bg-muted animate-pulse rounded-lg" />
+                    <div className="h-8 w-16 bg-muted animate-pulse rounded-md" />
                   ) : user ? (
                     <UserMenu />
                   ) : (
-                    <Button size="sm" onClick={() => setShowAuthModal(true)}>
-                      Get Started
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="h-8 text-xs"
+                      onClick={() => setShowAuthModal(true)}
+                    >
+                      Sign in
                     </Button>
                   )}
                 </div>
@@ -98,59 +103,59 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="lg:hidden"
+                  className="md:hidden h-8 w-8"
                   onClick={() => setIsOpen(!isOpen)}
                 >
-                  {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                  {isOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
           </div>
 
           {/* Mobile Navigation */}
-          {isOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden border-t border-border/50"
-            >
-              <nav className="container mx-auto px-4 py-4 flex flex-col gap-2">
-                {navLinks.map((link) => {
-                  const IconComponent = link.Icon;
-                  return (
+          <AnimatePresence>
+            {isOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="md:hidden border-t border-border/40 overflow-hidden"
+              >
+                <nav className="container mx-auto px-4 py-3 flex flex-col gap-1">
+                  {navLinks.map((link) => (
                     <Link
                       key={link.name}
                       to={link.href}
-                      className={`px-4 py-3 text-sm font-medium transition-colors rounded-lg flex items-center gap-3 ${
+                      className={`px-3 py-2.5 text-sm transition-colors rounded-md flex items-center justify-between ${
                         isActive(link.href)
-                          ? "text-primary bg-primary/10"
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                          ? "text-foreground bg-muted/50 font-medium"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
-                      <IconComponent className="w-5 h-5" />
-                      {link.name}
+                      <span>{link.name}</span>
+                      <span className="text-xs text-muted-foreground">{link.description}</span>
                     </Link>
-                  );
-                })}
-                
-                {!user && (
-                  <div className="flex gap-2 mt-4 pt-4 border-t border-border/50">
-                    <Button
-                      className="flex-1"
-                      onClick={() => {
-                        setIsOpen(false);
-                        setShowAuthModal(true);
-                      }}
-                    >
-                      Get Started
-                    </Button>
-                  </div>
-                )}
-              </nav>
-            </motion.div>
-          )}
+                  ))}
+                  
+                  {!user && (
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-border/40">
+                      <Button
+                        className="flex-1 h-9"
+                        size="sm"
+                        onClick={() => {
+                          setIsOpen(false);
+                          setShowAuthModal(true);
+                        }}
+                      >
+                        Get Started
+                      </Button>
+                    </div>
+                  )}
+                </nav>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.header>
 
