@@ -42,8 +42,17 @@ verify_jwt = false
 [functions.summarize-news]
 verify_jwt = false
 
+[functions.send-daily-digest]
+verify_jwt = false
+
 # Schedule RSS ingestion every 30 minutes
 [[cron]]
 name = "ingest-rss-cron"
 schedule = "*/30 * * * *"
 function = "ingest-rss"
+
+# Schedule daily email digest at 8 AM UTC
+[[cron]]
+name = "daily-digest-cron"
+schedule = "0 8 * * *"
+function = "send-daily-digest"

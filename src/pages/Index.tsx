@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
-import { NewsFeed } from "@/components/NewsFeed";
+import { TrendingNewsGrid } from "@/components/TrendingNewsGrid";
 import { PlacesSection } from "@/components/PlacesSection";
 import { Footer } from "@/components/Footer";
 import { BreakingNewsBanner } from "@/components/BreakingNewsBanner";
@@ -9,7 +9,6 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { CookieConsent } from "@/components/CookieConsent";
 import { LocationPermission } from "@/components/LocationPermission";
 import { InterestsOnboarding, useInterestsOnboarding } from "@/components/InterestsOnboarding";
-import { TrendingNearYou } from "@/components/TrendingNearYou";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePreferences } from "@/contexts/PreferencesContext";
@@ -98,8 +97,8 @@ const Index = () => {
           <HeroSection />
         )}
         
-        {/* Trending Near You - Lazy loaded */}
-        <TrendingNearYou />
+        {/* Trending News Grid - Card layout with modal */}
+        <TrendingNewsGrid />
         
         {/* Newsletter Signup Section */}
         <section className="py-12 px-4">
@@ -112,7 +111,7 @@ const Index = () => {
                 Get the Daily Digest
               </h2>
               <p className="text-muted-foreground mb-6">
-                Top verified multi-source stories delivered to your inbox every morning
+                Top verified multi-source stories delivered to your inbox every morning at 8 AM
               </p>
               <div className="max-w-md mx-auto">
                 <NewsletterSignup />
@@ -121,7 +120,6 @@ const Index = () => {
           </div>
         </section>
         
-        <NewsFeed />
         <PlacesSection />
       </main>
       <Footer />
