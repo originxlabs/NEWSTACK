@@ -16,7 +16,7 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { sendOtpEmail, sendPasskeyEmail } from "@/lib/email";
+// Passkey emails are sent by Supabase Auth
 
 type ViewMode = "main" | "verify-passkey" | "set-password" | "success";
 
@@ -119,9 +119,8 @@ export default function NewsroomLogin() {
         return;
       }
 
-      // Also send our branded passkey email
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      await sendPasskeyEmail(email.trim(), otp, "Registration");
+      // Note: Supabase sends its own OTP email - our branded email is supplementary
+      // The actual OTP is sent by Supabase Auth, user enters that code
 
       setIsNewAccount(true);
       toast.success("Passkey sent to your email!");
@@ -258,8 +257,7 @@ export default function NewsroomLogin() {
         return;
       }
 
-      // Send branded passkey email
-      await sendPasskeyEmail(email.trim(), "******", "Password Reset");
+      // Note: Supabase sends its own OTP email with the actual code
 
       setIsNewAccount(false);
       toast.success("Reset passkey sent to your email!");
