@@ -15,6 +15,7 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sendPasskeyEmail } from "@/lib/email";
 
 type ViewMode = "warning" | "auth" | "request-passkey" | "verify-passkey" | "set-password" | "success";
 
@@ -50,7 +51,7 @@ export default function NewsroomOwnerSetup() {
     setIsLoading(true);
 
     try {
-      // Check if user exists
+      // Check if user exists as owner
       const { data: existingMember } = await supabase
         .from("newsroom_members")
         .select("id, role")
@@ -58,7 +59,7 @@ export default function NewsroomOwnerSetup() {
         .eq("role", "owner")
         .single();
 
-      // Send OTP to email
+      // Send OTP to email via Supabase Auth
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
@@ -71,6 +72,10 @@ export default function NewsroomOwnerSetup() {
         setIsLoading(false);
         return;
       }
+
+      // Send branded passkey email
+      const purpose = existingMember ? "Owner Login" : "Owner Setup";
+      await sendPasskeyEmail(email.trim(), "******", purpose);
 
       setIsNewAccount(!existingMember);
       toast.success("Passkey sent to your email!");

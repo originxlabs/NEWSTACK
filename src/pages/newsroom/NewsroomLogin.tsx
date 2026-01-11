@@ -16,6 +16,7 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sendOtpEmail, sendPasskeyEmail } from "@/lib/email";
 
 type ViewMode = "main" | "verify-passkey" | "set-password" | "success";
 
@@ -104,7 +105,7 @@ export default function NewsroomLogin() {
         return;
       }
 
-      // Send OTP
+      // Generate OTP using Supabase Auth (for verification)
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
@@ -117,6 +118,10 @@ export default function NewsroomLogin() {
         setIsLoading(false);
         return;
       }
+
+      // Also send our branded passkey email
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      await sendPasskeyEmail(email.trim(), otp, "Registration");
 
       setIsNewAccount(true);
       toast.success("Passkey sent to your email!");
@@ -252,6 +257,9 @@ export default function NewsroomLogin() {
         setIsLoading(false);
         return;
       }
+
+      // Send branded passkey email
+      await sendPasskeyEmail(email.trim(), "******", "Password Reset");
 
       setIsNewAccount(false);
       toast.success("Reset passkey sent to your email!");
