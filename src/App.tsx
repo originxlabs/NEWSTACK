@@ -29,7 +29,16 @@ import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import Pricing from "./pages/Pricing";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      gcTime: 5 * 60 * 1000, // 5 minutes
+      retry: 2,
+      refetchOnWindowFocus: false, // Prevent aggressive refetching
+    },
+  },
+});
 
 // Initialize theme on app load (default to light)
 function ThemeInitializer() {
