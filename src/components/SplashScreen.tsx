@@ -60,33 +60,21 @@ export function SplashScreen({ onComplete, duration = 1800 }: SplashScreenProps)
             }}
             className="relative z-10 flex flex-col items-center"
           >
-            {/* Logo Container with Animation */}
-            <motion.div
-              animate={{ 
-                rotateY: [0, 360],
-              }}
-              transition={{ 
-                duration: 2, 
-                repeat: Infinity, 
-                ease: "easeInOut",
-                repeatDelay: 0.5
-              }}
-              className="relative mb-6"
-              style={{ perspective: 1000 }}
-            >
-              {/* N Logo - Animated, theme-aware (black on light, white on dark) */}
+            {/* Logo Container - No spinning, just stack animation */}
+            <div className="relative mb-6">
+              {/* N Logo - Animated stacks forming the complete N */}
               <motion.div
-                initial={{ scale: 0 }}
+                initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 transition={{ 
                   type: "spring",
                   stiffness: 300,
                   damping: 15,
-                  delay: 0.2
+                  delay: 0.1
                 }}
                 className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center text-foreground"
               >
-                <NLogoSquare size={80} />
+                <NLogoSquare size={80} animate />
               </motion.div>
               
               {/* Glow Ring */}
@@ -105,13 +93,13 @@ export function SplashScreen({ onComplete, duration = 1800 }: SplashScreenProps)
                 transition={{ duration: 2, repeat: Infinity }}
                 className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-primary/20 blur-xl -z-10 scale-150"
               />
-            </motion.div>
+            </div>
 
             {/* Wordmark */}
             <motion.h1
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
               className="text-3xl sm:text-4xl font-bold font-display bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent mb-2"
             >
               NEWSTACK
@@ -120,7 +108,7 @@ export function SplashScreen({ onComplete, duration = 1800 }: SplashScreenProps)
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.6 }}
               className="text-sm sm:text-base text-muted-foreground mb-6"
             >
               Global News Intelligence
@@ -131,7 +119,7 @@ export function SplashScreen({ onComplete, duration = 1800 }: SplashScreenProps)
               className="flex items-center gap-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.7 }}
             >
               <div className="flex gap-1">
                 {[0, 1, 2, 3].map((i) => (
@@ -157,7 +145,7 @@ export function SplashScreen({ onComplete, duration = 1800 }: SplashScreenProps)
               className="w-48 sm:w-56 h-1 bg-muted rounded-full mt-6 overflow-hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.7 }}
             >
               <motion.div
                 className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full"
@@ -171,7 +159,7 @@ export function SplashScreen({ onComplete, duration = 1800 }: SplashScreenProps)
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
+              transition={{ delay: 0.9 }}
               className="mt-10 sm:mt-12 text-center"
             >
               <p className="text-[10px] sm:text-xs text-muted-foreground/60 uppercase tracking-wider mb-1">
