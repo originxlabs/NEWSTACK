@@ -59,6 +59,7 @@ function calculateDiversityScore(sources: SourceInfo[]): {
   level: "low" | "medium" | "high" | "excellent";
   verifiedCount: number;
   uniqueTypes: string[];
+  reason: string;
   breakdown: {
     sourceCountScore: number;
     verifiedScore: number;
@@ -67,10 +68,11 @@ function calculateDiversityScore(sources: SourceInfo[]): {
 } {
   if (!sources || sources.length === 0) {
     return {
-      score: 0,
+      score: 15,
       level: "low",
       verifiedCount: 0,
       uniqueTypes: [],
+      reason: "Single unverified source - limited perspective",
       breakdown: { sourceCountScore: 0, verifiedScore: 0, typesDiversityScore: 0 },
     };
   }
@@ -81,38 +83,69 @@ function calculateDiversityScore(sources: SourceInfo[]): {
   
   // Count verified sources
   const verifiedCount = sources.filter(s => isVerifiedSource(s.source_name)).length;
+  const totalSources = sources.length;
   
-  // Calculate component scores (0-100 each)
-  // 1. Source Count Score (more sources = better, max at 5+)
-  const sourceCountScore = Math.min(sources.length * 20, 100);
+  // IMPROVED SCORING LOGIC:
+  // 1 source = 15-25%
+  // 2 sources = 30-50%
+  // 3-4 sources = 55-85%
+  // 5+ sources = 85-100%
   
-  // 2. Verified Sources Score (more verified = better)
-  const verifiedScore = sources.length > 0 
-    ? Math.round((verifiedCount / sources.length) * 100) 
-    : 0;
+  let baseScore: number;
+  let reason: string;
   
-  // 3. Type Diversity Score (more different types = better, max at 4+)
+  if (totalSources === 1) {
+    if (verifiedCount === 1) {
+      baseScore = 25;
+      reason = "Single verified source - limited perspective available";
+    } else {
+      baseScore = 15;
+      reason = "Single unverified source - consider seeking additional sources";
+    }
+  } else if (totalSources === 2) {
+    if (verifiedCount >= 2) {
+      baseScore = 50;
+      reason = "Two verified sources - moderate coverage with some perspective";
+    } else if (verifiedCount === 1) {
+      baseScore = 40;
+      reason = "One verified, one unverified source - limited verification";
+    } else {
+      baseScore = 30;
+      reason = "Two unverified sources - limited credibility";
+    }
+  } else if (totalSources >= 3 && totalSources < 5) {
+    const verifiedRatio = verifiedCount / totalSources;
+    baseScore = 55 + Math.round(verifiedRatio * 30);
+    reason = `${totalSources} sources (${verifiedCount} verified) - good multi-perspective coverage`;
+  } else {
+    // 5+ sources - excellent diversity
+    const verifiedRatio = verifiedCount / totalSources;
+    baseScore = 75 + Math.round(verifiedRatio * 25);
+    reason = `${totalSources} sources (${verifiedCount} verified) - excellent diversity & credibility`;
+  }
+
+  // Add bonus for media type diversity (up to 10 extra points)
+  const typeDiversityBonus = Math.min(uniqueTypes.length * 3, 10);
+  const finalScore = Math.min(100, Math.max(0, baseScore + typeDiversityBonus));
+  
+  // Calculate component scores for breakdown display
+  const sourceCountScore = Math.min(totalSources * 20, 100);
+  const verifiedScore = totalSources > 0 ? Math.round((verifiedCount / totalSources) * 100) : 0;
   const typesDiversityScore = Math.min(uniqueTypes.length * 25, 100);
-  
-  // Weighted final score
-  const score = Math.round(
-    sourceCountScore * 0.3 + 
-    verifiedScore * 0.4 + 
-    typesDiversityScore * 0.3
-  );
   
   // Determine level
   let level: "low" | "medium" | "high" | "excellent";
-  if (score >= 80) level = "excellent";
-  else if (score >= 60) level = "high";
-  else if (score >= 40) level = "medium";
+  if (finalScore >= 80) level = "excellent";
+  else if (finalScore >= 55) level = "high";
+  else if (finalScore >= 35) level = "medium";
   else level = "low";
   
   return {
-    score,
+    score: finalScore,
     level,
     verifiedCount,
     uniqueTypes,
+    reason,
     breakdown: { sourceCountScore, verifiedScore, typesDiversityScore },
   };
 }
@@ -197,6 +230,9 @@ export function SourceDiversityScore({
             <p className="text-xs text-muted-foreground">
               {sourceCount} sources • {diversity.verifiedCount} verified
             </p>
+            <p className="text-xs text-muted-foreground italic">
+              {diversity.reason}
+            </p>
             {diversity.uniqueTypes.length > 0 && (
               <p className="text-xs text-muted-foreground">
                 Types: {diversity.uniqueTypes.map(t => typeLabels[t]?.label || t).join(", ")}
@@ -280,14 +316,19 @@ export function SourceDiversityScore({
         />
       </div>
 
-      {/* Level label */}
-      <div className="flex items-center justify-between mb-4">
-        <Badge className={cn(config.bgColor, config.color, "border-0")}>
-          {config.label}
-        </Badge>
-        <span className="text-xs text-muted-foreground">
-          {sourceCount} source{sourceCount !== 1 ? "s" : ""} covering this story
-        </span>
+      {/* Level label + Reason */}
+      <div className="flex flex-col gap-2 mb-4">
+        <div className="flex items-center justify-between">
+          <Badge className={cn(config.bgColor, config.color, "border-0")}>
+            {config.label}
+          </Badge>
+          <span className="text-xs text-muted-foreground">
+            {sourceCount} source{sourceCount !== 1 ? "s" : ""} covering this story
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground italic bg-muted/50 rounded-lg px-3 py-2">
+          {diversity.reason}
+        </p>
       </div>
 
       {/* Breakdown */}

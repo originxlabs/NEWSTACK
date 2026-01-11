@@ -11,19 +11,109 @@ interface StoryRequest {
   category?: string;
   country?: string;
   userCity?: string;
+  userState?: string;
   page?: number;
   pageSize?: number;
   sortBy?: "latest" | "sources" | "discussed" | "relevance";
-  source?: string; // Filter by source name
-  dateFrom?: string; // ISO date string for date filtering
+  source?: string;
+  dateFrom?: string;
   dateTo?: string;
 }
+
+// Verified sources list for accurate scoring
+const VERIFIED_SOURCES = [
+  "Reuters", "AP News", "Associated Press", "AFP", "PTI",
+  "BBC", "CNN", "Al Jazeera", "NPR", "NBC News", "CBS News", "ABC News", "Sky News", "DW News", "France 24",
+  "New York Times", "Washington Post", "The Guardian", "The Hindu", "Times of India", "Hindustan Times", "Financial Times", "Wall Street Journal",
+  "Bloomberg", "CNBC", "Forbes", "Economic Times", "MarketWatch", "LiveMint", "Business Standard",
+  "TechCrunch", "The Verge", "Ars Technica", "Wired",
+  "India Today", "NDTV", "Indian Express", "Japan Times", "South China Morning Post"
+];
 
 // Category taxonomy
 const VALID_CATEGORIES = [
   "AI", "Business", "Finance", "Politics", "Startups", "Technology",
   "Climate", "Health", "Sports", "Entertainment", "Science", "World", "India", "Local"
 ];
+
+// Indian cities for local matching
+const INDIAN_CITIES = [
+  "mumbai", "delhi", "bangalore", "bengaluru", "chennai", "kolkata",
+  "hyderabad", "pune", "ahmedabad", "jaipur", "lucknow", "kanpur",
+  "nagpur", "indore", "thane", "bhopal", "visakhapatnam", "patna",
+  "vadodara", "ghaziabad", "ludhiana", "agra", "nashik", "faridabad",
+  "gurgaon", "noida", "chandigarh", "coimbatore", "kochi", "surat"
+];
+
+const INDIAN_STATES = [
+  "maharashtra", "karnataka", "tamil nadu", "telangana", "gujarat",
+  "rajasthan", "uttar pradesh", "madhya pradesh", "west bengal", "bihar",
+  "kerala", "andhra pradesh", "punjab", "haryana", "jharkhand", "assam",
+  "odisha", "chhattisgarh", "uttarakhand", "himachal pradesh", "goa"
+];
+
+function isVerifiedSource(sourceName: string): boolean {
+  const normalized = sourceName.toLowerCase();
+  return VERIFIED_SOURCES.some(vs => normalized.includes(vs.toLowerCase()));
+}
+
+function calculateDiversityScore(sources: any[]): {
+  score: number;
+  verifiedCount: number;
+  reason: string;
+} {
+  if (!sources || sources.length === 0) {
+    return { score: 15, verifiedCount: 0, reason: "Single unverified source" };
+  }
+
+  const verifiedCount = sources.filter(s => isVerifiedSource(s.source_name)).length;
+  const totalSources = sources.length;
+  
+  // Scoring logic:
+  // - 1 source: 15-25% (low diversity)
+  // - 2 sources: 30-50% (moderate)
+  // - 3+ sources: 55-85% (good)
+  // - 5+ verified sources: 85-100% (excellent)
+  
+  let baseScore: number;
+  let reason: string;
+  
+  if (totalSources === 1) {
+    if (verifiedCount === 1) {
+      baseScore = 25;
+      reason = "Single verified source - limited perspective";
+    } else {
+      baseScore = 15;
+      reason = "Single unverified source - consider seeking additional sources";
+    }
+  } else if (totalSources === 2) {
+    if (verifiedCount >= 2) {
+      baseScore = 50;
+      reason = "Two verified sources - moderate coverage";
+    } else if (verifiedCount === 1) {
+      baseScore = 40;
+      reason = "One verified, one unverified source";
+    } else {
+      baseScore = 30;
+      reason = "Two unverified sources";
+    }
+  } else if (totalSources >= 3 && totalSources < 5) {
+    const verifiedRatio = verifiedCount / totalSources;
+    baseScore = 55 + Math.round(verifiedRatio * 30);
+    reason = `${totalSources} sources (${verifiedCount} verified) - good coverage`;
+  } else {
+    // 5+ sources
+    const verifiedRatio = verifiedCount / totalSources;
+    baseScore = 75 + Math.round(verifiedRatio * 25);
+    reason = `${totalSources} sources (${verifiedCount} verified) - excellent diversity`;
+  }
+  
+  return {
+    score: Math.min(100, Math.max(0, baseScore)),
+    verifiedCount,
+    reason
+  };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -41,30 +131,26 @@ serve(async (req) => {
       category,
       country,
       userCity,
+      userState,
       page = 1,
-      pageSize = 15,
+      pageSize = 20,
       sortBy = "latest",
       source,
       dateFrom,
       dateTo,
     } = params;
 
-    console.log("Fetching stories:", { feedType, category, country, page, sortBy, source, dateFrom, dateTo });
+    console.log("Fetching stories:", { feedType, category, country, userCity, userState, page, sortBy, source });
 
     // Calculate cutoff for stories
-    // Use 48 hours by default to ensure fresh news availability
-    // For trending/foryou, use 7 days to show more content
     const now = new Date();
     let defaultCutoff: string;
     
     if (feedType === "recent" && !dateFrom) {
-      // Show fresh news from last 48 hours by default for "recent" feed
       defaultCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
     } else if (feedType === "trending" || feedType === "foryou") {
-      // 7 days for trending/personalized feeds to show more content
       defaultCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
     } else {
-      // 3 days for other feeds
       defaultCutoff = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
     }
     const cutoffTime = dateFrom || defaultCutoff;
@@ -93,7 +179,6 @@ serve(async (req) => {
 
     // Apply category filter
     if (category && category !== "all") {
-      // Normalize category to match database
       const normalizedCategory = VALID_CATEGORIES.find(
         c => c.toLowerCase() === category.toLowerCase()
       );
@@ -102,46 +187,69 @@ serve(async (req) => {
       }
     }
 
-    // Apply feed type specific filters
+    // Apply feed type specific filters with improved local news logic
     if (feedType === "local") {
-      // Local: stories with city set OR country-specific stories
+      // Local news: search for stories matching user's city, nearby cities, state, or country
       if (userCity) {
-        query = query.ilike("city", `%${userCity}%`);
+        const cityLower = userCity.toLowerCase();
+        // Find nearby cities (same state/region logic)
+        const matchingCities = INDIAN_CITIES.filter(c => 
+          c === cityLower || 
+          c.includes(cityLower) || 
+          cityLower.includes(c)
+        );
+        
+        if (matchingCities.length > 0 || userState) {
+          // Search for stories in user's city OR state
+          let localFilters = [];
+          if (userCity) localFilters.push(`city.ilike.%${userCity}%`);
+          if (userState) localFilters.push(`city.ilike.%${userState}%`);
+          
+          // Also include country-specific non-global stories
+          if (country) {
+            query = query.or(`${localFilters.join(',')},and(country_code.eq.${country},is_global.eq.false)`);
+          } else if (localFilters.length > 0) {
+            query = query.or(localFilters.join(','));
+          }
+        } else {
+          query = query.ilike("city", `%${userCity}%`);
+        }
       } else if (country) {
         query = query.eq("country_code", country).eq("is_global", false);
       }
     } else if (feedType === "world") {
-      // World: global stories only
       query = query.eq("is_global", true);
     } else if (country) {
-      // For other feeds, show country + global stories
       query = query.or(`country_code.eq.${country},is_global.eq.true`);
     }
 
-    // Apply sorting based on feed type and sortBy
-    if (feedType === "trending" || sortBy === "sources") {
+    // IMPORTANT: For recent feed, prioritize multi-source stories first, then fresh news
+    if (feedType === "recent") {
+      // Primary sort: stories with 2+ sources first (more verified = higher priority)
+      // Secondary sort: by freshness
+      query = query
+        .order("source_count", { ascending: false })
+        .order("first_published_at", { ascending: false });
+    } else if (feedType === "trending" || sortBy === "sources") {
       query = query
         .gte("source_count", 2)
         .order("source_count", { ascending: false })
         .order("first_published_at", { ascending: false });
     } else if (feedType === "foryou") {
-      // Mix of trending and recent for personalized feel
       query = query
         .order("source_count", { ascending: false })
         .order("first_published_at", { ascending: false });
     } else if (sortBy === "relevance") {
-      // Order by locality first, then country, then global
       query = query
         .order("city", { ascending: false, nullsFirst: false })
         .order("first_published_at", { ascending: false });
     } else {
-      // Default: recent (latest first) - sort by first_published_at for fresh news
       query = query.order("first_published_at", { ascending: false });
     }
 
-    // Pagination
+    // Pagination - fetch more to allow for filtering
     const from = (page - 1) * pageSize;
-    query = query.range(from, from + pageSize - 1);
+    query = query.range(from, from + pageSize + 10);
 
     const { data: stories, error: storiesError } = await query;
 
@@ -153,17 +261,25 @@ serve(async (req) => {
     if (!stories || stories.length === 0) {
       console.log("No stories found, returning empty array");
       return new Response(
-        JSON.stringify({ articles: [], total: 0, source: "newstack" }),
+        JSON.stringify({ 
+          articles: [], 
+          total: 0, 
+          source: "newstack",
+          meta: {
+            feedType,
+            verifiedSourcesAvailable: VERIFIED_SOURCES.length,
+            cronSchedule: "Every 15 minutes"
+          }
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     console.log(`Found ${stories.length} stories`);
 
-    // Fetch sources for each story in parallel and filter by source if specified
+    // Fetch sources for each story in parallel
     let storiesWithSources = await Promise.all(
       stories.map(async (story) => {
-        // Fetch sources ordered by published_at ascending to show who reported first
         let sourcesQuery = supabase
           .from("story_sources")
           .select("source_name, source_url, published_at, description")
@@ -175,7 +291,6 @@ serve(async (req) => {
 
         // Calculate relative time
         const publishedDate = new Date(story.first_published_at);
-        const now = new Date();
         const diffMs = now.getTime() - publishedDate.getTime();
         const diffMins = Math.floor(diffMs / (1000 * 60));
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -191,7 +306,7 @@ serve(async (req) => {
           timestamp = `${Math.floor(diffHours / 24)}d ago`;
         }
 
-        // Determine location relevance (Local → India → World)
+        // Determine location relevance
         let locationRelevance: "Local" | "Country" | "Global";
         if (story.city) {
           locationRelevance = "Local";
@@ -201,11 +316,12 @@ serve(async (req) => {
           locationRelevance = "Global";
         }
 
-        // Use actual fetched sources count for accuracy
-        const actualSourceCount = sources?.length || 1;
+        // Use actual fetched sources for accuracy
+        const actualSources = sources || [];
+        const actualSourceCount = actualSources.length || 1;
         
-        // Calculate trust score based on source count
-        const trustScore = Math.min(95, 70 + actualSourceCount * 5);
+        // Calculate diversity score with detailed breakdown
+        const diversity = calculateDiversityScore(actualSources);
 
         return {
           id: story.id,
@@ -213,21 +329,24 @@ serve(async (req) => {
           summary: story.ai_summary || story.summary || "",
           content: story.summary || "",
           ai_analysis: story.ai_summary || story.summary || "",
-          why_matters: `This ${story.category || "news"} story is relevant to current events and developments.`,
+          why_matters: `This ${story.category || "news"} story is covered by ${actualSourceCount} source${actualSourceCount > 1 ? 's' : ''}.`,
           perspectives: [],
-          source_name: sources?.[0]?.source_name || "Unknown",
-          source_url: sources?.[0]?.source_url || "",
+          source_name: actualSources[0]?.source_name || "Unknown",
+          source_url: actualSources[0]?.source_url || "",
           source_logo: null,
           image_url: story.image_url,
           topic_slug: story.category?.toLowerCase() || "world",
           sentiment: "neutral",
-          trust_score: trustScore,
+          trust_score: diversity.score,
+          diversity_score: diversity.score,
+          diversity_reason: diversity.reason,
+          verified_source_count: diversity.verifiedCount,
           published_at: story.first_published_at,
           is_global: story.is_global,
           country_code: story.country_code,
           city: story.city,
           source_count: actualSourceCount,
-          sources: sources || [],
+          sources: actualSources,
           timestamp,
           location_relevance: locationRelevance,
           is_trending: actualSourceCount >= 2,
@@ -235,25 +354,61 @@ serve(async (req) => {
       })
     );
 
+    // Sort results: prioritize multi-source verified stories
+    if (feedType === "recent") {
+      storiesWithSources.sort((a, b) => {
+        // First priority: stories with 3+ verified sources
+        if (a.verified_source_count >= 3 && b.verified_source_count < 3) return -1;
+        if (b.verified_source_count >= 3 && a.verified_source_count < 3) return 1;
+        
+        // Second priority: stories with 2+ sources
+        if (a.source_count >= 2 && b.source_count < 2) return -1;
+        if (b.source_count >= 2 && a.source_count < 2) return 1;
+        
+        // Third priority: more sources is better
+        if (a.source_count !== b.source_count) return b.source_count - a.source_count;
+        
+        // Finally: sort by freshness
+        return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+      });
+    }
+
     // Filter by source name if specified
     if (source && source !== "all") {
       const sourceNameLower = source.toLowerCase();
       storiesWithSources = storiesWithSources.filter(story => {
-        // Check if any of the story's sources match the filter
         const matchesPrimary = story.source_name.toLowerCase().includes(sourceNameLower);
         const matchesAny = story.sources?.some((s: { source_name: string }) => 
           s.source_name.toLowerCase().includes(sourceNameLower)
         );
         return matchesPrimary || matchesAny;
       });
-      console.log(`Filtered to ${storiesWithSources.length} stories from source: ${source}`);
     }
+
+    // Limit to requested page size
+    storiesWithSources = storiesWithSources.slice(0, pageSize);
+
+    // Calculate stats for the response
+    const totalVerifiedSources = new Set(
+      storiesWithSources
+        .flatMap(s => s.sources || [])
+        .filter((s: any) => isVerifiedSource(s.source_name))
+        .map((s: any) => s.source_name)
+    ).size;
 
     return new Response(
       JSON.stringify({
         articles: storiesWithSources,
         total: storiesWithSources.length,
         source: "newstack",
+        meta: {
+          feedType,
+          totalVerifiedSources,
+          verifiedSourcesAvailable: VERIFIED_SOURCES.length,
+          cronSchedule: "Every 15 minutes",
+          lastUpdated: now.toISOString(),
+          prioritization: "Multi-source verified stories first, then by freshness"
+        }
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

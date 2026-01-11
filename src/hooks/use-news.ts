@@ -33,14 +33,24 @@ interface FetchNewsParams {
   pageSize?: number;
   query?: string;
   feedType?: "recent" | "trending" | "foryou";
-  source?: string; // Filter by source name
+  source?: string;
   dateFrom?: string;
   dateTo?: string;
+  userCity?: string;
+  userState?: string;
 }
 
 interface NewsResponse {
   articles: NewsArticle[];
   total: number;
+  meta?: {
+    feedType?: string;
+    totalVerifiedSources?: number;
+    verifiedSourcesAvailable?: number;
+    cronSchedule?: string;
+    lastUpdated?: string;
+    prioritization?: string;
+  };
 }
 
 async function fetchNews(params: FetchNewsParams): Promise<NewsResponse> {
@@ -57,8 +67,10 @@ async function fetchNews(params: FetchNewsParams): Promise<NewsResponse> {
         feedType: params.feedType || "recent",
         category: params.topic,
         country: params.country,
+        userCity: params.userCity,
+        userState: params.userState,
         page: params.page || 1,
-        pageSize: params.pageSize || 15,
+        pageSize: params.pageSize || 20,
         source: params.source,
         dateFrom: params.dateFrom,
         dateTo: params.dateTo,

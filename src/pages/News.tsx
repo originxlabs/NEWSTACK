@@ -161,6 +161,9 @@ export default function News() {
   const [readMoreArticle, setReadMoreArticle] = useState<NewsItem | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [userCity, setUserCity] = useState<string>("");
+  const [userState, setUserState] = useState<string>("");
+  const [totalVerifiedSources, setTotalVerifiedSources] = useState<number>(0);
   
   const loaderRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -191,6 +194,21 @@ export default function News() {
     }
 
     return () => observer.disconnect();
+  }, []);
+
+  // Detect user location for local news
+  useEffect(() => {
+    const detectUserLocation = async () => {
+      try {
+        const response = await fetch("https://ipapi.co/json/");
+        const data = await response.json();
+        if (data.city) setUserCity(data.city);
+        if (data.region) setUserState(data.region);
+      } catch (error) {
+        console.log("Could not detect location for local news");
+      }
+    };
+    detectUserLocation();
   }, []);
 
   // Build query params based on feed type - now includes source filter for API
@@ -224,8 +242,10 @@ export default function News() {
       source: selectedSource !== "all" ? sourceNameMap[selectedSource] || selectedSource : undefined,
       dateFrom: selectedDate ? startOfDay(selectedDate).toISOString() : undefined,
       dateTo: selectedDate ? endOfDay(selectedDate).toISOString() : undefined,
+      userCity: feedType === "local" ? userCity : undefined,
+      userState: feedType === "local" ? userState : undefined,
     };
-  }, [country?.code, language?.code, selectedCategories, feedType, searchQuery, selectedSource, selectedDate]);
+  }, [country?.code, language?.code, selectedCategories, feedType, searchQuery, selectedSource, selectedDate, userCity, userState]);
 
   const {
     data,
@@ -238,11 +258,17 @@ export default function News() {
     refetch,
   } = useInfiniteNews(queryParams);
 
-  // Transform and sort articles
+  // Transform and sort articles + track verified sources
   const newsItems = useMemo(() => {
     if (!data?.pages) return [];
     
-    let items = data.pages.flatMap((page) => page.articles.map(a => transformArticle(a, feedType)));
+    let items = data.pages.flatMap((page) => {
+      // Update verified sources count from meta if available
+      if (page.meta?.totalVerifiedSources) {
+        setTotalVerifiedSources(page.meta.totalVerifiedSources);
+      }
+      return page.articles.map(a => transformArticle(a, feedType));
+    });
 
     // Note: Source and date filtering is now done server-side via API params
     // Client-side filtering is kept as fallback for cached data
@@ -418,7 +444,12 @@ export default function News() {
                   <Radio className="w-4 h-4 text-green-500" />
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 </div>
-                <span className="text-sm font-medium text-foreground">Live from 20+ verified sources</span>
+                <span className="text-sm font-medium text-foreground">
+                  Live from {totalVerifiedSources > 0 ? totalVerifiedSources : "35+"}+ verified sources
+                </span>
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-green-500/10 border-green-500/30 text-green-600">
+                  Updated every 15 min
+                </Badge>
                 <Rss className="w-4 h-4 text-primary" />
               </motion.div>
               
@@ -495,9 +526,9 @@ export default function News() {
                 className="flex items-center justify-center gap-6 mt-8"
               >
                 {[
-                  { icon: Newspaper, label: "300+ Daily", color: "text-primary" },
-                  { icon: Globe, label: "20+ Sources", color: "text-accent" },
-                  { icon: Sparkles, label: "Smart Summaries", color: "text-yellow-500" },
+                  { icon: Newspaper, label: `${newsItems.length || "300+"}${newsItems.length ? "" : "+"} Stories`, color: "text-primary" },
+                  { icon: Globe, label: `${totalVerifiedSources > 0 ? totalVerifiedSources : "35+"}+ Verified Sources`, color: "text-accent" },
+                  { icon: Sparkles, label: "Multi-Source Priority", color: "text-yellow-500" },
                 ].map((stat, i) => (
                   <motion.div
                     key={stat.label}
