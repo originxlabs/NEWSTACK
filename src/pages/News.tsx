@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { motion } from "framer-motion";
 import { 
   Loader2, Radio, RefreshCw, 
-  Layers, Zap, Shield, Filter,
-  Grid3X3, List, Bell
+  Layers, Zap, Shield, 
+  Grid3X3, List, Bell, ChevronDown
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -13,13 +13,15 @@ import { Switch } from "@/components/ui/switch";
 import { useInfiniteNews, NewsArticle } from "@/hooks/use-news";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { ArticleDetailPanel } from "@/components/ArticleDetailPanel";
-import { StoryCluster, UpdateBadge } from "@/components/intelligence";
 import { LeftContextPanel } from "@/components/news/LeftContextPanel";
 import { RightTrustPanel } from "@/components/news/RightTrustPanel";
 import { IntelligenceNewsCard, IntelligenceNewsItem } from "@/components/news/IntelligenceNewsCard";
-import { NewsPageSkeleton, NewsCardSkeleton, StoryClusterSkeleton } from "@/components/ui/skeleton-loaders";
+import { ClusterCard } from "@/components/news/ClusterCard";
+import { TimeBlockSection } from "@/components/news/TimeBlockSection";
+import { NewsPageSkeleton } from "@/components/ui/skeleton-loaders";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLastViewed } from "@/hooks/use-last-viewed";
+import { clusterStories, groupByTimeBlocks, StoryCluster, RawStory } from "@/lib/story-clustering";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -59,7 +61,7 @@ function determineConfidence(sourceCount?: number): "low" | "medium" | "high" {
   return "high";
 }
 
-function transformArticle(article: NewsArticle): IntelligenceNewsItem {
+function transformArticle(article: NewsArticle): RawStory {
   const publishedDate = new Date(article.published_at);
   const now = new Date();
   const diffMinutes = Math.floor((now.getTime() - publishedDate.getTime()) / (1000 * 60));
@@ -85,14 +87,34 @@ function transformArticle(article: NewsArticle): IntelligenceNewsItem {
     whyMatters: article.why_matters,
     sourceCount: article.source_count,
     trustScore: article.trust_score,
-    isBreaking: diffMinutes < 30,
+  };
+}
+
+function toIntelligenceNewsItem(story: RawStory): IntelligenceNewsItem {
+  return {
+    id: story.id,
+    headline: story.headline,
+    summary: story.summary,
+    content: story.content,
+    topic: story.topic,
+    source: story.source,
+    sourceUrl: story.sourceUrl,
+    timestamp: story.timestamp,
+    publishedAt: story.publishedAt,
+    imageUrl: story.imageUrl,
+    whyMatters: story.whyMatters,
+    sourceCount: story.sourceCount,
+    trustScore: story.trustScore,
+    isBreaking: determineSignal(story.publishedAt, story.sourceCount) === "breaking",
+    signal: determineSignal(story.publishedAt, story.sourceCount) as IntelligenceNewsItem["signal"],
+    confidence: determineConfidence(story.sourceCount),
   };
 }
 
 export default function News() {
   const { country, language } = usePreferences();
   const isMobile = useIsMobile();
-  const { markAsViewed, checkForUpdates, getLastSessionTime, wasViewed } = useLastViewed();
+  const { markAsViewed, checkForUpdates, getLastSessionTime } = useLastViewed();
   
   const [signalFilter, setSignalFilter] = useState<SignalType>("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -103,28 +125,26 @@ export default function News() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadedBlocks, setLoadedBlocks] = useState(1); // Time-based pagination
   
-  const loaderRef = useRef<HTMLDivElement>(null);
   const lastSession = getLastSessionTime();
 
   const queryParams = useMemo(() => ({
     country: country?.code,
     language: language?.code === "en" ? "eng" : language?.code,
     topic: selectedCategory === "all" ? undefined : selectedCategory,
-    pageSize: 20,
+    pageSize: 50, // Load more for clustering
     feedType: "recent" as const,
   }), [country?.code, language?.code, selectedCategory]);
 
   const {
     data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
     isLoading,
     refetch,
   } = useInfiniteNews(queryParams);
 
-  const newsItems = useMemo(() => {
+  // Transform and filter stories
+  const allStories = useMemo(() => {
     if (!data?.pages) return [];
     
     let items = data.pages.flatMap(page => 
@@ -145,10 +165,20 @@ export default function News() {
     return items;
   }, [data, signalFilter, multiSourceOnly]);
 
+  // Cluster stories using fuzzy matching
+  const clusters = useMemo(() => {
+    return clusterStories(allStories, 0.45);
+  }, [allStories]);
+
+  // Group by time blocks for pagination
+  const timeBlocks = useMemo(() => {
+    return groupByTimeBlocks(allStories, clusters);
+  }, [allStories, clusters]);
+
   // Check for updates on viewed stories
   const storyUpdatesMap = useMemo(() => {
     const map = new Map<string, { type: string; message: string }[]>();
-    newsItems.forEach(item => {
+    allStories.forEach(item => {
       const signal = determineSignal(item.publishedAt, item.sourceCount);
       const updates = checkForUpdates(item.id, {
         headline: item.headline,
@@ -160,29 +190,17 @@ export default function News() {
       }
     });
     return map;
-  }, [newsItems, checkForUpdates]);
+  }, [allStories, checkForUpdates]);
 
   const updatedStoriesCount = storyUpdatesMap.size;
 
-  const storyClusters = useMemo(() => {
-    return newsItems.slice(0, 12).map(item => ({
-      id: item.id,
-      headline: item.headline,
-      summary: item.summary,
-      sourceCount: item.sourceCount || 1,
-      sources: [],
-      publishedAt: item.publishedAt,
-      topic: item.topic,
-      confidence: determineConfidence(item.sourceCount),
-    }));
-  }, [newsItems]);
-
   const stats = useMemo(() => {
-    const total = newsItems.length;
-    const breaking = newsItems.filter(i => determineSignal(i.publishedAt, i.sourceCount) === "breaking").length;
-    const multiSource = newsItems.filter(i => (i.sourceCount || 0) >= 3).length;
-    return { total, breaking, multiSource };
-  }, [newsItems]);
+    const total = allStories.length;
+    const breaking = allStories.filter(i => determineSignal(i.publishedAt, i.sourceCount) === "breaking").length;
+    const multiSource = clusters.filter(c => c.sourceCount >= 3).length;
+    const totalClusters = clusters.length;
+    return { total, breaking, multiSource, totalClusters };
+  }, [allStories, clusters]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -191,30 +209,28 @@ export default function News() {
     setIsRefreshing(false);
   }, [refetch]);
 
-  const handleArticleClick = useCallback((item: IntelligenceNewsItem) => {
+  const handleResetFilters = useCallback(() => {
+    setSelectedCategory("all");
+    setTimeFilter("latest");
+    setViewMode("stream");
+    setSignalFilter("all");
+    setMultiSourceOnly(false);
+  }, []);
+
+  const handleArticleClick = useCallback((item: RawStory) => {
     const signal = determineSignal(item.publishedAt, item.sourceCount);
     markAsViewed(item.id, {
       headline: item.headline,
       sourceCount: item.sourceCount || 1,
       signal,
     });
-    setSelectedArticle(item);
+    setSelectedArticle(toIntelligenceNewsItem(item));
     setIsPanelOpen(true);
   }, [markAsViewed]);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 0.1, rootMargin: "100px" }
-    );
-
-    if (loaderRef.current) observer.observe(loaderRef.current);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  const handleClusterClick = useCallback((cluster: StoryCluster) => {
+    handleArticleClick(cluster.representativeStory);
+  }, [handleArticleClick]);
 
   // Transform for ArticleDetailPanel
   const selectedArticleForPanel = selectedArticle ? {
@@ -274,6 +290,11 @@ export default function News() {
                   <span className="text-muted-foreground">stories</span>
                 </div>
                 <div className="flex items-center gap-1.5">
+                  <Grid3X3 className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium">{stats.totalClusters}</span>
+                  <span className="text-muted-foreground">clusters</span>
+                </div>
+                <div className="flex items-center gap-1.5">
                   <Zap className="w-3.5 h-3.5 text-red-500" />
                   <span className="font-medium">{stats.breaking}</span>
                   <span className="text-muted-foreground">breaking</span>
@@ -281,7 +302,7 @@ export default function News() {
                 <div className="flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5 text-emerald-500" />
                   <span className="font-medium">{stats.multiSource}</span>
-                  <span className="text-muted-foreground">verified</span>
+                  <span className="text-muted-foreground">multi-source</span>
                 </div>
               </div>
             </motion.div>
@@ -372,6 +393,7 @@ export default function News() {
                   onTimeFilterChange={setTimeFilter}
                   viewAsClusters={viewMode === "clusters"}
                   onViewChange={(clusters) => setViewMode(clusters ? "clusters" : "stream")}
+                  onResetFilters={handleResetFilters}
                 />
 
                 {/* CENTER COLUMN - Primary Intelligence Stream */}
@@ -414,71 +436,122 @@ export default function News() {
                     </div>
                   </div>
 
-                  {/* Content */}
+                  {/* Time-based paginated content (NO INFINITE SCROLL) */}
                   {viewMode === "clusters" ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {storyClusters.map((cluster, i) => (
-                        <motion.div
-                          key={cluster.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.02 }}
+                    <div className="space-y-2">
+                      {timeBlocks.slice(0, loadedBlocks).map((block, blockIndex) => (
+                        <TimeBlockSection
+                          key={block.id}
+                          label={block.label}
+                          id={block.id}
+                          count={block.clusters.length}
+                          isFirst={blockIndex === 0}
                         >
-                          <div className="relative">
-                            {storyUpdatesMap.has(cluster.id) && (
-                              <div className="absolute -top-1 -right-1 z-10">
-                                <UpdateBadge updateCount={storyUpdatesMap.get(cluster.id)?.length || 0} />
-                              </div>
-                            )}
-                            <StoryCluster
-                              {...cluster}
-                              onReadMore={() => {
-                                const item = newsItems.find(n => n.id === cluster.id);
-                                if (item) handleArticleClick(item);
-                              }}
-                            />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {block.clusters.map((cluster) => (
+                              <ClusterCard
+                                key={cluster.id}
+                                cluster={cluster}
+                                onClick={() => handleClusterClick(cluster)}
+                                showUpdateBadge={storyUpdatesMap.has(cluster.id)}
+                              />
+                            ))}
                           </div>
-                        </motion.div>
+                        </TimeBlockSection>
                       ))}
+                      
+                      {/* Load older updates button */}
+                      {loadedBlocks < timeBlocks.length && (
+                        <div className="pt-4 flex justify-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => setLoadedBlocks(prev => prev + 1)}
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                            Load older updates
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {newsItems.map((item, i) => {
-                        const updates = storyUpdatesMap.get(item.id);
-                        return (
-                          <div key={item.id} className="relative">
-                            {updates && updates.length > 0 && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="mb-2 px-3 py-1.5 rounded-md bg-primary/5 border border-primary/20 flex items-center gap-2"
-                              >
-                                <Bell className="w-3 h-3 text-primary" />
-                                <span className="text-[11px] text-primary font-medium">
-                                  Updated since last view
-                                </span>
-                                <span className="text-[10px] text-muted-foreground">
-                                  {updates[0].message}
-                                </span>
-                              </motion.div>
-                            )}
-                            <IntelligenceNewsCard
-                              news={item}
-                              index={i}
-                              onClick={() => handleArticleClick(item)}
-                            />
+                    <div className="space-y-2">
+                      {timeBlocks.slice(0, loadedBlocks).map((block, blockIndex) => (
+                        <TimeBlockSection
+                          key={block.id}
+                          label={block.label}
+                          id={block.id}
+                          count={block.stories.length}
+                          isFirst={blockIndex === 0}
+                        >
+                          <div className="space-y-3">
+                            {block.stories.map((story, i) => {
+                              const updates = storyUpdatesMap.get(story.id);
+                              return (
+                                <div key={story.id} className="relative">
+                                  {updates && updates.length > 0 && (
+                                    <motion.div
+                                      initial={{ opacity: 0, y: -5 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      className="mb-2 px-3 py-1.5 rounded-md bg-primary/5 border border-primary/20 flex items-center gap-2"
+                                    >
+                                      <Bell className="w-3 h-3 text-primary" />
+                                      <span className="text-[11px] text-primary font-medium">
+                                        Updated since last view
+                                      </span>
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {updates[0].message}
+                                      </span>
+                                    </motion.div>
+                                  )}
+                                  <IntelligenceNewsCard
+                                    news={toIntelligenceNewsItem(story)}
+                                    index={i}
+                                    onClick={() => handleArticleClick(story)}
+                                  />
+                                </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
+                        </TimeBlockSection>
+                      ))}
+                      
+                      {/* Load older updates button */}
+                      {loadedBlocks < timeBlocks.length && (
+                        <div className="pt-4 flex justify-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => setLoadedBlocks(prev => prev + 1)}
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                            Load older updates
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Loader */}
-                  <div ref={loaderRef} className="py-8 flex justify-center">
-                    {isFetchingNextPage && (
-                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                    )}
-                  </div>
+                  {/* Empty state */}
+                  {allStories.length === 0 && !isLoading && (
+                    <div className="py-16 text-center">
+                      <Layers className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                      <h3 className="text-lg font-medium text-foreground mb-2">No stories found</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Try adjusting your filters or check back later
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-4"
+                        onClick={handleResetFilters}
+                      >
+                        Reset filters
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {/* RIGHT COLUMN - Trust & Signals Panel (Desktop only) */}

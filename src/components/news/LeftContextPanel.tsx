@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, Layers, Filter, ChevronDown } from "lucide-react";
+import { Clock, Layers, Filter, ChevronDown, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -14,14 +14,19 @@ interface LeftContextPanelProps {
   onTimeFilterChange: (filter: string) => void;
   viewAsClusters: boolean;
   onViewChange: (clusters: boolean) => void;
+  onResetFilters?: () => void;
   className?: string;
 }
 
 const timeFilters = [
   { id: "latest", label: "Latest" },
+  { id: "2hours", label: "Last 2 hours" },
   { id: "yesterday", label: "Since yesterday" },
   { id: "lastVisit", label: "Since last visit" },
 ];
+
+// Categories shown by default vs collapsed
+const PRIMARY_CATEGORIES = ["all", "politics", "business", "tech", "world"];
 
 export function LeftContextPanel({
   categories,
@@ -31,17 +36,24 @@ export function LeftContextPanel({
   onTimeFilterChange,
   viewAsClusters,
   onViewChange,
+  onResetFilters,
   className,
 }: LeftContextPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+
+  const primaryCategories = categories.filter(c => PRIMARY_CATEGORIES.includes(c.slug));
+  const secondaryCategories = categories.filter(c => !PRIMARY_CATEGORIES.includes(c.slug));
+
+  const hasActiveFilters = selectedCategory !== "all" || timeFilter !== "latest" || viewAsClusters;
 
   return (
     <aside className={cn(
-      "hidden lg:block w-56 flex-shrink-0",
+      "hidden lg:block w-52 flex-shrink-0",
       className
     )}>
       <div className="sticky top-20 space-y-4">
-        {/* Header */}
+        {/* Header with collapse */}
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             Filters
@@ -63,8 +75,31 @@ export function LeftContextPanel({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="space-y-5"
+            className="space-y-4"
           >
+            {/* View mode toggle - MOVED HIGHER */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
+                <Layers className="w-3 h-3" />
+                View mode
+              </span>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm text-foreground">
+                  View as clusters
+                </span>
+                <Switch
+                  checked={viewAsClusters}
+                  onCheckedChange={onViewChange}
+                  className="scale-90"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Groups similar stories from multiple sources
+              </p>
+            </div>
+
+            <Separator className="opacity-50" />
+
             {/* Categories */}
             <div className="space-y-2">
               <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
@@ -72,7 +107,7 @@ export function LeftContextPanel({
                 Categories
               </span>
               <div className="space-y-0.5">
-                {categories.map((cat) => (
+                {primaryCategories.map((cat) => (
                   <button
                     key={cat.slug}
                     onClick={() => onCategoryChange(cat.slug)}
@@ -86,6 +121,37 @@ export function LeftContextPanel({
                     {cat.name}
                   </button>
                 ))}
+                
+                {/* Collapsed secondary categories */}
+                {secondaryCategories.length > 0 && (
+                  <>
+                    <button
+                      onClick={() => setShowAllCategories(!showAllCategories)}
+                      className="w-full text-left px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                    >
+                      {showAllCategories ? "Show less" : `+${secondaryCategories.length} more`}
+                      <ChevronDown className={cn(
+                        "w-3 h-3 transition-transform",
+                        showAllCategories && "rotate-180"
+                      )} />
+                    </button>
+                    
+                    {showAllCategories && secondaryCategories.map((cat) => (
+                      <button
+                        key={cat.slug}
+                        onClick={() => onCategoryChange(cat.slug)}
+                        className={cn(
+                          "w-full text-left px-2.5 py-1.5 text-sm rounded-md transition-colors",
+                          selectedCategory === cat.slug
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        )}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             </div>
 
@@ -115,28 +181,21 @@ export function LeftContextPanel({
               </div>
             </div>
 
-            <Separator className="opacity-50" />
-
-            {/* View toggle */}
-            <div className="space-y-3">
-              <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
-                <Layers className="w-3 h-3" />
-                View mode
-              </span>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  View as clusters
-                </span>
-                <Switch
-                  checked={viewAsClusters}
-                  onCheckedChange={onViewChange}
-                  className="scale-90"
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Groups similar stories and shows unified summaries
-              </p>
-            </div>
+            {/* Reset filters */}
+            {hasActiveFilters && onResetFilters && (
+              <>
+                <Separator className="opacity-50" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full h-7 text-xs text-muted-foreground hover:text-foreground justify-start gap-1.5"
+                  onClick={onResetFilters}
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Reset filters
+                </Button>
+              </>
+            )}
           </motion.div>
         )}
       </div>
