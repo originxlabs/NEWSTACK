@@ -578,28 +578,34 @@ async function processItems(
       }
 
       if (matchedStory) {
-        // Story exists - add source and update
-        const { error: sourceError } = await supabase
+        // Story exists - check if this source URL already exists
+        const { data: existingSource } = await supabase
           .from("story_sources")
-          .upsert(
-            {
+          .select("id")
+          .eq("story_id", matchedStory.id)
+          .eq("source_url", item.link)
+          .maybeSingle();
+
+        if (!existingSource) {
+          // Add new source
+          const { error: sourceError } = await supabase
+            .from("story_sources")
+            .insert({
               story_id: matchedStory.id,
               source_name: feed.name,
               source_url: item.link,
               published_at: publishedAt.toISOString(),
               description: item.description,
-            },
-            { onConflict: "story_id,source_url" }
-          );
+            });
 
-        if (!sourceError) {
-          // Get actual current source count
-          const { count } = await supabase
-            .from("story_sources")
-            .select("*", { count: "exact", head: true })
-            .eq("story_id", matchedStory.id);
-          
-          const newSourceCount = count || (matchedStory.source_count || 1) + 1;
+          if (!sourceError) {
+            // Get actual current source count
+            const { count } = await supabase
+              .from("story_sources")
+              .select("*", { count: "exact", head: true })
+              .eq("story_id", matchedStory.id);
+            
+            const newSourceCount = count || (matchedStory.source_count || 1) + 1;
           
           await supabase
             .from("stories")
@@ -651,7 +657,8 @@ async function processItems(
             }
           }
 
-          merged++;
+            merged++;
+          }
         }
       } else {
         // Create new story with enhanced classification
