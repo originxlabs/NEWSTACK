@@ -237,14 +237,14 @@ function ApiTester() {
 
           {/* Dynamic Parameters */}
           {endpoint === "news" && (
-            <div className="space-y-2">
+          <div className="space-y-2">
               <Label>Category (optional)</Label>
-              <Select value={category} onValueChange={setCategory}>
+              <Select value={category || "all"} onValueChange={(val) => setCategory(val === "all" ? "" : val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="technology">Technology</SelectItem>
                   <SelectItem value="business">Business</SelectItem>
                   <SelectItem value="politics">Politics</SelectItem>
@@ -291,12 +291,12 @@ function ApiTester() {
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Confidence (optional)</Label>
-              <Select value={confidence} onValueChange={setConfidence}>
+              <Select value={confidence || "all"} onValueChange={(val) => setConfidence(val === "all" ? "" : val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All levels" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
                   <SelectItem value="high">High</SelectItem>
