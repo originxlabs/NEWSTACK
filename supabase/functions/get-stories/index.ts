@@ -10,6 +10,7 @@ interface StoryRequest {
   feedType?: "recent" | "trending" | "foryou" | "local" | "world";
   category?: string;
   country?: string;
+  region?: string; // World region filter (north-america, europe, asia-pacific, middle-east, africa, south-america)
   userCity?: string;
   userState?: string;
   page?: number;
@@ -19,6 +20,16 @@ interface StoryRequest {
   dateFrom?: string;
   dateTo?: string;
 }
+
+// Region to country code mapping
+const REGION_COUNTRIES: Record<string, string[]> = {
+  "north-america": ["US", "CA", "MX"],
+  "europe": ["GB", "FR", "DE", "IT", "ES", "NL", "BE", "CH", "AT", "SE", "NO", "DK", "FI", "PL", "PT", "IE", "GR", "CZ", "RO", "HU", "UA", "RU"],
+  "asia-pacific": ["CN", "JP", "KR", "IN", "AU", "NZ", "SG", "MY", "TH", "VN", "PH", "ID", "TW", "HK", "PK", "BD", "LK", "NP"],
+  "middle-east": ["AE", "SA", "IL", "TR", "IR", "IQ", "QA", "KW", "BH", "OM", "JO", "LB", "SY", "YE", "PS"],
+  "africa": ["ZA", "EG", "NG", "KE", "GH", "ET", "TZ", "UG", "MA", "DZ", "TN", "SN", "CI", "CM"],
+  "south-america": ["BR", "AR", "CL", "CO", "PE", "VE", "EC", "UY", "PY", "BO"],
+};
 
 // Verified sources list for accurate scoring
 const VERIFIED_SOURCES = [
@@ -130,6 +141,7 @@ serve(async (req) => {
       feedType = "recent",
       category,
       country,
+      region,
       userCity,
       userState,
       page = 1,
@@ -140,7 +152,7 @@ serve(async (req) => {
       dateTo,
     } = params;
 
-    console.log("Fetching stories:", { feedType, category, country, userCity, userState, page, sortBy, source });
+    console.log("Fetching stories:", { feedType, category, country, region, userCity, userState, page, sortBy, source });
 
     // Calculate cutoff for stories
     const now = new Date();
@@ -188,7 +200,11 @@ serve(async (req) => {
     }
 
     // Apply feed type specific filters with improved local news logic
-    if (feedType === "local") {
+    if (region && REGION_COUNTRIES[region]) {
+      // Region filter: filter by country codes in the region
+      const regionCodes = REGION_COUNTRIES[region];
+      query = query.in("country_code", regionCodes);
+    } else if (feedType === "local") {
       // Local news: search for stories matching user's city, nearby cities, state, or country
       if (userCity) {
         const cityLower = userCity.toLowerCase();
