@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { FileText, Shield, AlertTriangle, Users, Ban, Scale, Mail } from "lucide-react";
+import { FileText, Shield, AlertTriangle, Users, Ban, Scale, Mail, Newspaper } from "lucide-react";
 
 export default function TermsOfService() {
   return (
@@ -22,19 +22,30 @@ export default function TermsOfService() {
               </div>
               <h1 className="font-display text-4xl font-bold mb-4">Terms of Service</h1>
               <p className="text-muted-foreground">
-                Last updated: January 10, 2026
+                Last updated: January 11, 2026
               </p>
             </div>
 
             {/* Content */}
             <div className="prose prose-lg dark:prose-invert max-w-none">
+              {/* Philosophy Section */}
+              <section className="mb-8 p-6 bg-primary/5 rounded-2xl border border-primary/20">
+                <h2 className="flex items-center gap-2 text-2xl font-bold mb-4">
+                  <Newspaper className="w-6 h-6 text-primary" />
+                  Media: The Main Pillar of Modern Humanity
+                </h2>
+                <p className="text-foreground/80">
+                  We at NEWSTACK believe that access to accurate, unbiased, and timely information is a fundamental right in today's interconnected world. Media serves as the backbone of informed societies, enabling citizens to make better decisions, hold institutions accountable, and participate meaningfully in democratic processes. Our mission is to democratize access to quality journalism and ensure that everyone, regardless of their location or economic status, can stay informed about the world around them.
+                </p>
+              </section>
+
               <section className="mb-8">
                 <h2 className="text-2xl font-bold mb-4">1. Acceptance of Terms</h2>
                 <p>
                   Welcome to NEWSTACK. By accessing or using our Service at newstack.live, you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.
                 </p>
                 <p>
-                  NEWSTACK is operated by Cropxon Innovations Pvt Ltd. These Terms govern your use of our AI-powered news aggregation platform.
+                  NEWSTACK is owned and operated by <strong>CROPXON INNOVATIONS PVT LTD</strong> (hereinafter referred to as "CROPXON", "we", "us", or "our"). These Terms govern your use of our AI-powered news aggregation platform.
                 </p>
               </section>
 
@@ -50,6 +61,7 @@ export default function TermsOfService() {
                   <li>Place-based intelligence and local news</li>
                   <li>Community discussions on news articles</li>
                   <li>Personalized news recommendations</li>
+                  <li>Multi-source verification and trust scoring</li>
                 </ul>
                 <p className="mt-4">
                   The Service is provided "as is" without warranties of any kind. We aggregate news from third-party sources and do not create original news content.
@@ -95,7 +107,7 @@ export default function TermsOfService() {
                 <h2 className="text-2xl font-bold mb-4">5. Intellectual Property</h2>
                 <h3 className="text-xl font-semibold mt-6 mb-3">Our Content</h3>
                 <p>
-                  The NEWSTACK name, logo, and platform design are owned by Cropxon Innovations Pvt Ltd. You may not use our branding without written permission.
+                  The NEWSTACK name, logo, and platform design are owned by CROPXON INNOVATIONS PVT LTD. All rights reserved. You may not use our branding without written permission from CROPXON.
                 </p>
                 
                 <h3 className="text-xl font-semibold mt-6 mb-3">News Content</h3>
@@ -143,7 +155,7 @@ export default function TermsOfService() {
                   8. Limitation of Liability
                 </h2>
                 <p>
-                  To the maximum extent permitted by law, NEWSTACK and Cropxon Innovations Pvt Ltd shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service.
+                  To the maximum extent permitted by law, NEWSTACK and CROPXON INNOVATIONS PVT LTD shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service.
                 </p>
               </section>
 
@@ -178,8 +190,19 @@ export default function TermsOfService() {
                 </p>
                 <ul className="list-none pl-0 mt-4 space-y-2">
                   <li><strong>Email:</strong> legal@newstack.live</li>
-                  <li><strong>Company:</strong> Cropxon Innovations Pvt Ltd</li>
+                  <li><strong>Parent Company:</strong> CROPXON INNOVATIONS PVT LTD</li>
+                  <li><strong>Website:</strong> <a href="https://cropxon.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">cropxon.com</a></li>
                 </ul>
+              </section>
+
+              {/* Copyright Notice */}
+              <section className="mt-12 p-6 bg-muted/50 rounded-2xl border border-border text-center">
+                <p className="text-sm text-muted-foreground">
+                  © 2026 NEWSTACK. All Rights Reserved.
+                </p>
+                <p className="text-sm font-semibold mt-2">
+                  A Product of CROPXON INNOVATIONS PVT LTD
+                </p>
               </section>
             </div>
           </motion.div>

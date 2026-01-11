@@ -1,73 +1,30 @@
-# Welcome to your Lovable project
+# NEWSTACK — Global News Intelligence Platform
 
-## Project info
+A product of **CROPXON INNOVATIONS PVT LTD**
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## About NEWSTACK
 
-## How can I edit this code?
+NEWSTACK is a free AI-powered news aggregation platform that delivers real-time global and local news with:
 
-There are several ways of editing your application.
+- **AI-Powered Summaries** - Get concise, accurate summaries of news articles
+- **Audio News** - Listen to news with text-to-speech (50 free plays/day)
+- **Multi-Source Verification** - See coverage from multiple trusted sources
+- **Place Intelligence** - Local news and insights based on your location
+- **Trending Topics** - Stay updated with what's trending globally and locally
 
-**Use Lovable**
+## Technology Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- React 18 + TypeScript + Vite
+- Tailwind CSS + shadcn/ui
+- PWA with offline support
 
-Changes made via Lovable will be committed automatically to this repo.
+## Development
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+© 2026 NEWSTACK. All Rights Reserved by CROPXON INNOVATIONS PVT LTD

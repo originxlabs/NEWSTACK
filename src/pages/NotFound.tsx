@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Home, ArrowLeft, Newspaper, Globe, Headphones, MapPin, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NLogoSquare } from "@/components/NLogo";
 
 const NotFound = () => {
   const location = useLocation();
@@ -33,11 +34,11 @@ const NotFound = () => {
           className="flex justify-center mb-8"
         >
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-xl">
-              <span className="text-2xl font-bold text-primary-foreground font-display">N</span>
-            </div>
+            <NLogoSquare size={56} animate themeAware />
             <div className="text-left">
-              <h2 className="font-display text-2xl font-bold tracking-tight">NEWSTACK</h2>
+              <h2 className="font-display text-2xl font-bold tracking-tight">
+                NEW<span className="text-primary">STACK</span>
+              </h2>
               <p className="text-xs text-muted-foreground">Global News Intelligence</p>
             </div>
           </div>
@@ -159,7 +160,7 @@ const NotFound = () => {
           transition={{ delay: 1 }}
           className="text-xs text-muted-foreground/60 mt-12"
         >
-          Powered by CROPXON INNOVATIONS PVT LTD
+          © 2026 NEWSTACK. All Rights Reserved by CROPXON INNOVATIONS PVT LTD
         </motion.p>
       </motion.div>
     </div>

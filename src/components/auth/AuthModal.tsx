@@ -133,7 +133,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        style={{ pointerEvents: 'auto' }}
       >
         {/* Backdrop */}
         <motion.div
@@ -142,6 +143,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           exit={{ opacity: 0 }}
           className="absolute inset-0 bg-background/80 backdrop-blur-sm"
           onClick={handleClose}
+          style={{ pointerEvents: 'auto' }}
         />
 
         {/* Modal */}
@@ -149,12 +151,14 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative glass-card rounded-2xl w-full max-w-md p-6 overflow-hidden"
+          className="relative bg-card border border-border rounded-2xl w-full max-w-md p-6 overflow-hidden shadow-2xl"
+          style={{ pointerEvents: 'auto', zIndex: 10000 }}
         >
           {/* Close button */}
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 p-2 rounded-full hover:bg-accent/50 transition-colors"
+            className="absolute top-4 right-4 p-2 rounded-full hover:bg-accent/50 transition-colors z-10"
+            type="button"
           >
             <X className="h-5 w-5" />
           </button>
@@ -256,8 +260,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
                 <p className="text-xs text-center text-muted-foreground mt-4">
                   By continuing, you agree to our{" "}
-                  <a href="#terms" className="text-primary hover:underline">Terms</a> and{" "}
-                  <a href="#privacy" className="text-primary hover:underline">Privacy Policy</a>
+                  <a href="/terms" onClick={handleClose} className="text-primary hover:underline">Terms</a> and{" "}
+                  <a href="/privacy" onClick={handleClose} className="text-primary hover:underline">Privacy Policy</a>
                 </p>
               </>
             )}
