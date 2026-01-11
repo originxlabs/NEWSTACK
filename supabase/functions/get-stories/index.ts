@@ -6,6 +6,66 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ===== OUTPUT SANITIZATION (CRITICAL) =====
+// Clean any HTML entities or tags from stored data at read time
+function sanitizeOutput(text: string | null): string {
+  if (!text) return "";
+  
+  let cleaned = text;
+  
+  // Decode HTML entities
+  const entityMap: Record<string, string> = {
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": "\"",
+    "&apos;": "'",
+    "&#39;": "'",
+    "&nbsp;": " ",
+    "&ndash;": "-",
+    "&mdash;": "—",
+    "&lsquo;": "'",
+    "&rsquo;": "'",
+    "&ldquo;": "\"",
+    "&rdquo;": "\"",
+    "&hellip;": "...",
+    "&#8216;": "'",
+    "&#8217;": "'",
+    "&#8218;": ",",
+    "&#8220;": "\"",
+    "&#8221;": "\"",
+    "&#8230;": "...",
+  };
+  
+  // Decode named entities
+  for (const [entity, char] of Object.entries(entityMap)) {
+    cleaned = cleaned.replace(new RegExp(entity, "gi"), char);
+  }
+  
+  // Decode numeric entities (decimal) - like &#8217;
+  cleaned = cleaned.replace(/&#(\d+);/g, (_, num) => {
+    const code = parseInt(num, 10);
+    return String.fromCharCode(code);
+  });
+  
+  // Decode numeric entities (hexadecimal) - like &#x2019;
+  cleaned = cleaned.replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+    const code = parseInt(hex, 16);
+    return String.fromCharCode(code);
+  });
+  
+  // Strip any remaining HTML tags
+  cleaned = cleaned.replace(/<[^>]+>/g, "");
+  
+  // Clean up any remaining & sequences that look like entities
+  cleaned = cleaned.replace(/&[a-z]+;/gi, "");
+  
+  // Normalize whitespace
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
+  
+  return cleaned;
+}
+
 interface StoryRequest {
   feedType?: "recent" | "trending" | "foryou" | "local" | "world";
   category?: string;
@@ -378,10 +438,11 @@ serve(async (req) => {
 
         return {
           id: story.id,
-          headline: story.headline,
-          summary: story.ai_summary || story.summary || "",
-          content: story.summary || "",
-          ai_analysis: story.ai_summary || story.summary || "",
+          // CRITICAL: Sanitize all text output to prevent HTML leakage
+          headline: sanitizeOutput(story.headline),
+          summary: sanitizeOutput(story.ai_summary || story.summary || ""),
+          content: sanitizeOutput(story.summary || ""),
+          ai_analysis: sanitizeOutput(story.ai_summary || story.summary || ""),
           why_matters: whyMatters,
           perspectives: [],
           source_name: actualSources[0]?.source_name || "Unknown",
@@ -400,7 +461,11 @@ serve(async (req) => {
           city: story.city,
           // CRITICAL: Use actual source count from fetched sources
           source_count: actualSourceCount,
-          sources: actualSources,
+          sources: actualSources.map((s: any) => ({
+            ...s,
+            source_name: sanitizeOutput(s.source_name),
+            description: sanitizeOutput(s.description),
+          })),
           timestamp,
           location_relevance: locationRelevance,
           is_trending: actualSourceCount >= 2,
