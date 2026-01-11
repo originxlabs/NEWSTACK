@@ -141,7 +141,7 @@ const INDIAN_LOCALITIES = [
   "odisha", "andhra pradesh", "punjab", "haryana", "jharkhand", "assam"
 ];
 
-// Stopwords for normalization
+// Extended stopwords for normalization
 const STOPWORDS = new Set([
   "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
   "have", "has", "had", "do", "does", "did", "will", "would", "could",
@@ -150,7 +150,137 @@ const STOPWORDS = new Set([
   "into", "through", "during", "before", "after", "above", "below",
   "and", "but", "or", "nor", "so", "yet", "both", "either", "neither",
   "not", "only", "own", "same", "than", "too", "very", "just",
+  // News-specific stopwords
+  "says", "said", "report", "reports", "reported", "according", "sources",
+  "breaking", "update", "live", "watch", "video", "photos", "exclusive",
+  "latest", "new", "news", "today", "now", "just", "this", "that",
+  "here", "there", "what", "how", "why", "when", "where", "who",
+  "amid", "over", "about", "after", "before", "during", "while",
 ]);
+
+// Source name variations to strip from headlines
+const SOURCE_SUFFIXES = [
+  " - reuters", " - bbc", " - cnn", " - ap", " - nyt", " | bbc",
+  " | reuters", " | the guardian", " - the hindu", " - ndtv",
+  " - times of india", " | al jazeera", " - washington post",
+  " - new york times", " | cnn", " - abc news", " - fox news",
+  " | npr", " - npr", " | forbes", " - forbes", " | techcrunch",
+  " - associated press", " | associated press",
+];
+
+// Key entities/names that should be preserved and matched
+const KEY_ENTITIES = [
+  // Political figures
+  "trump", "biden", "modi", "putin", "xi jinping", "zelenskyy", "zelensky",
+  "netanyahu", "macron", "scholz", "sunak", "starmer", "harris", "obama",
+  // Organizations
+  "isis", "hamas", "hezbollah", "taliban", "nato", "un", "who", "imf",
+  "world bank", "fed", "rbi", "sebi", "sec", "fbi", "cia", "nasa", "isro",
+  // Companies
+  "apple", "google", "microsoft", "amazon", "meta", "tesla", "nvidia",
+  "openai", "anthropic", "tata", "reliance", "adani", "infosys", "wipro",
+  // Countries/Regions
+  "ukraine", "russia", "israel", "gaza", "palestine", "syria", "iran",
+  "china", "india", "pakistan", "afghanistan", "myanmar", "north korea",
+  // Sports teams/events
+  "ipl", "world cup", "olympics", "premier league", "nba", "nfl",
+  "champions league", "super bowl",
+];
+
+// ===== IMPROVED NORMALIZATION FUNCTIONS =====
+
+function removeSourceSuffix(title: string): string {
+  let cleaned = title.toLowerCase();
+  for (const suffix of SOURCE_SUFFIXES) {
+    if (cleaned.endsWith(suffix)) {
+      cleaned = cleaned.slice(0, -suffix.length);
+      break;
+    }
+  }
+  return cleaned;
+}
+
+function extractKeyEntities(text: string): string[] {
+  const lower = text.toLowerCase();
+  const found: string[] = [];
+  for (const entity of KEY_ENTITIES) {
+    if (lower.includes(entity)) {
+      found.push(entity.replace(/\s+/g, ""));
+    }
+  }
+  return found.sort();
+}
+
+function extractNumbers(text: string): string[] {
+  const numbers = text.match(/\d+/g) || [];
+  // Keep significant numbers (not just years in most cases)
+  return numbers.filter(n => {
+    const num = parseInt(n);
+    return num < 1900 || num > 2030 || n.length !== 4;
+  });
+}
+
+// Improved normalization that creates a semantic fingerprint
+function normalizeHeadline(title: string): string {
+  // Step 1: Remove source suffixes
+  let cleaned = removeSourceSuffix(title);
+  
+  // Step 2: Decode HTML entities
+  cleaned = cleaned
+    .replace(/&amp;/g, "and")
+    .replace(/&apos;/g, "")
+    .replace(/&quot;/g, "")
+    .replace(/&#\d+;/g, "")
+    .replace(/&[a-z]+;/g, "");
+  
+  // Step 3: Normalize special characters
+  cleaned = cleaned
+    .replace(/[''`]/g, "")
+    .replace(/[""]/g, "")
+    .replace(/[—–-]/g, " ")
+    .replace(/[^\w\s]/g, " ");
+  
+  // Step 4: Extract key entities for weighting
+  const entities = extractKeyEntities(cleaned);
+  
+  // Step 5: Extract significant words
+  const words = cleaned
+    .split(/\s+/)
+    .map(w => w.trim())
+    .filter(word => !STOPWORDS.has(word) && word.length > 2);
+  
+  // Step 6: Extract numbers
+  const numbers = extractNumbers(cleaned);
+  
+  // Step 7: Create fingerprint: entities + top words + numbers
+  // This groups stories about the same event even with different phrasing
+  const significantWords = words
+    .filter(w => w.length > 3) // Keep longer, more meaningful words
+    .slice(0, 8); // Keep top 8 meaningful words
+  
+  const fingerprint = [
+    ...entities,
+    ...significantWords,
+    ...numbers.slice(0, 2), // Keep up to 2 numbers
+  ]
+    .join(" ")
+    .substring(0, 100);
+  
+  return fingerprint || cleaned.substring(0, 100);
+}
+
+// Secondary similarity check using Jaccard similarity
+function calculateSimilarity(text1: string, text2: string): number {
+  const words1 = new Set(text1.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+  const words2 = new Set(text2.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+  
+  if (words1.size === 0 || words2.size === 0) return 0;
+  
+  const intersection = [...words1].filter(w => words2.has(w)).length;
+  const union = new Set([...words1, ...words2]).size;
+  
+  return intersection / union;
+}
 
 // ===== CLASSIFICATION FUNCTIONS =====
 
@@ -288,16 +418,6 @@ function classifyStory(
 
 // ===== UTILITY FUNCTIONS =====
 
-function normalizeHeadline(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^\w\s]/g, "")
-    .split(/\s+/)
-    .filter(word => !STOPWORDS.has(word) && word.length > 2)
-    .join(" ")
-    .substring(0, 100);
-}
-
 async function createHash(text: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(text);
@@ -412,20 +532,58 @@ async function processItems(
       // Get image URL
       const imageUrl = item.enclosure?.url || item["media:content"]?.url || null;
 
-      // Check if story exists
+      // Check if story exists by exact hash match
+      let matchedStory: { id: string; source_count: number; normalized_headline: string } | null = null;
+      
       const { data: existingStory } = await supabase
         .from("stories")
-        .select("id, source_count")
+        .select("id, source_count, normalized_headline")
         .eq("story_hash", storyHash)
         .single();
-
+      
       if (existingStory) {
+        matchedStory = existingStory;
+      } else {
+        // Try fuzzy matching with recent stories (same category, last 24 hours)
+        const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: recentStories } = await supabase
+          .from("stories")
+          .select("id, source_count, normalized_headline, headline")
+          .eq("category", classification.primary_category)
+          .gte("first_published_at", cutoff)
+          .limit(50);
+        
+        if (recentStories && recentStories.length > 0) {
+          // Find best match using similarity
+          let bestMatch: { id: string; source_count: number; normalized_headline: string } | null = null;
+          let bestSimilarity = 0;
+          
+          for (const story of recentStories) {
+            const similarity = calculateSimilarity(normalizedHeadline, story.normalized_headline);
+            // Also check headline similarity for better matching
+            const headlineSimilarity = calculateSimilarity(item.title, story.headline);
+            const combinedSimilarity = Math.max(similarity, headlineSimilarity);
+            
+            if (combinedSimilarity > 0.5 && combinedSimilarity > bestSimilarity) {
+              bestSimilarity = combinedSimilarity;
+              bestMatch = story;
+            }
+          }
+          
+          if (bestMatch && bestSimilarity > 0.5) {
+            console.log(`Fuzzy match found: "${item.title}" -> existing story (${(bestSimilarity * 100).toFixed(0)}% similar)`);
+            matchedStory = bestMatch;
+          }
+        }
+      }
+
+      if (matchedStory) {
         // Story exists - add source and update
         const { error: sourceError } = await supabase
           .from("story_sources")
           .upsert(
             {
-              story_id: existingStory.id,
+              story_id: matchedStory.id,
               source_name: feed.name,
               source_url: item.link,
               published_at: publishedAt.toISOString(),
@@ -435,14 +593,20 @@ async function processItems(
           );
 
         if (!sourceError) {
+          // Get actual current source count
+          const { count } = await supabase
+            .from("story_sources")
+            .select("*", { count: "exact", head: true })
+            .eq("story_id", matchedStory.id);
+          
           await supabase
             .from("stories")
             .update({
-              source_count: (existingStory.source_count || 1) + 1,
+              source_count: count || (matchedStory.source_count || 1) + 1,
               last_updated_at: new Date().toISOString(),
               image_url: imageUrl || undefined,
             })
-            .eq("id", existingStory.id);
+            .eq("id", matchedStory.id);
 
           merged++;
         }

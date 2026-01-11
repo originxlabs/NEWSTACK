@@ -256,33 +256,32 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
     onClose();
   };
 
-  // Build actual sources from article data
+  // Build actual sources from article data - use real sources from story_sources table
   const sources = useMemo(() => {
     if (!article) return [];
     
-    const sourceList = [
-      { name: article.source, url: article.sourceUrl || "#", verified: true },
-    ];
-    
-    // If article has multiple sources, show them based on source count
-    if (article.sourceCount && article.sourceCount > 1) {
-      // These would come from the actual story_sources table in a real implementation
-      const additionalSources = [
-        { name: "Reuters", url: "https://reuters.com", verified: true },
-        { name: "Associated Press", url: "https://apnews.com", verified: true },
-        { name: "BBC News", url: "https://bbc.com/news", verified: true },
-        { name: "The Guardian", url: "https://theguardian.com", verified: true },
-      ];
-      
-      // Add sources up to the source count
-      for (let i = 0; i < Math.min(article.sourceCount - 1, additionalSources.length); i++) {
-        if (additionalSources[i].name !== article.source) {
-          sourceList.push(additionalSources[i]);
-        }
-      }
+    // If article has sources from story_sources table, use those
+    if (article.sources && article.sources.length > 0) {
+      return article.sources.map((s, idx) => ({
+        name: s.source_name,
+        url: s.source_url,
+        description: s.description,
+        published_at: s.published_at,
+        verified: true, // All sources from our verified RSS feeds
+        isFirst: idx === 0,
+      }));
     }
     
-    return sourceList.slice(0, article.sourceCount || 1);
+    // Fallback to primary source only
+    return [
+      { 
+        name: article.source, 
+        url: article.sourceUrl || "#", 
+        verified: true,
+        isFirst: true,
+        published_at: article.publishedAt,
+      },
+    ];
   }, [article]);
 
   // Early return after all hooks
@@ -430,7 +429,7 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
               <Shield className="w-4 h-4 text-green-500" />
-              Sources ({sources.length})
+              Verified Sources ({sources.length})
             </h3>
             <div className="space-y-2">
               {sources.map((source, idx) => (
@@ -441,18 +440,32 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
                   rel="noopener noreferrer"
                   className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
                       {source.name.charAt(0)}
                     </div>
-                    <span className="font-medium text-sm">{source.name}</span>
-                    {source.verified && (
-                      <Badge variant="secondary" className="text-[10px] bg-green-500/20 text-green-500 border-0">
-                        ✓ Verified
-                      </Badge>
-                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm truncate">{source.name}</span>
+                        {source.verified && (
+                          <Badge variant="secondary" className="text-[10px] bg-green-500/20 text-green-500 border-0 flex-shrink-0">
+                            ✓ Verified
+                          </Badge>
+                        )}
+                        {source.isFirst && (
+                          <Badge variant="secondary" className="text-[10px] bg-blue-500/20 text-blue-500 border-0 flex-shrink-0">
+                            First Report
+                          </Badge>
+                        )}
+                      </div>
+                      {source.published_at && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {formatTimestamp(source.published_at)}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
                 </a>
               ))}
             </div>
