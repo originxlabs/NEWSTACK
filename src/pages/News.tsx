@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Loader2, TrendingUp, Clock, RefreshCw, Filter, 
-  ChevronDown, Layers, Grid3X3, List, Search, 
-  Radio, Shield, Zap, CheckCircle2, AlertTriangle
+  Loader2, Clock, RefreshCw, 
+  Layers, Grid3X3, List, Radio, 
+  Shield, Zap, CheckCircle2, TrendingUp,
+  Filter, ChevronDown
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { NewsCard, NewsItem } from "@/components/NewsCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useInfiniteNews, NewsArticle } from "@/hooks/use-news";
 import { usePreferences } from "@/contexts/PreferencesContext";
@@ -22,33 +22,31 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 
-type FeedType = "all" | "breaking" | "developing" | "stabilized";
-type ViewMode = "signals" | "clusters";
-type SortType = "latest" | "sources" | "confidence";
+type SignalType = "all" | "breaking" | "developing" | "stabilized";
+type ViewMode = "stream" | "clusters";
 
-const signalFilters: { id: FeedType; name: string; icon: React.ReactNode; color: string }[] = [
-  { id: "all", name: "All Signals", icon: <Radio className="w-4 h-4" />, color: "" },
-  { id: "breaking", name: "Breaking", icon: <Zap className="w-4 h-4" />, color: "text-red-500" },
-  { id: "developing", name: "Developing", icon: <RefreshCw className="w-4 h-4" />, color: "text-amber-500" },
-  { id: "stabilized", name: "Stabilized", icon: <CheckCircle2 className="w-4 h-4" />, color: "text-emerald-500" },
+const signalFilters: { id: SignalType; name: string; icon: React.ReactNode }[] = [
+  { id: "all", name: "All", icon: <Radio className="w-3 h-3" /> },
+  { id: "breaking", name: "Breaking", icon: <Zap className="w-3 h-3" /> },
+  { id: "developing", name: "Developing", icon: <RefreshCw className="w-3 h-3" /> },
+  { id: "stabilized", name: "Verified", icon: <CheckCircle2 className="w-3 h-3" /> },
 ];
 
 const categories = [
-  { slug: "all", name: "All", icon: "📰" },
-  { slug: "politics", name: "Politics", icon: "🏛️" },
-  { slug: "business", name: "Business", icon: "💼" },
-  { slug: "tech", name: "Technology", icon: "💻" },
-  { slug: "world", name: "World", icon: "🌍" },
-  { slug: "health", name: "Health", icon: "🏥" },
-  { slug: "climate", name: "Climate", icon: "🌱" },
-  { slug: "science", name: "Science", icon: "🔬" },
+  { slug: "all", name: "All" },
+  { slug: "politics", name: "Politics" },
+  { slug: "business", name: "Business" },
+  { slug: "tech", name: "Technology" },
+  { slug: "world", name: "World" },
+  { slug: "health", name: "Health" },
+  { slug: "climate", name: "Climate" },
+  { slug: "science", name: "Science" },
 ];
 
-function determineSignal(publishedAt?: string, sourceCount?: number): FeedType {
+function determineSignal(publishedAt?: string, sourceCount?: number): SignalType {
   if (!publishedAt) return "developing";
   const ageMinutes = (Date.now() - new Date(publishedAt).getTime()) / (1000 * 60);
   if (ageMinutes < 30) return "breaking";
@@ -100,11 +98,9 @@ export default function News() {
   const { country, language } = usePreferences();
   const isMobile = useIsMobile();
   
-  const [signalFilter, setSignalFilter] = useState<FeedType>("all");
+  const [signalFilter, setSignalFilter] = useState<SignalType>("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("signals");
-  const [sortBy, setSortBy] = useState<SortType>("latest");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("stream");
   const [multiSourceOnly, setMultiSourceOnly] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<NewsItem | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -119,8 +115,7 @@ export default function News() {
     topic: selectedCategory === "all" ? undefined : selectedCategory,
     pageSize: 20,
     feedType: "recent" as const,
-    query: searchQuery || undefined,
-  }), [country?.code, language?.code, selectedCategory, searchQuery]);
+  }), [country?.code, language?.code, selectedCategory]);
 
   const {
     data,
@@ -131,7 +126,6 @@ export default function News() {
     refetch,
   } = useInfiniteNews(queryParams);
 
-  // Transform and filter articles
   const newsItems = useMemo(() => {
     if (!data?.pages) return [];
     
@@ -139,7 +133,6 @@ export default function News() {
       page.articles.map(transformArticle)
     );
 
-    // Filter by signal type
     if (signalFilter !== "all") {
       items = items.filter(item => {
         const signal = determineSignal(item.publishedAt, item.sourceCount);
@@ -147,25 +140,13 @@ export default function News() {
       });
     }
 
-    // Filter by multi-source
     if (multiSourceOnly) {
       items = items.filter(item => (item.sourceCount || 0) >= 3);
     }
 
-    // Sort
-    if (sortBy === "sources") {
-      items.sort((a, b) => (b.sourceCount || 0) - (a.sourceCount || 0));
-    } else if (sortBy === "confidence") {
-      const confOrder = { high: 3, medium: 2, low: 1 };
-      items.sort((a, b) => 
-        confOrder[determineConfidence(b.sourceCount)] - confOrder[determineConfidence(a.sourceCount)]
-      );
-    }
-
     return items;
-  }, [data, signalFilter, multiSourceOnly, sortBy]);
+  }, [data, signalFilter, multiSourceOnly]);
 
-  // Create clusters for cluster view
   const storyClusters = useMemo(() => {
     return newsItems.slice(0, 12).map(item => ({
       id: item.id,
@@ -179,7 +160,6 @@ export default function News() {
     }));
   }, [newsItems]);
 
-  // Stats
   const stats = useMemo(() => {
     const total = newsItems.length;
     const breaking = newsItems.filter(i => determineSignal(i.publishedAt, i.sourceCount) === "breaking").length;
@@ -187,7 +167,6 @@ export default function News() {
     return { total, breaking, multiSource };
   }, [newsItems]);
 
-  // Handle refresh
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await refetch();
@@ -195,7 +174,6 @@ export default function News() {
     setIsRefreshing(false);
   }, [refetch]);
 
-  // Infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -214,48 +192,47 @@ export default function News() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-20 pb-12">
+      <main className="pt-14 pb-12">
         {/* Page Header */}
         <section className="border-b border-border/50 bg-muted/20">
-          <div className="container mx-auto max-w-6xl px-4 py-8">
+          <div className="container mx-auto max-w-6xl px-4 py-6 sm:py-8">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-3">
                 <Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
                   <Radio className="w-2.5 h-2.5" />
                   LIVE
                 </Badge>
-                <span className="text-xs text-muted-foreground">
-                  Last updated: {format(lastRefreshed, "h:mm a")}
+                <span className="text-[11px] text-muted-foreground">
+                  {format(lastRefreshed, "h:mm a")}
                 </span>
               </div>
               
-              <h1 className="font-display text-2xl sm:text-3xl font-semibold text-foreground mb-2">
+              <h1 className="font-display text-xl sm:text-2xl font-semibold text-foreground mb-1">
                 Signal Stream
               </h1>
-              <p className="text-muted-foreground max-w-2xl">
-                Real-time news intelligence from 66+ verified sources. Stories are clustered, 
-                scored for credibility, and labeled by signal type.
+              <p className="text-muted-foreground text-sm max-w-xl">
+                Real-time news from 66+ verified sources
               </p>
 
-              {/* Stats */}
-              <div className="flex flex-wrap items-center gap-6 mt-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-foreground font-medium">{stats.total}</span>
+              {/* Stats row */}
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-4 text-xs sm:text-sm">
+                <div className="flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium">{stats.total}</span>
                   <span className="text-muted-foreground">stories</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-red-500" />
-                  <span className="text-foreground font-medium">{stats.breaking}</span>
+                <div className="flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-red-500" />
+                  <span className="font-medium">{stats.breaking}</span>
                   <span className="text-muted-foreground">breaking</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-emerald-500" />
-                  <span className="text-foreground font-medium">{stats.multiSource}</span>
-                  <span className="text-muted-foreground">multi-source</span>
+                <div className="flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="font-medium">{stats.multiSource}</span>
+                  <span className="text-muted-foreground">verified</span>
                 </div>
               </div>
             </motion.div>
@@ -263,53 +240,54 @@ export default function News() {
         </section>
 
         {/* Controls */}
-        <section className="sticky top-16 z-30 border-b border-border/50 bg-background/95 backdrop-blur-sm">
-          <div className="container mx-auto max-w-6xl px-4 py-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <section className="sticky top-14 z-30 border-b border-border/50 bg-background/95 backdrop-blur-sm">
+          <div className="container mx-auto max-w-6xl px-4 py-2.5">
+            <div className="flex items-center justify-between gap-4">
               {/* Signal Filters */}
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
                 {signalFilters.map(filter => (
                   <Button
                     key={filter.id}
-                    variant={signalFilter === filter.id ? "default" : "outline"}
+                    variant={signalFilter === filter.id ? "secondary" : "ghost"}
                     size="sm"
-                    className={`gap-1.5 flex-shrink-0 ${filter.color}`}
+                    className="gap-1.5 flex-shrink-0 h-7 text-xs px-2.5"
                     onClick={() => setSignalFilter(filter.id)}
                   >
                     {filter.icon}
-                    {filter.name}
+                    <span className="hidden sm:inline">{filter.name}</span>
                   </Button>
                 ))}
               </div>
 
-              {/* View Toggle & Filters */}
-              <div className="flex items-center gap-3">
-                {/* Multi-source toggle */}
-                <div className="flex items-center gap-2 text-sm">
+              {/* Right controls */}
+              <div className="flex items-center gap-2">
+                {/* 3+ sources toggle */}
+                <div className="hidden sm:flex items-center gap-1.5 text-xs">
                   <span className="text-muted-foreground">3+ sources</span>
                   <Switch
                     checked={multiSourceOnly}
                     onCheckedChange={setMultiSourceOnly}
+                    className="scale-75"
                   />
                 </div>
 
-                {/* View Mode Toggle */}
-                <div className="flex items-center border rounded-lg p-0.5">
+                {/* View Toggle */}
+                <div className="flex items-center border rounded-md p-0.5">
                   <Button
-                    variant={viewMode === "signals" ? "secondary" : "ghost"}
+                    variant={viewMode === "stream" ? "secondary" : "ghost"}
                     size="sm"
-                    className="h-7 px-2"
-                    onClick={() => setViewMode("signals")}
+                    className="h-6 px-2"
+                    onClick={() => setViewMode("stream")}
                   >
-                    <List className="w-4 h-4" />
+                    <List className="w-3.5 h-3.5" />
                   </Button>
                   <Button
                     variant={viewMode === "clusters" ? "secondary" : "ghost"}
                     size="sm"
-                    className="h-7 px-2"
+                    className="h-6 px-2"
                     onClick={() => setViewMode("clusters")}
                   >
-                    <Grid3X3 className="w-4 h-4" />
+                    <Grid3X3 className="w-3.5 h-3.5" />
                   </Button>
                 </div>
 
@@ -317,25 +295,25 @@ export default function News() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="h-7 w-7 p-0"
                   onClick={handleRefresh}
                   disabled={isRefreshing}
                 >
-                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
                 </Button>
               </div>
             </div>
 
             {/* Category Pills */}
-            <div className="flex items-center gap-2 mt-3 overflow-x-auto scrollbar-hide pb-1">
+            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto scrollbar-hide pb-0.5">
               {categories.map(cat => (
                 <Button
                   key={cat.slug}
                   variant={selectedCategory === cat.slug ? "secondary" : "ghost"}
                   size="sm"
-                  className="flex-shrink-0 gap-1 h-7 text-xs"
+                  className="flex-shrink-0 h-6 text-[11px] px-2"
                   onClick={() => setSelectedCategory(cat.slug)}
                 >
-                  <span>{cat.icon}</span>
                   {cat.name}
                 </Button>
               ))}
@@ -344,21 +322,20 @@ export default function News() {
         </section>
 
         {/* Content */}
-        <section className="py-6">
+        <section className="py-4 sm:py-6">
           <div className="container mx-auto max-w-6xl px-4">
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
             ) : viewMode === "clusters" ? (
-              // Cluster View
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {storyClusters.map((cluster, i) => (
                   <motion.div
                     key={cluster.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03 }}
+                    transition={{ delay: i * 0.02 }}
                   >
                     <StoryCluster
                       {...cluster}
@@ -374,14 +351,13 @@ export default function News() {
                 ))}
               </div>
             ) : (
-              // Signal Stream View
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {newsItems.map((item, i) => (
                   <motion.div
                     key={item.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.02 }}
+                    transition={{ delay: i * 0.015 }}
                   >
                     <NewsCard
                       news={item}
@@ -399,7 +375,7 @@ export default function News() {
             {/* Loader */}
             <div ref={loaderRef} className="py-8 flex justify-center">
               {isFetchingNextPage && (
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               )}
             </div>
           </div>
