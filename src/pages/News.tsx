@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Loader2, Radio, RefreshCw, 
   Layers, Zap, Shield, Filter,
-  Grid3X3, List, ChevronDown
+  Grid3X3, List, Bell
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -13,12 +13,14 @@ import { Switch } from "@/components/ui/switch";
 import { useInfiniteNews, NewsArticle } from "@/hooks/use-news";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { ArticleDetailPanel } from "@/components/ArticleDetailPanel";
-import { StoryCluster } from "@/components/intelligence";
+import { StoryCluster, UpdateBadge } from "@/components/intelligence";
 import { LeftContextPanel } from "@/components/news/LeftContextPanel";
 import { RightTrustPanel } from "@/components/news/RightTrustPanel";
 import { IntelligenceNewsCard, IntelligenceNewsItem } from "@/components/news/IntelligenceNewsCard";
+import { NewsPageSkeleton, NewsCardSkeleton, StoryClusterSkeleton } from "@/components/ui/skeleton-loaders";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { format } from "date-fns";
+import { useLastViewed } from "@/hooks/use-last-viewed";
+import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
 type SignalType = "all" | "breaking" | "developing" | "stabilized";
@@ -90,6 +92,7 @@ function transformArticle(article: NewsArticle): IntelligenceNewsItem {
 export default function News() {
   const { country, language } = usePreferences();
   const isMobile = useIsMobile();
+  const { markAsViewed, checkForUpdates, getLastSessionTime, wasViewed } = useLastViewed();
   
   const [signalFilter, setSignalFilter] = useState<SignalType>("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -100,9 +103,9 @@ export default function News() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
   
   const loaderRef = useRef<HTMLDivElement>(null);
+  const lastSession = getLastSessionTime();
 
   const queryParams = useMemo(() => ({
     country: country?.code,
@@ -142,6 +145,25 @@ export default function News() {
     return items;
   }, [data, signalFilter, multiSourceOnly]);
 
+  // Check for updates on viewed stories
+  const storyUpdatesMap = useMemo(() => {
+    const map = new Map<string, { type: string; message: string }[]>();
+    newsItems.forEach(item => {
+      const signal = determineSignal(item.publishedAt, item.sourceCount);
+      const updates = checkForUpdates(item.id, {
+        headline: item.headline,
+        sourceCount: item.sourceCount || 1,
+        signal,
+      });
+      if (updates.length > 0) {
+        map.set(item.id, updates.map(u => ({ type: u.type, message: u.message })));
+      }
+    });
+    return map;
+  }, [newsItems, checkForUpdates]);
+
+  const updatedStoriesCount = storyUpdatesMap.size;
+
   const storyClusters = useMemo(() => {
     return newsItems.slice(0, 12).map(item => ({
       id: item.id,
@@ -168,6 +190,17 @@ export default function News() {
     setLastRefreshed(new Date());
     setIsRefreshing(false);
   }, [refetch]);
+
+  const handleArticleClick = useCallback((item: IntelligenceNewsItem) => {
+    const signal = determineSignal(item.publishedAt, item.sourceCount);
+    markAsViewed(item.id, {
+      headline: item.headline,
+      sourceCount: item.sourceCount || 1,
+      signal,
+    });
+    setSelectedArticle(item);
+    setIsPanelOpen(true);
+  }, [markAsViewed]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -211,6 +244,12 @@ export default function News() {
                 <span className="text-[11px] text-muted-foreground">
                   Updated {format(lastRefreshed, "h:mm a")}
                 </span>
+                {updatedStoriesCount > 0 && (
+                  <Badge variant="outline" className="gap-1 bg-primary/10 text-primary border-primary/20 text-[10px]">
+                    <Bell className="w-2.5 h-2.5" />
+                    {updatedStoriesCount} updated
+                  </Badge>
+                )}
               </div>
               
               <h1 className="font-display text-xl sm:text-2xl font-semibold text-foreground mb-1">
@@ -219,6 +258,13 @@ export default function News() {
               <p className="text-muted-foreground text-sm max-w-xl">
                 Real-time news intelligence from verified sources
               </p>
+
+              {/* Last session info */}
+              {lastSession && (
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  Last visit: {formatDistanceToNow(lastSession, { addSuffix: true })}
+                </p>
+              )}
 
               {/* Stats row */}
               <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-3 text-xs sm:text-sm">
@@ -313,118 +359,138 @@ export default function News() {
         {/* 3-Column Layout */}
         <section className="py-4 sm:py-6">
           <div className="container mx-auto max-w-7xl px-4">
-            <div className="flex gap-6">
-              {/* LEFT COLUMN - Context & Filters (Desktop only) */}
-              <LeftContextPanel
-                categories={categories}
-                selectedCategory={selectedCategory}
-                onCategoryChange={setSelectedCategory}
-                timeFilter={timeFilter}
-                onTimeFilterChange={setTimeFilter}
-                viewAsClusters={viewMode === "clusters"}
-                onViewChange={(clusters) => setViewMode(clusters ? "clusters" : "stream")}
-              />
+            {isLoading ? (
+              <NewsPageSkeleton />
+            ) : (
+              <div className="flex gap-6">
+                {/* LEFT COLUMN - Context & Filters (Desktop only) */}
+                <LeftContextPanel
+                  categories={categories}
+                  selectedCategory={selectedCategory}
+                  onCategoryChange={setSelectedCategory}
+                  timeFilter={timeFilter}
+                  onTimeFilterChange={setTimeFilter}
+                  viewAsClusters={viewMode === "clusters"}
+                  onViewChange={(clusters) => setViewMode(clusters ? "clusters" : "stream")}
+                />
 
-              {/* CENTER COLUMN - Primary Intelligence Stream */}
-              <div className="flex-1 min-w-0">
-                {/* Desktop Controls */}
-                <div className="hidden lg:flex items-center justify-between mb-4 pb-3 border-b border-border/50">
-                  <div className="flex items-center gap-1.5">
-                    {signalFilters.map(filter => (
-                      <Button
-                        key={filter.id}
-                        variant={signalFilter === filter.id ? "secondary" : "ghost"}
-                        size="sm"
-                        className="gap-1.5 h-7 text-xs px-2.5"
-                        onClick={() => setSignalFilter(filter.id)}
-                      >
-                        {filter.icon}
-                        {filter.name}
-                      </Button>
-                    ))}
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="text-muted-foreground">3+ sources</span>
-                      <Switch
-                        checked={multiSourceOnly}
-                        onCheckedChange={setMultiSourceOnly}
-                        className="scale-75"
-                      />
+                {/* CENTER COLUMN - Primary Intelligence Stream */}
+                <div className="flex-1 min-w-0">
+                  {/* Desktop Controls */}
+                  <div className="hidden lg:flex items-center justify-between mb-4 pb-3 border-b border-border/50">
+                    <div className="flex items-center gap-1.5">
+                      {signalFilters.map(filter => (
+                        <Button
+                          key={filter.id}
+                          variant={signalFilter === filter.id ? "secondary" : "ghost"}
+                          size="sm"
+                          className="gap-1.5 h-7 text-xs px-2.5"
+                          onClick={() => setSignalFilter(filter.id)}
+                        >
+                          {filter.icon}
+                          {filter.name}
+                        </Button>
+                      ))}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={handleRefresh}
-                      disabled={isRefreshing}
-                    >
-                      <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Content */}
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-20">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : viewMode === "clusters" ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {storyClusters.map((cluster, i) => (
-                      <motion.div
-                        key={cluster.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.02 }}
-                      >
-                        <StoryCluster
-                          {...cluster}
-                          onReadMore={() => {
-                            const item = newsItems.find(n => n.id === cluster.id);
-                            if (item) {
-                              setSelectedArticle(item);
-                              setIsPanelOpen(true);
-                            }
-                          }}
+                    
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span className="text-muted-foreground">3+ sources</span>
+                        <Switch
+                          checked={multiSourceOnly}
+                          onCheckedChange={setMultiSourceOnly}
+                          className="scale-75"
                         />
-                      </motion.div>
-                    ))}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                      >
+                        <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
+                      </Button>
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {newsItems.map((item, i) => (
-                      <IntelligenceNewsCard
-                        key={item.id}
-                        news={item}
-                        index={i}
-                        onClick={() => {
-                          setSelectedArticle(item);
-                          setIsPanelOpen(true);
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
 
-                {/* Loader */}
-                <div ref={loaderRef} className="py-8 flex justify-center">
-                  {isFetchingNextPage && (
-                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  {/* Content */}
+                  {viewMode === "clusters" ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {storyClusters.map((cluster, i) => (
+                        <motion.div
+                          key={cluster.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.02 }}
+                        >
+                          <div className="relative">
+                            {storyUpdatesMap.has(cluster.id) && (
+                              <div className="absolute -top-1 -right-1 z-10">
+                                <UpdateBadge updateCount={storyUpdatesMap.get(cluster.id)?.length || 0} />
+                              </div>
+                            )}
+                            <StoryCluster
+                              {...cluster}
+                              onReadMore={() => {
+                                const item = newsItems.find(n => n.id === cluster.id);
+                                if (item) handleArticleClick(item);
+                              }}
+                            />
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {newsItems.map((item, i) => {
+                        const updates = storyUpdatesMap.get(item.id);
+                        return (
+                          <div key={item.id} className="relative">
+                            {updates && updates.length > 0 && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mb-2 px-3 py-1.5 rounded-md bg-primary/5 border border-primary/20 flex items-center gap-2"
+                              >
+                                <Bell className="w-3 h-3 text-primary" />
+                                <span className="text-[11px] text-primary font-medium">
+                                  Updated since last view
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {updates[0].message}
+                                </span>
+                              </motion.div>
+                            )}
+                            <IntelligenceNewsCard
+                              news={item}
+                              index={i}
+                              onClick={() => handleArticleClick(item)}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                </div>
-              </div>
 
-              {/* RIGHT COLUMN - Trust & Signals Panel (Desktop only) */}
-              <RightTrustPanel
-                totalSources={66}
-                primarySources={24}
-                secondarySources={42}
-                contradictionsDetected={stats.breaking > 0 ? 1 : 0}
-                emergingSignals={stats.breaking > 0 ? ["Increased activity in breaking news"] : []}
-              />
-            </div>
+                  {/* Loader */}
+                  <div ref={loaderRef} className="py-8 flex justify-center">
+                    {isFetchingNextPage && (
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+
+                {/* RIGHT COLUMN - Trust & Signals Panel (Desktop only) */}
+                <RightTrustPanel
+                  totalSources={66}
+                  primarySources={24}
+                  secondarySources={42}
+                  contradictionsDetected={stats.breaking > 0 ? 1 : 0}
+                  emergingSignals={updatedStoriesCount > 0 ? [`${updatedStoriesCount} stories updated since your last visit`] : []}
+                />
+              </div>
+            )}
           </div>
         </section>
       </main>

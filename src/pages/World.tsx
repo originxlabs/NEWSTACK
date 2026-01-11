@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { 
   Globe, TrendingUp, AlertTriangle, MapPin, 
-  ChevronRight, Radio, ArrowUpRight, Activity,
+  ChevronRight, Radio, Activity,
   Layers, Clock
 } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useNavigate } from "react-router-dom";
-import { GlobalPulse } from "@/components/intelligence";
+import { GlobalPulse, WorldMapOverlay } from "@/components/intelligence";
+import { RegionCardSkeleton, WorldMapSkeleton } from "@/components/ui/skeleton-loaders";
 
 interface Region {
   code: string;
@@ -161,13 +162,24 @@ export default function World() {
   const { country } = usePreferences();
   const navigate = useNavigate();
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
+    // Simulate loading
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleRegionClick = (region: Region) => {
     setSelectedRegion(region);
+  };
+
+  const handleMapRegionClick = (regionId: string) => {
+    const region = regions.find(r => r.code.toLowerCase() === regionId);
+    if (region) {
+      setSelectedRegion(region);
+    }
   };
 
   const totalStories = useMemo(() => 
@@ -222,6 +234,17 @@ export default function World() {
           </div>
         </section>
 
+        {/* World Map Overlay */}
+        <section className="py-6">
+          <div className="container mx-auto max-w-6xl px-4">
+            {isLoading ? (
+              <WorldMapSkeleton />
+            ) : (
+              <WorldMapOverlay onRegionClick={handleMapRegionClick} />
+            )}
+          </div>
+        </section>
+
         {/* Global Pulse Component */}
         <section className="py-6">
           <div className="container mx-auto max-w-6xl px-4">
@@ -237,29 +260,41 @@ export default function World() {
               <span className="text-xs text-muted-foreground">{regions.length} regions tracked</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {regions.map((region, index) => (
-                <motion.div
-                  key={region.code}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <RegionCard 
-                    region={region} 
-                    onClick={() => handleRegionClick(region)} 
-                  />
-                </motion.div>
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <RegionCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {regions.map((region, index) => (
+                  <motion.div
+                    key={region.code}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <RegionCard 
+                      region={region} 
+                      onClick={() => handleRegionClick(region)} 
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
         {/* Hotspot Alert */}
-        {hotspotCount > 0 && (
+        {hotspotCount > 0 && !isLoading && (
           <section className="py-6">
             <div className="container mx-auto max-w-6xl px-4">
-              <div className="intel-card p-4 border-amber-500/20 bg-amber-500/5">
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="intel-card p-4 border-amber-500/20 bg-amber-500/5"
+              >
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                   <div>
@@ -272,7 +307,7 @@ export default function World() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </section>
         )}
