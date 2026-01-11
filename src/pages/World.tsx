@@ -1,9 +1,9 @@
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { 
   Globe, TrendingUp, TrendingDown, AlertTriangle, 
   ChevronRight, Radio, Activity, Minus,
-  Layers, Clock, ArrowRight
+  Layers, Clock, ArrowRight, RefreshCw
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -11,76 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useWorldStats, RegionStats } from "@/hooks/use-world-stats";
 
 // ===== REGION DATA STRUCTURE =====
-interface Region {
-  id: string;
-  name: string;
-  storyCount: number;
-  activeNarratives: number;
-  status: "stable" | "active" | "hotspot";
-  trendingNarrative: string;
-  trend: "up" | "down" | "stable";
-}
-
-// ===== STATIC REGION DATA =====
-// This visualizes NEWS INTELLIGENCE, not geography
-const regions: Region[] = [
-  { 
-    id: "north-america",
-    name: "North America", 
-    storyCount: 234, 
-    activeNarratives: 12,
-    status: "active",
-    trendingNarrative: "Federal Reserve policy decisions",
-    trend: "up"
-  },
-  { 
-    id: "europe",
-    name: "Europe", 
-    storyCount: 189, 
-    activeNarratives: 9,
-    status: "active",
-    trendingNarrative: "Energy market developments",
-    trend: "stable"
-  },
-  { 
-    id: "asia-pacific",
-    name: "Asia Pacific", 
-    storyCount: 312, 
-    activeNarratives: 15,
-    status: "hotspot",
-    trendingNarrative: "Trade negotiations progress",
-    trend: "up"
-  },
-  { 
-    id: "middle-east",
-    name: "Middle East", 
-    storyCount: 156, 
-    activeNarratives: 8,
-    status: "hotspot",
-    trendingNarrative: "Regional diplomatic efforts",
-    trend: "up"
-  },
-  { 
-    id: "africa",
-    name: "Africa", 
-    storyCount: 67, 
-    activeNarratives: 5,
-    status: "stable",
-    trendingNarrative: "Climate adaptation initiatives",
-    trend: "stable"
-  },
-  { 
-    id: "south-america",
-    name: "South America", 
-    storyCount: 78, 
-    activeNarratives: 6,
-    status: "stable",
-    trendingNarrative: "Economic reform discussions",
-    trend: "down"
-  },
-];
+type Region = RegionStats;
 
 // ===== STATUS STYLES =====
 const statusStyles = {
@@ -190,26 +124,29 @@ function RegionCard({ region, onClick }: { region: Region; onClick: () => void }
 // ===== MAIN WORLD PAGE COMPONENT =====
 export default function World() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 600);
-    return () => clearTimeout(timer);
-  }, []);
+  const { data: regions = [], isLoading, dataUpdatedAt, refetch, isFetching } = useWorldStats();
 
   // Computed metrics
   const totalStories = useMemo(() => 
     regions.reduce((acc, r) => acc + r.storyCount, 0), 
-  []);
+  [regions]);
 
   const totalNarratives = useMemo(() => 
     regions.reduce((acc, r) => acc + r.activeNarratives, 0), 
-  []);
+  [regions]);
 
   const hotspotRegions = useMemo(() => 
     regions.filter(r => r.status === "hotspot"),
-  []);
+  [regions]);
+
+  // Format last updated time
+  const lastUpdated = useMemo(() => {
+    if (!dataUpdatedAt) return "Loading...";
+    const diff = Math.floor((Date.now() - dataUpdatedAt) / 1000);
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return `${Math.floor(diff / 3600)}h ago`;
+  }, [dataUpdatedAt]);
 
   const handleRegionClick = (region: Region) => {
     // Navigate to filtered news view for this region
@@ -233,9 +170,14 @@ export default function World() {
                   <Radio className="w-2.5 h-2.5" />
                   LIVE
                 </Badge>
-                <span className="text-xs text-muted-foreground">
-                  Updated every 15 minutes
-                </span>
+                <button 
+                  onClick={() => refetch()}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  disabled={isFetching}
+                >
+                  <RefreshCw className={cn("w-3 h-3", isFetching && "animate-spin")} />
+                  {lastUpdated}
+                </button>
               </div>
 
               <h1 className="font-display text-2xl sm:text-3xl font-semibold text-foreground mb-2">
@@ -265,8 +207,8 @@ export default function World() {
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">2m</span>
-                  <span className="text-muted-foreground">ago</span>
+                  <span className="font-medium">48h</span>
+                  <span className="text-muted-foreground">window</span>
                 </div>
               </div>
             </motion.div>
