@@ -6,13 +6,13 @@ import { useOfflineCache } from "@/hooks/use-offline-cache";
 import { useCategoryPreferences } from "@/hooks/use-category-preferences";
 import { useHaptic } from "@/hooks/use-haptic";
 import { SwipeNewsCard } from "./SwipeNewsCard";
+import { NLogo } from "@/components/NLogo";
 import { 
   Loader2, Wifi, WifiOff, ChevronLeft, ChevronRight, RefreshCw, Settings,
   Home, Newspaper, Headphones, MapPin, User, MoreHorizontal, CloudOff, Cloud
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import type { NewsItem } from "@/components/NewsCard";
 
 interface SwipeNewsFeedProps {
@@ -353,7 +353,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
           transition={{ type: "spring", stiffness: 200, damping: 20 }}
           className="relative z-10 flex flex-col items-center"
         >
-          {/* Logo */}
+          {/* Animated N Logo */}
           <motion.div
             animate={{ 
               rotateY: [0, 360],
@@ -366,9 +366,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
             }}
             className="relative mb-6"
           >
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/80 flex items-center justify-center shadow-2xl shadow-primary/30">
-              <span className="text-3xl font-bold text-primary-foreground font-display">N</span>
-            </div>
+            <NLogo size={72} animate color="hsl(var(--primary))" />
             {/* Glow ring */}
             <motion.div
               animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
@@ -502,7 +500,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Offline/Sync indicator */}
+        {/* Offline/Sync indicator - hide count */}
         <AnimatePresence>
           {(isOffline || isSyncing) && (
             <motion.div
@@ -523,9 +521,7 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
               ) : (
                 <>
                   <CloudOff className="w-3.5 h-3.5 text-white" />
-                  <span className="text-xs text-white font-medium">
-                    Offline • {cachedCount} stories cached
-                  </span>
+                  <span className="text-xs text-white font-medium">Offline Mode</span>
                 </>
               )}
             </motion.div>
@@ -655,24 +651,19 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
           </AnimatePresence>
         </div>
 
-        {/* Story counter with last refresh time and manual refresh button */}
-        <div className="fixed top-12 right-3 z-40 flex flex-col items-end gap-1">
-          <div className="bg-black/50 backdrop-blur-md rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg">
-            <span className="text-xs text-white font-semibold">
-              {currentIndex + 1} / {displayItems.length}
-            </span>
-          </div>
+        {/* Refresh button only - no story count for cleaner native look */}
+        <div className="fixed top-12 right-3 z-40">
           <motion.button 
             onClick={handleRefresh}
             disabled={isAutoRefreshing}
-            className="bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1.5 shadow-md active:bg-black/60"
+            className="bg-black/40 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-md active:bg-black/60"
             whileTap={{ scale: 0.95 }}
             animate={isAutoRefreshing ? { scale: [1, 1.05, 1] } : {}}
             transition={{ duration: 0.5, repeat: isAutoRefreshing ? Infinity : 0 }}
           >
-            <RefreshCw className={`w-3 h-3 text-white/80 ${isAutoRefreshing ? 'animate-spin' : ''}`} />
-            <span className="text-[10px] text-white/80 font-medium">
-              {isAutoRefreshing ? 'Refreshing...' : getLastRefreshedText()}
+            <RefreshCw className={`w-3.5 h-3.5 text-white/90 ${isAutoRefreshing ? 'animate-spin' : ''}`} />
+            <span className="text-xs text-white/90 font-medium">
+              {isAutoRefreshing ? 'Refreshing' : getLastRefreshedText()}
             </span>
           </motion.button>
         </div>
