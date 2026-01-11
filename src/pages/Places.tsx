@@ -1,31 +1,226 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Search, MessageCircle, Loader2, X, Radio, Shield } from "lucide-react";
+import { MapPin, Search, Loader2, X, Thermometer, Wind, Droplets, Calendar, Users, Clock, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { usePlaces } from "@/hooks/use-places";
+import { Card, CardContent } from "@/components/ui/card";
+import { usePlaces, PlaceData } from "@/hooks/use-places";
 import { useDebounce } from "@/hooks/use-debounce";
-import { PlaceHero } from "@/components/places/PlaceHero";
-import { LiveStatusStrip } from "@/components/places/LiveStatusStrip";
-import { AIPlaceInsight } from "@/components/places/AIPlaceInsight";
-import { BestPlacesGrid } from "@/components/places/BestPlacesGrid";
-import { NearbyEssentials } from "@/components/places/NearbyEssentials";
-import { PlaceChat } from "@/components/places/PlaceChat";
-import { PlaceSkeleton } from "@/components/places/PlaceSkeleton";
-import { WhatsHappening } from "@/components/places/WhatsHappening";
 import { FeaturedCities, type FeaturedCity } from "@/components/places/FeaturedCities";
-import { InteractiveMap } from "@/components/places/InteractiveMap";
-import { LocalImpactSummary, SourceTrustPanel } from "@/components/intelligence";
+import { WhatsHappening } from "@/components/places/WhatsHappening";
 import { useSearchParams } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
+// ===== INTELLIGENCE-DRIVEN PLACE BRIEF =====
+// This is a LOCAL INTELLIGENCE BRIEF, not a travel or map application
+// Design hierarchy: TEXT FIRST, INTELLIGENCE BEFORE MAPS
+
+interface PlaceIntelligenceProps {
+  placeData: PlaceData;
+}
+
+// Quick Facts Strip - Temperature, Weather, AQI, Best Season
+function QuickFactsStrip({ placeData }: PlaceIntelligenceProps) {
+  const { weather, aqi, aiSummary } = placeData;
+  
+  return (
+    <div className="flex flex-wrap gap-4 py-4 border-b border-border/50">
+      {weather?.current && (
+        <div className="flex items-center gap-2 text-sm">
+          <Thermometer className="w-4 h-4 text-muted-foreground" />
+          <span className="font-medium">{Math.round(weather.current.temp)}°C</span>
+          <span className="text-muted-foreground">{weather.current.condition}</span>
+        </div>
+      )}
+      {weather?.current?.humidity && (
+        <div className="flex items-center gap-2 text-sm">
+          <Droplets className="w-4 h-4 text-muted-foreground" />
+          <span>{weather.current.humidity}% humidity</span>
+        </div>
+      )}
+      {weather?.current?.wind_speed && (
+        <div className="flex items-center gap-2 text-sm">
+          <Wind className="w-4 h-4 text-muted-foreground" />
+          <span>{Math.round(weather.current.wind_speed)} km/h</span>
+        </div>
+      )}
+      {aqi?.aqi && (
+        <div className="flex items-center gap-2 text-sm">
+          <div 
+            className={cn(
+              "w-2 h-2 rounded-full",
+              aqi.aqi <= 50 ? "bg-emerald-500" :
+              aqi.aqi <= 100 ? "bg-yellow-500" :
+              aqi.aqi <= 150 ? "bg-orange-500" : "bg-red-500"
+            )}
+          />
+          <span>AQI {aqi.aqi}</span>
+          <span className="text-muted-foreground text-xs">({aqi.category})</span>
+        </div>
+      )}
+      {aiSummary?.bestTime && (
+        <div className="flex items-center gap-2 text-sm">
+          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Best time:</span>
+          <span>{aiSummary.bestTime}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Place Intelligence Summary - Factual, neutral, informative
+function PlaceIntelligenceSummary({ placeData }: PlaceIntelligenceProps) {
+  const { place, aiSummary, weather, aqi } = placeData;
+  
+  if (!place) return null;
+  
+  // Generate context based on available data
+  const contextLines: string[] = [];
+  
+  if (place.country) {
+    contextLines.push(`${place.name} is located in ${place.country}.`);
+  }
+  
+  // Current conditions context
+  if (weather?.current) {
+    const temp = Math.round(weather.current.temp);
+    const condition = weather.current.condition.toLowerCase();
+    contextLines.push(`Current conditions: ${temp}°C with ${condition}.`);
+  }
+  
+  if (aqi?.aqi) {
+    const aqiLevel = aqi.aqi <= 50 ? "good" : aqi.aqi <= 100 ? "moderate" : "poor";
+    contextLines.push(`Air quality is ${aqiLevel} (AQI ${aqi.aqi}).`);
+  }
+
+  return (
+    <Card className="border-border/50">
+      <CardContent className="p-6">
+        <h2 className="font-medium text-base mb-4">Place Intelligence Summary</h2>
+        
+        <div className="space-y-4">
+          {/* Context */}
+          <div>
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Context</h3>
+            <p className="text-sm text-foreground leading-relaxed">
+              {contextLines.join(" ") || `${place.name} is a destination worth exploring.`}
+            </p>
+          </div>
+          
+          {/* Best Time to Visit */}
+          {aiSummary?.bestTime && (
+            <div>
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Best Time to Visit</h3>
+              <p className="text-sm text-foreground">{aiSummary.bestTime}</p>
+            </div>
+          )}
+          
+          {/* Who This Place Is For */}
+          {aiSummary?.idealFor && (
+            <div>
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Ideal For</h3>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-muted-foreground" />
+                <p className="text-sm text-foreground">{aiSummary.idealFor}</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Considerations */}
+          {aiSummary?.avoidIf && (
+            <div>
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Consider Avoiding If</h3>
+              <p className="text-sm text-muted-foreground">{aiSummary.avoidIf}</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Nearby Essentials - Collapsed by default, load on demand
+function NearbyEssentialsCollapsed({ placeData }: PlaceIntelligenceProps) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  
+  const categories = [
+    { id: "hotels", label: "Hotels", data: placeData.nearbyHotels },
+    { id: "restaurants", label: "Restaurants", data: placeData.nearbyRestaurants },
+    { id: "attractions", label: "Attractions", data: placeData.nearbyAttractions },
+  ];
+  
+  return (
+    <Card className="border-border/50">
+      <CardContent className="p-6">
+        <h2 className="font-medium text-base mb-4">Nearby Essentials</h2>
+        <p className="text-xs text-muted-foreground mb-4">Click a category to view options</p>
+        
+        <div className="space-y-2">
+          {categories.map((cat) => (
+            <div key={cat.id}>
+              <button
+                onClick={() => setExpanded(expanded === cat.id ? null : cat.id)}
+                className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+              >
+                <span className="text-sm font-medium">{cat.label}</span>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {cat.data.length} nearby
+                  </Badge>
+                  {expanded === cat.id ? (
+                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
+              </button>
+              
+              <AnimatePresence>
+                {expanded === cat.id && cat.data.length > 0 && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-2 space-y-2 max-h-60 overflow-y-auto">
+                      {cat.data.slice(0, 5).map((item, idx) => (
+                        <div 
+                          key={idx} 
+                          className="flex items-center justify-between p-2 rounded bg-background border border-border/50"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{item.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{item.vicinity}</p>
+                          </div>
+                          {item.distance_km && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              {item.distance_km.toFixed(1)} km
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Main Places Page
 const Places = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [hasInitialSearch, setHasInitialSearch] = useState(!!initialSearch);
   const debouncedSearch = useDebounce(searchQuery, 300);
   
@@ -33,7 +228,6 @@ const Places = () => {
     searchPlaces,
     selectPlace,
     clearPlace,
-    openInMaps,
     searchResults,
     placeData,
     isLoading,
@@ -92,28 +286,15 @@ const Places = () => {
 
   const { place } = placeData;
 
-  // Mock data for intelligence components when place is selected
-  const localNewsItems = place ? [
-    { headline: `Local governance updates in ${place.name}`, category: "governance" },
-    { headline: `Infrastructure development projects announced`, category: "infrastructure" },
-    { headline: `Economic outlook and job market trends`, category: "economy" },
-  ] : [];
-
-  // Mock sources for SourceTrustPanel (using correct interface)
-  const localSources = place ? [
-    { source_name: "Local News", source_url: "#", published_at: new Date().toISOString(), description: "Local reporting" },
-    { source_name: "Regional Times", source_url: "#", published_at: new Date().toISOString(), description: "Regional coverage" },
-  ] : [];
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       
-      {/* Search Header */}
+      {/* Search Header - No place selected */}
       {!place && (
         <main className="pt-14">
           <section className="border-b border-border/50 bg-muted/20">
-            <div className="container mx-auto max-w-6xl px-4 py-8">
+            <div className="container mx-auto max-w-5xl px-4 py-8">
               <motion.div 
                 initial={{ opacity: 0, y: 10 }} 
                 animate={{ opacity: 1, y: 0 }}
@@ -129,14 +310,14 @@ const Places = () => {
                   Local Intelligence
                 </h1>
                 <p className="text-muted-foreground max-w-2xl text-sm">
-                  Real-time weather, air quality, local news, and AI insights for any destination.
+                  Understand any place: what it is, why it matters, and what's happening there now.
                 </p>
               </motion.div>
             </div>
           </section>
 
           <section className="py-8">
-            <div className="container mx-auto max-w-6xl px-4">
+            <div className="container mx-auto max-w-5xl px-4">
               <motion.div 
                 initial={{ opacity: 0, y: 10 }} 
                 animate={{ opacity: 1, y: 0 }} 
@@ -181,12 +362,12 @@ const Places = () => {
 
       {/* Loading State */}
       {isLoading && !place && (
-        <div className="container mx-auto max-w-6xl px-4 pb-16">
-          <PlaceSkeleton type="hero" />
+        <div className="container mx-auto max-w-5xl px-4 pb-16">
+          <div className="h-32 bg-muted/50 rounded-lg animate-pulse" />
         </div>
       )}
 
-      {/* Place Content */}
+      {/* Place Content - Intelligence-Driven Brief */}
       <AnimatePresence mode="wait">
         {place && (
           <motion.div 
@@ -196,61 +377,80 @@ const Places = () => {
             exit={{ opacity: 0 }}
             className="pt-14"
           >
-            <PlaceHero placeData={placeData} />
-
-            <div className="container mx-auto max-w-6xl px-4 py-8">
-              <Button variant="ghost" onClick={clearPlace} className="mb-6 h-8 text-sm">
-                <X className="h-3.5 w-3.5 mr-2" />
-                Search another place
-              </Button>
-
-              <LiveStatusStrip placeData={placeData} isLoading={isLoading} />
-
-              {/* Local Impact Summary - Intelligence Layer */}
-              <div className="mt-6">
-                <LocalImpactSummary 
-                  placeName={place.name || "this area"} 
-                  newsItems={localNewsItems}
-                />
+            {/* Place Header - TEXT FIRST */}
+            <section className="border-b border-border/50 bg-muted/20">
+              <div className="container mx-auto max-w-5xl px-4 py-6">
+                <Button variant="ghost" onClick={clearPlace} className="mb-4 h-8 text-sm -ml-2">
+                  <X className="h-3.5 w-3.5 mr-2" />
+                  Search another place
+                </Button>
+                
+                <div className="flex items-start gap-2 mb-2">
+                  <Badge variant="outline" className="gap-1 text-xs">
+                    <MapPin className="w-2.5 h-2.5" />
+                    Place Brief
+                  </Badge>
+                  {placeData.dataFreshness?.weather && (
+                    <Badge variant="outline" className="gap-1 text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                      <Clock className="w-2.5 h-2.5" />
+                      Live data
+                    </Badge>
+                  )}
+                </div>
+                
+                <h1 className="font-display text-2xl sm:text-3xl font-semibold text-foreground">
+                  {place.name}
+                </h1>
+                <p className="text-muted-foreground text-sm mt-1">
+                  {place.country ? `${place.state ? `${place.state}, ` : ""}${place.country}` : place.formatted_address}
+                </p>
+                
+                {/* Quick Facts Strip */}
+                <QuickFactsStrip placeData={placeData} />
               </div>
+            </section>
 
-              <div className="grid lg:grid-cols-3 gap-8 mt-8">
+            {/* Main Content Grid */}
+            <div className="container mx-auto max-w-5xl px-4 py-8">
+              <div className="grid lg:grid-cols-3 gap-6">
+                {/* Main Column - Intelligence */}
                 <div className="lg:col-span-2 space-y-6">
-                  <AIPlaceInsight placeData={placeData} />
+                  {/* Place Intelligence Summary */}
+                  <PlaceIntelligenceSummary placeData={placeData} />
+                  
+                  {/* Local News - Last 30 days, clustered */}
                   <WhatsHappening placeData={placeData} />
-                  <BestPlacesGrid placeData={placeData} isLoading={isLoading} />
                 </div>
 
+                {/* Sidebar - Essentials (Collapsed) */}
                 <div className="space-y-6">
-                  {/* Source Trust Panel - Intelligence Layer */}
-                  <SourceTrustPanel sources={localSources} />
-                  <InteractiveMap placeData={placeData} />
-                  <NearbyEssentials 
-                    placeData={placeData} 
-                    isLoading={isLoading} 
-                    onOpenInMaps={(lat, lng) => openInMaps(lat, lng, "google")} 
-                  />
+                  <NearbyEssentialsCollapsed placeData={placeData} />
+                  
+                  {/* Map - Optional, utility-focused */}
+                  {place.lat && place.lng && (
+                    <Card className="border-border/50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-medium">Location</h3>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 text-xs"
+                            onClick={() => window.open(`https://www.google.com/maps?q=${place.lat},${place.lng}`, "_blank")}
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            Open in Maps
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Coordinates: {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               </div>
             </div>
-
-            <motion.div 
-              initial={{ scale: 0, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              transition={{ delay: 0.5 }} 
-              className="fixed bottom-6 right-6 z-40"
-            >
-              <Button 
-                size="sm" 
-                className="rounded-full shadow-lg h-10 px-4 gap-2" 
-                onClick={() => setIsChatOpen(true)}
-              >
-                <MessageCircle className="h-4 w-4" />
-                Ask about this place
-              </Button>
-            </motion.div>
-
-            <PlaceChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} placeData={placeData} />
           </motion.div>
         )}
       </AnimatePresence>

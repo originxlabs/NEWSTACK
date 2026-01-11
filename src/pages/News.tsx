@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Loader2, Radio, RefreshCw, 
   Layers, Zap, Shield, 
-  Grid3X3, List, Bell, ChevronDown
+  Grid3X3, List, Bell, ChevronDown, X, Globe
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -25,6 +25,16 @@ import { useLastViewed } from "@/hooks/use-last-viewed";
 import { clusterStories, groupByTimeBlocks, StoryCluster, RawStory } from "@/lib/story-clustering";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+
+// Region name mapping
+const REGION_NAMES: Record<string, string> = {
+  "north-america": "North America",
+  "europe": "Europe",
+  "asia-pacific": "Asia Pacific",
+  "middle-east": "Middle East",
+  "africa": "Africa",
+  "south-america": "South America",
+};
 
 type SignalType = "all" | "breaking" | "developing" | "stabilized";
 type ViewMode = "stream" | "clusters";
@@ -132,9 +142,14 @@ function toIntelligenceNewsItem(story: RawStory): IntelligenceNewsItem {
 
 export default function News() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { country, language } = usePreferences();
   const isMobile = useIsMobile();
   const { markAsViewed, checkForUpdates, getLastSessionTime } = useLastViewed();
+  
+  // Read region filter from URL
+  const regionFilter = searchParams.get("region") || null;
+  const regionName = regionFilter ? REGION_NAMES[regionFilter] : null;
   
   const [signalFilter, setSignalFilter] = useState<SignalType>("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -153,15 +168,22 @@ export default function News() {
     country: country?.code,
     language: language?.code === "en" ? "eng" : language?.code,
     topic: selectedCategory === "all" ? undefined : selectedCategory,
+    region: regionFilter || undefined,
     pageSize: 100, // Load more for clustering - no artificial limit
     feedType: "recent" as const,
-  }), [country?.code, language?.code, selectedCategory]);
+  }), [country?.code, language?.code, selectedCategory, regionFilter]);
 
   const {
     data,
     isLoading,
     refetch,
   } = useInfiniteNews(queryParams);
+
+  // Clear region filter
+  const clearRegionFilter = useCallback(() => {
+    searchParams.delete("region");
+    setSearchParams(searchParams);
+  }, [searchParams, setSearchParams]);
 
   // Transform stories with consistent data from API
   const allStoriesRaw = useMemo(() => {
@@ -316,12 +338,34 @@ export default function News() {
                   </Badge>
                 )}
               </div>
+
+              {/* Region Filter Badge */}
+              {regionName && (
+                <div className="flex items-center gap-2 mt-3">
+                  <Badge 
+                    variant="secondary" 
+                    className="gap-1.5 pr-1 bg-primary/10 text-primary border-primary/20"
+                  >
+                    <Globe className="w-3 h-3" />
+                    {regionName}
+                    <button 
+                      onClick={clearRegionFilter}
+                      className="ml-1 p-0.5 rounded hover:bg-primary/20 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Badge>
+                </div>
+              )}
               
-              <h1 className="font-display text-xl sm:text-2xl font-semibold text-foreground mb-1">
-                Intelligence Stream
+              <h1 className="font-display text-xl sm:text-2xl font-semibold text-foreground mb-1 mt-2">
+                {regionName ? `${regionName} Intelligence` : "Intelligence Stream"}
               </h1>
               <p className="text-muted-foreground text-sm max-w-xl">
-                Stories updated in the last 48 hours from 170+ verified sources
+                {regionName 
+                  ? `Stories from ${regionName} updated in the last 48 hours`
+                  : "Stories updated in the last 48 hours from 170+ verified sources"
+                }
               </p>
 
               {/* Last session info */}

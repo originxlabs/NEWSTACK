@@ -29,6 +29,7 @@ interface FetchNewsParams {
   country?: string;
   topic?: string;
   language?: string;
+  region?: string; // World region filter
   page?: number;
   pageSize?: number;
   query?: string;
@@ -65,6 +66,7 @@ async function fetchNews(params: FetchNewsParams): Promise<NewsResponse> {
       feedType: params.feedType || "recent",
       category: params.topic,
       country: params.country,
+      region: params.region,
       userCity: params.userCity,
       userState: params.userState,
       page: params.page || 1,
