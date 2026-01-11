@@ -30,6 +30,8 @@ import NewsroomLayout from "./pages/newsroom/NewsroomLayout";
 import NewsroomLogin from "./pages/newsroom/NewsroomLogin";
 import NewsroomDashboard from "./pages/newsroom/NewsroomDashboard";
 import NewsroomApiHealth from "./pages/newsroom/NewsroomApiHealth";
+import NewsroomApiKeys from "./pages/newsroom/NewsroomApiKeys";
+import NewsroomWebhooks from "./pages/newsroom/NewsroomWebhooks";
 import NewsroomIngestion from "./pages/newsroom/NewsroomIngestion";
 import NewsroomFeeds from "./pages/newsroom/NewsroomFeeds";
 import NewsroomStories from "./pages/newsroom/NewsroomStories";
@@ -141,6 +143,8 @@ function AppContent() {
           <Route path="/newsroom" element={<NewsroomLayout />}>
             <Route index element={<NewsroomDashboard />} />
             <Route path="api-health" element={<NewsroomApiHealth />} />
+            <Route path="api-keys" element={<NewsroomApiKeys />} />
+            <Route path="webhooks" element={<NewsroomWebhooks />} />
             <Route path="ingestion" element={<NewsroomIngestion />} />
             <Route path="feeds" element={<NewsroomFeeds />} />
             <Route path="stories" element={<NewsroomStories />} />

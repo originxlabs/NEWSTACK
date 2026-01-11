@@ -38,6 +38,107 @@ export type Database = {
         }
         Relationships: []
       }
+      api_key_usage_logs: {
+        Row: {
+          api_key_id: string
+          created_at: string
+          endpoint: string
+          id: string
+          ip_address: string | null
+          method: string
+          response_time_ms: number | null
+          status_code: number | null
+          user_agent: string | null
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          ip_address?: string | null
+          method?: string
+          response_time_ms?: number | null
+          status_code?: number | null
+          user_agent?: string | null
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          ip_address?: string | null
+          method?: string
+          response_time_ms?: number | null
+          status_code?: number | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_key_usage_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_keys: {
+        Row: {
+          allowed_endpoints: string[] | null
+          api_key: string
+          created_at: string
+          created_by: string | null
+          customer_email: string
+          customer_name: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          is_sandbox: boolean
+          last_used_at: string | null
+          notes: string | null
+          plan: string
+          rate_limit_per_second: number
+          requests_limit: number
+          requests_used: number
+        }
+        Insert: {
+          allowed_endpoints?: string[] | null
+          api_key: string
+          created_at?: string
+          created_by?: string | null
+          customer_email: string
+          customer_name: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          is_sandbox?: boolean
+          last_used_at?: string | null
+          notes?: string | null
+          plan?: string
+          rate_limit_per_second?: number
+          requests_limit?: number
+          requests_used?: number
+        }
+        Update: {
+          allowed_endpoints?: string[] | null
+          api_key?: string
+          created_at?: string
+          created_by?: string | null
+          customer_email?: string
+          customer_name?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          is_sandbox?: boolean
+          last_used_at?: string | null
+          notes?: string | null
+          plan?: string
+          rate_limit_per_second?: number
+          requests_limit?: number
+          requests_used?: number
+        }
+        Relationships: []
+      }
       breaking_news: {
         Row: {
           country_code: string | null
@@ -965,11 +1066,116 @@ export type Database = {
           },
         ]
       }
+      webhook_delivery_logs: {
+        Row: {
+          attempt_number: number
+          created_at: string
+          delivery_time_ms: number | null
+          error_message: string | null
+          event_type: string
+          id: string
+          payload: Json
+          response_body: string | null
+          status_code: number | null
+          subscription_id: string
+          success: boolean
+        }
+        Insert: {
+          attempt_number?: number
+          created_at?: string
+          delivery_time_ms?: number | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          payload: Json
+          response_body?: string | null
+          status_code?: number | null
+          subscription_id: string
+          success?: boolean
+        }
+        Update: {
+          attempt_number?: number
+          created_at?: string
+          delivery_time_ms?: number | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          response_body?: string | null
+          status_code?: number | null
+          subscription_id?: string
+          success?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_delivery_logs_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_subscriptions: {
+        Row: {
+          api_key_id: string
+          created_at: string
+          events: string[]
+          id: string
+          is_active: boolean
+          last_error: string | null
+          last_status_code: number | null
+          last_triggered_at: string | null
+          retry_count: number
+          secret: string
+          updated_at: string
+          webhook_url: string
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string
+          events?: string[]
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_status_code?: number | null
+          last_triggered_at?: string | null
+          retry_count?: number
+          secret: string
+          updated_at?: string
+          webhook_url: string
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string
+          events?: string[]
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_status_code?: number | null
+          last_triggered_at?: string | null
+          retry_count?: number
+          secret?: string
+          updated_at?: string
+          webhook_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_subscriptions_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      generate_api_key: { Args: never; Returns: string }
+      generate_webhook_secret: { Args: never; Returns: string }
       get_newsroom_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["newsroom_role"]
