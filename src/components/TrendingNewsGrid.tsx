@@ -18,6 +18,7 @@ import { useTTSLimit } from "@/hooks/use-tts-limit";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { SourcesPopover } from "@/components/SourcesPopover";
+import { SourceDiversityScore } from "@/components/SourceDiversityScore";
 import { TTSLimitModal } from "@/components/TTSLimitModal";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { format, formatDistanceToNow } from "date-fns";
@@ -375,9 +376,18 @@ export function TrendingNewsGrid() {
                         <Badge className={`${topicColors[article.topic.toLowerCase()] || "bg-primary/10 text-primary"} text-xs`}>
                           {article.topic}
                         </Badge>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Shield className="w-3 h-3 text-green-500" />
-                          <span>{article.trustScore}%</span>
+                        <div className="flex items-center gap-1.5">
+                          {article.sources && article.sources.length > 1 && (
+                            <SourceDiversityScore
+                              sources={article.sources}
+                              sourceCount={article.sourceCount || 1}
+                              variant="badge"
+                            />
+                          )}
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Shield className="w-3 h-3 text-green-500" />
+                            <span>{article.trustScore}%</span>
+                          </div>
                         </div>
                       </div>
 
@@ -537,6 +547,15 @@ export function TrendingNewsGrid() {
                       <p className="text-sm leading-relaxed">{selectedArticle.whyMatters}</p>
                     </div>
                   </div>
+                )}
+
+                {/* Source Diversity Score */}
+                {selectedArticle.sources && selectedArticle.sources.length > 0 && (
+                  <SourceDiversityScore
+                    sources={selectedArticle.sources}
+                    sourceCount={selectedArticle.sourceCount || 1}
+                    variant="detailed"
+                  />
                 )}
 
                 {/* Full Content Section */}
