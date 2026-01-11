@@ -1,14 +1,12 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Loader2, Clock, RefreshCw, 
-  Layers, Grid3X3, List, Radio, 
-  Shield, Zap, CheckCircle2, TrendingUp,
-  Filter, ChevronDown
+  Loader2, Radio, RefreshCw, 
+  Layers, Zap, Shield, Filter,
+  Grid3X3, List, ChevronDown
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { NewsCard, NewsItem } from "@/components/NewsCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -16,14 +14,12 @@ import { useInfiniteNews, NewsArticle } from "@/hooks/use-news";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { ArticleDetailPanel } from "@/components/ArticleDetailPanel";
 import { StoryCluster } from "@/components/intelligence";
+import { LeftContextPanel } from "@/components/news/LeftContextPanel";
+import { RightTrustPanel } from "@/components/news/RightTrustPanel";
+import { IntelligenceNewsCard, IntelligenceNewsItem } from "@/components/news/IntelligenceNewsCard";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 type SignalType = "all" | "breaking" | "developing" | "stabilized";
 type ViewMode = "stream" | "clusters";
@@ -32,7 +28,7 @@ const signalFilters: { id: SignalType; name: string; icon: React.ReactNode }[] =
   { id: "all", name: "All", icon: <Radio className="w-3 h-3" /> },
   { id: "breaking", name: "Breaking", icon: <Zap className="w-3 h-3" /> },
   { id: "developing", name: "Developing", icon: <RefreshCw className="w-3 h-3" /> },
-  { id: "stabilized", name: "Verified", icon: <CheckCircle2 className="w-3 h-3" /> },
+  { id: "stabilized", name: "Verified", icon: <Shield className="w-3 h-3" /> },
 ];
 
 const categories = [
@@ -61,7 +57,7 @@ function determineConfidence(sourceCount?: number): "low" | "medium" | "high" {
   return "high";
 }
 
-function transformArticle(article: NewsArticle): NewsItem {
+function transformArticle(article: NewsArticle): IntelligenceNewsItem {
   const publishedDate = new Date(article.published_at);
   const now = new Date();
   const diffMinutes = Math.floor((now.getTime() - publishedDate.getTime()) / (1000 * 60));
@@ -79,8 +75,6 @@ function transformArticle(article: NewsArticle): NewsItem {
     summary: article.summary || article.ai_analysis || "",
     content: article.content,
     topic: article.topic_slug || "world",
-    sentiment: article.sentiment || "neutral",
-    trustScore: article.trust_score || 85,
     source: article.source_name || "Unknown",
     sourceUrl: article.source_url || undefined,
     timestamp,
@@ -88,9 +82,8 @@ function transformArticle(article: NewsArticle): NewsItem {
     imageUrl: article.image_url || undefined,
     whyMatters: article.why_matters,
     sourceCount: article.source_count,
+    trustScore: article.trust_score,
     isBreaking: diffMinutes < 30,
-    isTrending: (article.source_count || 0) >= 3,
-    sources: (article as any).sources || [],
   };
 }
 
@@ -100,12 +93,14 @@ export default function News() {
   
   const [signalFilter, setSignalFilter] = useState<SignalType>("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [timeFilter, setTimeFilter] = useState("latest");
   const [viewMode, setViewMode] = useState<ViewMode>("stream");
   const [multiSourceOnly, setMultiSourceOnly] = useState(false);
-  const [selectedArticle, setSelectedArticle] = useState<NewsItem | null>(null);
+  const [selectedArticle, setSelectedArticle] = useState<IntelligenceNewsItem | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   
   const loaderRef = useRef<HTMLDivElement>(null);
 
@@ -153,7 +148,7 @@ export default function News() {
       headline: item.headline,
       summary: item.summary,
       sourceCount: item.sourceCount || 1,
-      sources: item.sources || [],
+      sources: [],
       publishedAt: item.publishedAt,
       topic: item.topic,
       confidence: determineConfidence(item.sourceCount),
@@ -188,6 +183,14 @@ export default function News() {
     return () => observer.disconnect();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
+  // Transform for ArticleDetailPanel
+  const selectedArticleForPanel = selectedArticle ? {
+    ...selectedArticle,
+    sentiment: "neutral" as const,
+    trustScore: selectedArticle.trustScore || 85,
+    sources: [],
+  } : null;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -195,30 +198,30 @@ export default function News() {
       <main className="pt-14 pb-12">
         {/* Page Header */}
         <section className="border-b border-border/50 bg-muted/20">
-          <div className="container mx-auto max-w-6xl px-4 py-6 sm:py-8">
+          <div className="container mx-auto max-w-7xl px-4 py-5 sm:py-6">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="flex items-center gap-2 mb-3">
-                <Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px]">
                   <Radio className="w-2.5 h-2.5" />
                   LIVE
                 </Badge>
                 <span className="text-[11px] text-muted-foreground">
-                  {format(lastRefreshed, "h:mm a")}
+                  Updated {format(lastRefreshed, "h:mm a")}
                 </span>
               </div>
               
               <h1 className="font-display text-xl sm:text-2xl font-semibold text-foreground mb-1">
-                Signal Stream
+                Intelligence Stream
               </h1>
               <p className="text-muted-foreground text-sm max-w-xl">
-                Real-time news from 66+ verified sources
+                Real-time news intelligence from verified sources
               </p>
 
               {/* Stats row */}
-              <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-4 text-xs sm:text-sm">
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-3 text-xs sm:text-sm">
                 <div className="flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="font-medium">{stats.total}</span>
@@ -239,153 +242,197 @@ export default function News() {
           </div>
         </section>
 
-        {/* Controls */}
-        <section className="sticky top-14 z-30 border-b border-border/50 bg-background/95 backdrop-blur-sm">
-          <div className="container mx-auto max-w-6xl px-4 py-2.5">
-            <div className="flex items-center justify-between gap-4">
-              {/* Signal Filters */}
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-                {signalFilters.map(filter => (
-                  <Button
-                    key={filter.id}
-                    variant={signalFilter === filter.id ? "secondary" : "ghost"}
-                    size="sm"
-                    className="gap-1.5 flex-shrink-0 h-7 text-xs px-2.5"
-                    onClick={() => setSignalFilter(filter.id)}
-                  >
-                    {filter.icon}
-                    <span className="hidden sm:inline">{filter.name}</span>
-                  </Button>
-                ))}
-              </div>
-
-              {/* Right controls */}
-              <div className="flex items-center gap-2">
-                {/* 3+ sources toggle */}
-                <div className="hidden sm:flex items-center gap-1.5 text-xs">
-                  <span className="text-muted-foreground">3+ sources</span>
-                  <Switch
-                    checked={multiSourceOnly}
-                    onCheckedChange={setMultiSourceOnly}
-                    className="scale-75"
-                  />
-                </div>
-
-                {/* View Toggle */}
-                <div className="flex items-center border rounded-md p-0.5">
-                  <Button
-                    variant={viewMode === "stream" ? "secondary" : "ghost"}
-                    size="sm"
-                    className="h-6 px-2"
-                    onClick={() => setViewMode("stream")}
-                  >
-                    <List className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    variant={viewMode === "clusters" ? "secondary" : "ghost"}
-                    size="sm"
-                    className="h-6 px-2"
-                    onClick={() => setViewMode("clusters")}
-                  >
-                    <Grid3X3 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-
-                {/* Refresh */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-                </Button>
-              </div>
-            </div>
-
-            {/* Category Pills */}
-            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto scrollbar-hide pb-0.5">
+        {/* Mobile Controls Bar */}
+        <section className="sticky top-14 z-30 border-b border-border/50 bg-background/95 backdrop-blur-sm lg:hidden">
+          <div className="container mx-auto max-w-7xl px-4 py-2">
+            {/* Mobile Category Swiper */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
               {categories.map(cat => (
                 <Button
                   key={cat.slug}
                   variant={selectedCategory === cat.slug ? "secondary" : "ghost"}
                   size="sm"
-                  className="flex-shrink-0 h-6 text-[11px] px-2"
+                  className="flex-shrink-0 h-7 text-xs px-2.5"
                   onClick={() => setSelectedCategory(cat.slug)}
                 >
                   {cat.name}
                 </Button>
               ))}
             </div>
+            
+            {/* Signal + View controls */}
+            <div className="flex items-center justify-between mt-2">
+              <div className="flex items-center gap-1.5">
+                {signalFilters.map(filter => (
+                  <Button
+                    key={filter.id}
+                    variant={signalFilter === filter.id ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-6 text-[11px] px-2 gap-1"
+                    onClick={() => setSignalFilter(filter.id)}
+                  >
+                    {filter.icon}
+                    <span className="hidden xs:inline">{filter.name}</span>
+                  </Button>
+                ))}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="flex items-center border rounded-md p-0.5">
+                  <Button
+                    variant={viewMode === "stream" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-5 w-6 p-0"
+                    onClick={() => setViewMode("stream")}
+                  >
+                    <List className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "clusters" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-5 w-6 p-0"
+                    onClick={() => setViewMode("clusters")}
+                  >
+                    <Grid3X3 className="w-3 h-3" />
+                  </Button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                >
+                  <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
+                </Button>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* Content */}
+        {/* 3-Column Layout */}
         <section className="py-4 sm:py-6">
-          <div className="container mx-auto max-w-6xl px-4">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : viewMode === "clusters" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {storyClusters.map((cluster, i) => (
-                  <motion.div
-                    key={cluster.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.02 }}
-                  >
-                    <StoryCluster
-                      {...cluster}
-                      onReadMore={() => {
-                        const item = newsItems.find(n => n.id === cluster.id);
-                        if (item) {
+          <div className="container mx-auto max-w-7xl px-4">
+            <div className="flex gap-6">
+              {/* LEFT COLUMN - Context & Filters (Desktop only) */}
+              <LeftContextPanel
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                timeFilter={timeFilter}
+                onTimeFilterChange={setTimeFilter}
+                viewAsClusters={viewMode === "clusters"}
+                onViewChange={(clusters) => setViewMode(clusters ? "clusters" : "stream")}
+              />
+
+              {/* CENTER COLUMN - Primary Intelligence Stream */}
+              <div className="flex-1 min-w-0">
+                {/* Desktop Controls */}
+                <div className="hidden lg:flex items-center justify-between mb-4 pb-3 border-b border-border/50">
+                  <div className="flex items-center gap-1.5">
+                    {signalFilters.map(filter => (
+                      <Button
+                        key={filter.id}
+                        variant={signalFilter === filter.id ? "secondary" : "ghost"}
+                        size="sm"
+                        className="gap-1.5 h-7 text-xs px-2.5"
+                        onClick={() => setSignalFilter(filter.id)}
+                      >
+                        {filter.icon}
+                        {filter.name}
+                      </Button>
+                    ))}
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="text-muted-foreground">3+ sources</span>
+                      <Switch
+                        checked={multiSourceOnly}
+                        onCheckedChange={setMultiSourceOnly}
+                        className="scale-75"
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                    >
+                      <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Content */}
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : viewMode === "clusters" ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {storyClusters.map((cluster, i) => (
+                      <motion.div
+                        key={cluster.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.02 }}
+                      >
+                        <StoryCluster
+                          {...cluster}
+                          onReadMore={() => {
+                            const item = newsItems.find(n => n.id === cluster.id);
+                            if (item) {
+                              setSelectedArticle(item);
+                              setIsPanelOpen(true);
+                            }
+                          }}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {newsItems.map((item, i) => (
+                      <IntelligenceNewsCard
+                        key={item.id}
+                        news={item}
+                        index={i}
+                        onClick={() => {
                           setSelectedArticle(item);
                           setIsPanelOpen(true);
-                        }
-                      }}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {newsItems.map((item, i) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.015 }}
-                  >
-                    <NewsCard
-                      news={item}
-                      index={i}
-                      onClick={() => {
-                        setSelectedArticle(item);
-                        setIsPanelOpen(true);
-                      }}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            )}
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
 
-            {/* Loader */}
-            <div ref={loaderRef} className="py-8 flex justify-center">
-              {isFetchingNextPage && (
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-              )}
+                {/* Loader */}
+                <div ref={loaderRef} className="py-8 flex justify-center">
+                  {isFetchingNextPage && (
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN - Trust & Signals Panel (Desktop only) */}
+              <RightTrustPanel
+                totalSources={66}
+                primarySources={24}
+                secondarySources={42}
+                contradictionsDetected={stats.breaking > 0 ? 1 : 0}
+                emergingSignals={stats.breaking > 0 ? ["Increased activity in breaking news"] : []}
+              />
             </div>
           </div>
         </section>
       </main>
 
       {/* Article Detail Panel */}
-      {selectedArticle && (
+      {selectedArticleForPanel && (
         <ArticleDetailPanel
-          article={selectedArticle}
+          article={selectedArticleForPanel}
           isOpen={isPanelOpen}
           onClose={() => {
             setIsPanelOpen(false);
