@@ -10,6 +10,7 @@ import { CookieConsent } from "@/components/CookieConsent";
 import { LocationPermission } from "@/components/LocationPermission";
 import { InterestsOnboarding, useInterestsOnboarding } from "@/components/InterestsOnboarding";
 import { TrendingNearYou } from "@/components/TrendingNearYou";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePreferences } from "@/contexts/PreferencesContext";
 
@@ -99,6 +100,26 @@ const Index = () => {
         
         {/* Trending Near You - Lazy loaded */}
         <TrendingNearYou />
+        
+        {/* Newsletter Signup Section */}
+        <section className="py-12 px-4">
+          <div className="container mx-auto max-w-2xl">
+            <div className="glass-card rounded-2xl p-8 text-center bg-gradient-to-br from-primary/5 via-background to-accent/5 border border-primary/10">
+              <div className="mb-4">
+                <span className="text-4xl">📬</span>
+              </div>
+              <h2 className="font-display text-2xl font-bold mb-2">
+                Get the Daily Digest
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Top verified multi-source stories delivered to your inbox every morning
+              </p>
+              <div className="max-w-md mx-auto">
+                <NewsletterSignup />
+              </div>
+            </div>
+          </div>
+        </section>
         
         <NewsFeed />
         <PlacesSection />
