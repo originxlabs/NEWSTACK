@@ -45,10 +45,10 @@ verify_jwt = false
 [functions.send-daily-digest]
 verify_jwt = false
 
-# Schedule RSS ingestion every 30 minutes
+# Schedule RSS ingestion every 15 minutes for fresher news
 [[cron]]
 name = "ingest-rss-cron"
-schedule = "*/30 * * * *"
+schedule = "*/15 * * * *"
 function = "ingest-rss"
 
 # Schedule daily email digest at 8 AM UTC
