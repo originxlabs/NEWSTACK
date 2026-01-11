@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Loader2, Radio, RefreshCw, 
@@ -12,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useInfiniteNews, NewsArticle } from "@/hooks/use-news";
 import { usePreferences } from "@/contexts/PreferencesContext";
-import { ArticleDetailPanel } from "@/components/ArticleDetailPanel";
+import { StoryIntelligencePanel, StoryIntelligenceItem } from "@/components/news/StoryIntelligencePanel";
 import { LeftContextPanel } from "@/components/news/LeftContextPanel";
 import { RightTrustPanel } from "@/components/news/RightTrustPanel";
 import { IntelligenceNewsCard, IntelligenceNewsItem } from "@/components/news/IntelligenceNewsCard";
@@ -112,6 +113,7 @@ function toIntelligenceNewsItem(story: RawStory): IntelligenceNewsItem {
 }
 
 export default function News() {
+  const navigate = useNavigate();
   const { country, language } = usePreferences();
   const isMobile = useIsMobile();
   const { markAsViewed, checkForUpdates, getLastSessionTime } = useLastViewed();
@@ -121,7 +123,7 @@ export default function News() {
   const [timeFilter, setTimeFilter] = useState("latest");
   const [viewMode, setViewMode] = useState<ViewMode>("stream");
   const [multiSourceOnly, setMultiSourceOnly] = useState(false);
-  const [selectedArticle, setSelectedArticle] = useState<IntelligenceNewsItem | null>(null);
+  const [selectedStory, setSelectedStory] = useState<StoryIntelligenceItem | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -224,7 +226,21 @@ export default function News() {
       sourceCount: item.sourceCount || 1,
       signal,
     });
-    setSelectedArticle(toIntelligenceNewsItem(item));
+    setSelectedStory({
+      id: item.id,
+      headline: item.headline,
+      summary: item.summary,
+      content: item.content,
+      topic: item.topic,
+      source: item.source,
+      sourceUrl: item.sourceUrl,
+      timestamp: item.timestamp,
+      publishedAt: item.publishedAt,
+      imageUrl: item.imageUrl,
+      whyMatters: item.whyMatters,
+      sourceCount: item.sourceCount,
+      sources: item.sources,
+    });
     setIsPanelOpen(true);
   }, [markAsViewed]);
 
@@ -232,13 +248,10 @@ export default function News() {
     handleArticleClick(cluster.representativeStory);
   }, [handleArticleClick]);
 
-  // Transform for ArticleDetailPanel
-  const selectedArticleForPanel = selectedArticle ? {
-    ...selectedArticle,
-    sentiment: "neutral" as const,
-    trustScore: selectedArticle.trustScore || 85,
-    sources: [],
-  } : null;
+  const handleViewFullPage = useCallback((storyId: string) => {
+    setIsPanelOpen(false);
+    navigate(`/news/${storyId}`);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -568,17 +581,16 @@ export default function News() {
         </section>
       </main>
 
-      {/* Article Detail Panel */}
-      {selectedArticleForPanel && (
-        <ArticleDetailPanel
-          article={selectedArticleForPanel}
-          isOpen={isPanelOpen}
-          onClose={() => {
-            setIsPanelOpen(false);
-            setSelectedArticle(null);
-          }}
-        />
-      )}
+      {/* Story Intelligence Panel */}
+      <StoryIntelligencePanel
+        story={selectedStory}
+        isOpen={isPanelOpen}
+        onClose={() => {
+          setIsPanelOpen(false);
+          setSelectedStory(null);
+        }}
+        onViewFullPage={handleViewFullPage}
+      />
 
       <Footer />
     </div>

@@ -28,6 +28,7 @@ import RefundPolicy from "./pages/RefundPolicy";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import Pricing from "./pages/Pricing";
+import StoryDetail from "./pages/StoryDetail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -118,6 +119,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/news" element={<News />} />
+          <Route path="/news/:storyId" element={<StoryDetail />} />
           <Route path="/listen" element={<Listen />} />
           <Route path="/world" element={<World />} />
           <Route path="/places" element={<Places />} />
