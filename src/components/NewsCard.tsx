@@ -11,7 +11,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { toast } from "sonner";
 import { TTSLimitModal } from "@/components/TTSLimitModal";
-import { DiscussionButton } from "@/components/discussions/DiscussionButton";
 import { SourcesPopover } from "@/components/SourcesPopover";
 
 export interface NewsSource {
@@ -332,13 +331,6 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
                     <Button variant="ghost" size="icon" onClick={handleShare} className="w-8 h-8">
                       <Share2 className="w-3.5 h-3.5" />
                     </Button>
-
-                    <DiscussionButton
-                      contentType="news"
-                      contentId={news.id}
-                      contentTitle={news.headline}
-                      variant="compact"
-                    />
                   </div>
 
                   <Button

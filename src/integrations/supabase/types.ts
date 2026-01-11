@@ -80,36 +80,6 @@ export type Database = {
         }
         Relationships: []
       }
-      cached_news: {
-        Row: {
-          articles: Json
-          cache_key: string
-          created_at: string
-          expires_at: string
-          id: string
-          source: string
-          total: number
-        }
-        Insert: {
-          articles: Json
-          cache_key: string
-          created_at?: string
-          expires_at: string
-          id?: string
-          source?: string
-          total?: number
-        }
-        Update: {
-          articles?: Json
-          cache_key?: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          source?: string
-          total?: number
-        }
-        Relationships: []
-      }
       click_events: {
         Row: {
           created_at: string
@@ -217,86 +187,6 @@ export type Database = {
         }
         Relationships: []
       }
-      discussion_reactions: {
-        Row: {
-          anonymous_id: string | null
-          created_at: string
-          discussion_id: string
-          id: string
-          reaction_type: string
-          user_id: string | null
-        }
-        Insert: {
-          anonymous_id?: string | null
-          created_at?: string
-          discussion_id: string
-          id?: string
-          reaction_type: string
-          user_id?: string | null
-        }
-        Update: {
-          anonymous_id?: string | null
-          created_at?: string
-          discussion_id?: string
-          id?: string
-          reaction_type?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "discussion_reactions_discussion_id_fkey"
-            columns: ["discussion_id"]
-            isOneToOne: false
-            referencedRelation: "discussions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      discussions: {
-        Row: {
-          agrees_count: number | null
-          author_name: string | null
-          content_id: string
-          content_type: string
-          created_at: string
-          disagrees_count: number | null
-          id: string
-          is_hidden: boolean | null
-          message: string
-          reported_count: number | null
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          agrees_count?: number | null
-          author_name?: string | null
-          content_id: string
-          content_type: string
-          created_at?: string
-          disagrees_count?: number | null
-          id?: string
-          is_hidden?: boolean | null
-          message: string
-          reported_count?: number | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          agrees_count?: number | null
-          author_name?: string | null
-          content_id?: string
-          content_type?: string
-          created_at?: string
-          disagrees_count?: number | null
-          id?: string
-          is_hidden?: boolean | null
-          message?: string
-          reported_count?: number | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       donations: {
         Row: {
           amount: number
@@ -371,112 +261,6 @@ export type Database = {
           native_name?: string
         }
         Relationships: []
-      }
-      news: {
-        Row: {
-          ai_analysis: string | null
-          audio_url: string | null
-          content: string | null
-          country_code: string | null
-          created_at: string
-          headline: string
-          id: string
-          image_url: string | null
-          is_breaking: boolean | null
-          is_global: boolean | null
-          language_code: string | null
-          likes_count: number | null
-          listens_count: number | null
-          perspectives: Json | null
-          published_at: string | null
-          sentiment: string | null
-          source_logo: string | null
-          source_name: string | null
-          source_url: string | null
-          summary: string | null
-          topic_id: string | null
-          trust_score: number | null
-          updated_at: string
-          views_count: number | null
-          why_matters: string | null
-        }
-        Insert: {
-          ai_analysis?: string | null
-          audio_url?: string | null
-          content?: string | null
-          country_code?: string | null
-          created_at?: string
-          headline: string
-          id?: string
-          image_url?: string | null
-          is_breaking?: boolean | null
-          is_global?: boolean | null
-          language_code?: string | null
-          likes_count?: number | null
-          listens_count?: number | null
-          perspectives?: Json | null
-          published_at?: string | null
-          sentiment?: string | null
-          source_logo?: string | null
-          source_name?: string | null
-          source_url?: string | null
-          summary?: string | null
-          topic_id?: string | null
-          trust_score?: number | null
-          updated_at?: string
-          views_count?: number | null
-          why_matters?: string | null
-        }
-        Update: {
-          ai_analysis?: string | null
-          audio_url?: string | null
-          content?: string | null
-          country_code?: string | null
-          created_at?: string
-          headline?: string
-          id?: string
-          image_url?: string | null
-          is_breaking?: boolean | null
-          is_global?: boolean | null
-          language_code?: string | null
-          likes_count?: number | null
-          listens_count?: number | null
-          perspectives?: Json | null
-          published_at?: string | null
-          sentiment?: string | null
-          source_logo?: string | null
-          source_name?: string | null
-          source_url?: string | null
-          summary?: string | null
-          topic_id?: string | null
-          trust_score?: number | null
-          updated_at?: string
-          views_count?: number | null
-          why_matters?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "news_country_code_fkey"
-            columns: ["country_code"]
-            isOneToOne: false
-            referencedRelation: "countries"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "news_language_code_fkey"
-            columns: ["language_code"]
-            isOneToOne: false
-            referencedRelation: "languages"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "news_topic_id_fkey"
-            columns: ["topic_id"]
-            isOneToOne: false
-            referencedRelation: "topics"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       newsletter_popup_events: {
         Row: {
@@ -776,15 +560,7 @@ export type Database = {
           news_id?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "saved_news_news_id_fkey"
-            columns: ["news_id"]
-            isOneToOne: false
-            referencedRelation: "news"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       saved_places: {
         Row: {
@@ -996,15 +772,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_news_interactions_news_id_fkey"
-            columns: ["news_id"]
-            isOneToOne: false
-            referencedRelation: "news"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_topic_preferences: {
         Row: {

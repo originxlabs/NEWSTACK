@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, Headphones, Bookmark, Heart, Share2, Shield, Clock, Loader2, Pause, MessageCircle, ChevronLeft, Send, Scale, History } from "lucide-react";
+import { motion } from "framer-motion";
+import { X, ExternalLink, Headphones, Bookmark, Heart, Share2, Shield, Clock, Loader2, Pause, ChevronLeft, Scale, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useTTS } from "@/hooks/use-tts";
@@ -25,16 +24,6 @@ interface ArticleDetailPanelProps {
   onViewTimeline?: (id: string, headline: string) => void;
 }
 
-interface Discussion {
-  id: string;
-  author_name: string | null;
-  message: string;
-  agrees_count: number;
-  disagrees_count: number;
-  created_at: string;
-  user_id: string | null;
-}
-
 const topicColors: Record<string, string> = {
   business: "bg-blue-500/20 text-blue-400 border-blue-500/30",
   tech: "bg-purple-500/20 text-purple-400 border-purple-500/30",
@@ -50,14 +39,10 @@ const topicColors: Record<string, string> = {
   startups: "bg-orange-500/20 text-orange-400 border-orange-500/30",
 };
 
-// Discussion cache
-const discussionCache = new Map<string, { data: Discussion[]; timestamp: number }>();
-const CACHE_TTL = 60000;
-
 export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onViewTimeline }: ArticleDetailPanelProps) {
   const isMobile = useIsMobile();
   const { language } = usePreferences();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { speak, toggle, isLoading: ttsLoading, isPlaying, progress, stop } = useTTS({
     language: language?.code || "en",
   });
@@ -66,10 +51,6 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isSavingArticle, setIsSavingArticle] = useState(false);
-  const [discussions, setDiscussions] = useState<Discussion[]>([]);
-  const [isLoadingDiscussions, setIsLoadingDiscussions] = useState(false);
-  const [newMessage, setNewMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Check if article is already saved
   useEffect(() => {
@@ -102,7 +83,6 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
     setIsSavingArticle(true);
     try {
       if (isSaved) {
-        // Remove from saved
         await supabase
           .from("saved_news")
           .delete()
@@ -112,7 +92,6 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
         setIsSaved(false);
         toast.success("Removed from saved");
       } else {
-        // Add to saved
         await supabase
           .from("saved_news")
           .insert({
@@ -130,51 +109,12 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
     }
   };
 
-  const fetchDiscussions = async () => {
-    if (!article) return;
-    
-    const cacheKey = `news-${article.id}`;
-    const cached = discussionCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      setDiscussions(cached.data);
-      return;
-    }
-
-    setIsLoadingDiscussions(true);
-    try {
-      const { data, error } = await supabase
-        .from("discussions")
-        .select("*")
-        .eq("content_type", "news")
-        .eq("content_id", article.id)
-        .eq("is_hidden", false)
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (!error && data) {
-        setDiscussions(data as Discussion[]);
-        discussionCache.set(cacheKey, { data: data as Discussion[], timestamp: Date.now() });
-      }
-    } catch (err) {
-      console.error("Failed to fetch discussions:", err);
-    } finally {
-      setIsLoadingDiscussions(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isOpen && article) {
-      fetchDiscussions();
-    }
-  }, [isOpen, article?.id]);
-
   useEffect(() => {
     return () => stop();
   }, [stop]);
 
-  // Note: Early return moved after useMemo hook to maintain consistent hook order
-
   const handleListen = async () => {
+    if (!article) return;
     if (isPlaying) {
       toggle();
     } else if (!ttsLoading) {
@@ -187,6 +127,7 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
   };
 
   const handleShare = async () => {
+    if (!article) return;
     try {
       if (navigator.share) {
         await navigator.share({
@@ -200,41 +141,6 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
       }
     } catch {
       // User cancelled
-    }
-  };
-
-  const handleSubmitDiscussion = async () => {
-    if (!newMessage.trim()) return;
-    
-    // Max 50 characters
-    if (newMessage.length > 50) {
-      toast.error("Max 50 characters per comment.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const authorName = user ? (profile?.display_name || user.email?.split("@")[0] || "User") : "Anonymous";
-
-      const { error } = await supabase.from("discussions").insert({
-        content_type: "news",
-        content_id: article.id,
-        user_id: user?.id || null,
-        author_name: authorName,
-        message: newMessage.trim(),
-      });
-
-      if (error) throw error;
-
-      setNewMessage("");
-      toast.success("Opinion shared!");
-      
-      discussionCache.delete(`news-${article.id}`);
-      fetchDiscussions();
-    } catch (err) {
-      toast.error("Failed to post. Please try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -256,23 +162,21 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
     onClose();
   };
 
-  // Build actual sources from article data - use real sources from story_sources table
+  // Build actual sources from article data
   const sources = useMemo(() => {
     if (!article) return [];
     
-    // If article has sources from story_sources table, use those
     if (article.sources && article.sources.length > 0) {
       return article.sources.map((s, idx) => ({
         name: s.source_name,
         url: s.source_url,
         description: s.description,
         published_at: s.published_at,
-        verified: true, // All sources from our verified RSS feeds
+        verified: true,
         isFirst: idx === 0,
       }));
     }
     
-    // Fallback to primary source only
     return [
       { 
         name: article.source, 
@@ -284,7 +188,6 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
     ];
   }, [article]);
 
-  // Early return after all hooks
   if (!article) return null;
 
   const Content = (
@@ -326,7 +229,6 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
             
-            {/* Floating badges on image */}
             <div className="absolute bottom-4 left-4 flex items-center gap-2">
               {article.isBreaking && (
                 <Badge variant="destructive" className="animate-pulse">
@@ -517,72 +419,6 @@ export function ArticleDetailPanel({ article, isOpen, onClose, onCompare, onView
                 <History className="w-4 h-4 mr-2" />
                 Timeline
               </Button>
-            )}
-          </div>
-
-          {/* Open Discussion */}
-          <div className="pt-6 border-t border-border">
-            <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-primary" />
-              💬 Open Discussion
-            </h3>
-
-            {/* New Comment */}
-            <div className="mb-4">
-              <Textarea
-                placeholder="Share your opinion (max 50 characters)..."
-                value={newMessage}
-                onChange={(e) => {
-                  // Enforce 50 character limit including paste
-                  const value = e.target.value.slice(0, 50);
-                  setNewMessage(value);
-                }}
-                maxLength={50}
-                className="min-h-[60px] resize-none text-sm"
-              />
-              <div className="flex items-center justify-between mt-2">
-                <span className={`text-xs ${
-                  newMessage.length >= 45 
-                    ? "text-destructive font-medium" 
-                    : "text-muted-foreground"
-                }`}>
-                  {newMessage.length}/50 characters
-                </span>
-                <Button
-                  size="sm"
-                  onClick={handleSubmitDiscussion}
-                  disabled={!newMessage.trim() || isSubmitting || newMessage.length > 50}
-                >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-
-            {/* Discussion List */}
-            {isLoadingDiscussions ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : discussions.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                No discussions yet. Be the first to share your thoughts!
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {discussions.slice(0, 5).map((discussion) => (
-                  <div key={discussion.id} className="p-3 rounded-lg bg-muted/30">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-sm">
-                        {discussion.author_name || "Anonymous"}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {formatTimestamp(discussion.created_at)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{discussion.message}</p>
-                  </div>
-                ))}
-              </div>
             )}
           </div>
         </div>
