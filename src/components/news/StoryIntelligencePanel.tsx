@@ -264,25 +264,33 @@ export function StoryIntelligencePanel({
 
           <Separator className="opacity-50" />
 
-          {/* 4️⃣ Why This Matters */}
-          {story.whyMatters && (
-            <div className="space-y-2">
-              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Why This Matters
-              </h3>
-              <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2 text-sm">
-                <div>
-                  <span className="font-medium">Context: </span>
-                  <span className="text-muted-foreground">{story.whyMatters}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Confidence: </span>
-                  <span className={confidenceColors.text}>{confidence.label}</span>
-                  <span className="text-muted-foreground"> — {confidence.explanation}</span>
-                </div>
+          {/* 4️⃣ Why This Matters - Fixed structure: Context / Who is affected / Confidence */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Why This Matters
+            </h3>
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-3 text-sm">
+              <div>
+                <span className="font-medium">Context: </span>
+                <span className="text-muted-foreground">
+                  {story.whyMatters || story.summary || "This story is developing. Check back for updates."}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium">Who is affected: </span>
+                <span className="text-muted-foreground">
+                  {sources.length === 1 
+                    ? "Limited information available from a single source."
+                    : `Information corroborated across ${sources.length} independent sources.`}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium">Confidence: </span>
+                <span className={confidenceColors.text}>{confidence.label}</span>
+                <span className="text-muted-foreground"> — {confidence.explanation}</span>
               </div>
             </div>
-          )}
+          </div>
 
           <Separator className="opacity-50" />
 

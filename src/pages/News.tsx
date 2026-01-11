@@ -47,20 +47,8 @@ const categories = [
   { slug: "science", name: "Science" },
 ];
 
-function determineSignal(publishedAt?: string, sourceCount?: number): SignalType {
-  if (!publishedAt) return "developing";
-  const ageMinutes = (Date.now() - new Date(publishedAt).getTime()) / (1000 * 60);
-  if (ageMinutes < 30) return "breaking";
-  if (ageMinutes < 360 && (sourceCount || 1) >= 2) return "developing";
-  if ((sourceCount || 1) >= 3) return "stabilized";
-  return "developing";
-}
-
-function determineConfidence(sourceCount?: number): "low" | "medium" | "high" {
-  if (!sourceCount || sourceCount < 2) return "low";
-  if (sourceCount < 4) return "medium";
-  return "high";
-}
+// REMOVED: These functions are no longer used - story state comes from API/cluster
+// Signal and confidence are calculated once at the cluster level, not per-component
 
 function transformArticle(article: NewsArticle): RawStory {
   const publishedDate = new Date(article.published_at);
@@ -74,6 +62,19 @@ function transformArticle(article: NewsArticle): RawStory {
   else if (diffHours < 24) timestamp = `${diffHours}h ago`;
   else timestamp = `${Math.floor(diffHours / 24)}d ago`;
 
+  // CRITICAL: Use source_count from API (which is calculated from actual fetched sources)
+  const sourceCount = article.source_count || 1;
+  const verifiedCount = (article as any).verified_source_count || 0;
+  
+  // Use story_state and confidence_level from API if available
+  const storyState = (article as any).story_state || 
+    (sourceCount === 1 ? "single-source" : 
+     diffMinutes < 30 ? "breaking" : 
+     sourceCount >= 4 ? "confirmed" : "developing");
+  
+  const confidenceLevel = (article as any).confidence_level ||
+    (sourceCount === 1 ? "low" : sourceCount >= 4 ? "high" : "medium");
+
   return {
     id: article.id,
     headline: article.headline,
@@ -86,12 +87,28 @@ function transformArticle(article: NewsArticle): RawStory {
     publishedAt: article.published_at,
     imageUrl: article.image_url || undefined,
     whyMatters: article.why_matters,
-    sourceCount: article.source_count,
+    // CRITICAL: These must be consistent everywhere
+    sourceCount,
     trustScore: article.trust_score,
+    sources: (article as any).sources,
+    storyState: storyState as RawStory["storyState"],
+    confidenceLevel: confidenceLevel as RawStory["confidenceLevel"],
+    isSingleSource: sourceCount === 1,
+    verifiedSourceCount: verifiedCount,
   };
 }
 
 function toIntelligenceNewsItem(story: RawStory): IntelligenceNewsItem {
+  // CRITICAL: Use story-level data, not recalculate per component
+  const signalMap: Record<string, IntelligenceNewsItem["signal"]> = {
+    "single-source": "developing",
+    "breaking": "breaking",
+    "developing": "developing",
+    "confirmed": "stabilized",
+    "contradicted": "contradicted",
+    "resolved": "resolved",
+  };
+
   return {
     id: story.id,
     headline: story.headline,
@@ -104,11 +121,12 @@ function toIntelligenceNewsItem(story: RawStory): IntelligenceNewsItem {
     publishedAt: story.publishedAt,
     imageUrl: story.imageUrl,
     whyMatters: story.whyMatters,
+    // CRITICAL: Use story-level source count (from cluster, not recalculated)
     sourceCount: story.sourceCount,
     trustScore: story.trustScore,
-    isBreaking: determineSignal(story.publishedAt, story.sourceCount) === "breaking",
-    signal: determineSignal(story.publishedAt, story.sourceCount) as IntelligenceNewsItem["signal"],
-    confidence: determineConfidence(story.sourceCount),
+    isBreaking: story.storyState === "breaking",
+    signal: signalMap[story.storyState || "developing"] || "developing",
+    confidence: story.confidenceLevel || "low",
   };
 }
 
@@ -135,7 +153,7 @@ export default function News() {
     country: country?.code,
     language: language?.code === "en" ? "eng" : language?.code,
     topic: selectedCategory === "all" ? undefined : selectedCategory,
-    pageSize: 50, // Load more for clustering
+    pageSize: 100, // Load more for clustering - no artificial limit
     feedType: "recent" as const,
   }), [country?.code, language?.code, selectedCategory]);
 
@@ -145,43 +163,59 @@ export default function News() {
     refetch,
   } = useInfiniteNews(queryParams);
 
-  // Transform and filter stories
-  const allStories = useMemo(() => {
+  // Transform stories with consistent data from API
+  const allStoriesRaw = useMemo(() => {
     if (!data?.pages) return [];
-    
-    let items = data.pages.flatMap(page => 
-      page.articles.map(transformArticle)
-    );
+    return data.pages.flatMap(page => page.articles.map(transformArticle));
+  }, [data]);
 
+  // Cluster stories FIRST, then filter
+  const allClusters = useMemo(() => {
+    return clusterStories(allStoriesRaw, 0.45);
+  }, [allStoriesRaw]);
+
+  // DATA-DRIVEN FILTERING: Apply filters to clusters, not UI state
+  const filteredClusters = useMemo(() => {
+    let clusters = [...allClusters];
+
+    // Filter by signal/state
     if (signalFilter !== "all") {
-      items = items.filter(item => {
-        const signal = determineSignal(item.publishedAt, item.sourceCount);
-        return signal === signalFilter;
+      clusters = clusters.filter(cluster => {
+        if (signalFilter === "breaking") return cluster.signal === "breaking";
+        if (signalFilter === "developing") return cluster.signal === "developing";
+        if (signalFilter === "stabilized") return cluster.confidence === "high";
+        return true;
       });
     }
 
+    // Filter by multi-source (3+ sources)
     if (multiSourceOnly) {
-      items = items.filter(item => (item.sourceCount || 0) >= 3);
+      clusters = clusters.filter(cluster => cluster.sourceCount >= 3);
     }
 
-    return items;
-  }, [data, signalFilter, multiSourceOnly]);
+    return clusters;
+  }, [allClusters, signalFilter, multiSourceOnly]);
 
-  // Cluster stories using fuzzy matching
-  const clusters = useMemo(() => {
-    return clusterStories(allStories, 0.45);
-  }, [allStories]);
+  // Get filtered stories from filtered clusters
+  const allStories = useMemo(() => {
+    // Return all stories from filtered clusters
+    return filteredClusters.flatMap(cluster => cluster.stories);
+  }, [filteredClusters]);
 
-  // Group by time blocks for pagination
+  // Use filtered clusters for time blocks
+  const clusters = filteredClusters;
+
+  // Group by time blocks for pagination - use filtered data
   const timeBlocks = useMemo(() => {
     return groupByTimeBlocks(allStories, clusters);
   }, [allStories, clusters]);
 
-  // Check for updates on viewed stories
+  // Check for updates on viewed stories - use story-level state
   const storyUpdatesMap = useMemo(() => {
     const map = new Map<string, { type: string; message: string }[]>();
     allStories.forEach(item => {
-      const signal = determineSignal(item.publishedAt, item.sourceCount);
+      // Use story-level state from cluster, not recalculate
+      const signal = item.storyState || "developing";
       const updates = checkForUpdates(item.id, {
         headline: item.headline,
         sourceCount: item.sourceCount || 1,
@@ -198,7 +232,8 @@ export default function News() {
 
   const stats = useMemo(() => {
     const total = allStories.length;
-    const breaking = allStories.filter(i => determineSignal(i.publishedAt, i.sourceCount) === "breaking").length;
+    // Use cluster-level signal, not recalculate
+    const breaking = clusters.filter(c => c.signal === "breaking").length;
     const multiSource = clusters.filter(c => c.sourceCount >= 3).length;
     const totalClusters = clusters.length;
     return { total, breaking, multiSource, totalClusters };
@@ -220,7 +255,8 @@ export default function News() {
   }, []);
 
   const handleArticleClick = useCallback((item: RawStory) => {
-    const signal = determineSignal(item.publishedAt, item.sourceCount);
+    // Use story-level state from cluster
+    const signal = item.storyState || "developing";
     markAsViewed(item.id, {
       headline: item.headline,
       sourceCount: item.sourceCount || 1,
@@ -285,7 +321,7 @@ export default function News() {
                 Intelligence Stream
               </h1>
               <p className="text-muted-foreground text-sm max-w-xl">
-                Real-time news intelligence from verified sources
+                Stories updated in the last 48 hours from {66} verified sources
               </p>
 
               {/* Last session info */}
@@ -295,17 +331,12 @@ export default function News() {
                 </p>
               )}
 
-              {/* Stats row */}
+              {/* Stats row - time-based, not count-based */}
               <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-3 text-xs sm:text-sm">
                 <div className="flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="font-medium">{stats.total}</span>
-                  <span className="text-muted-foreground">stories</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Grid3X3 className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="font-medium">{stats.totalClusters}</span>
-                  <span className="text-muted-foreground">clusters</span>
+                  <span className="text-muted-foreground">story clusters</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Zap className="w-3.5 h-3.5 text-red-500" />
@@ -315,7 +346,7 @@ export default function News() {
                 <div className="flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5 text-emerald-500" />
                   <span className="font-medium">{stats.multiSource}</span>
-                  <span className="text-muted-foreground">multi-source</span>
+                  <span className="text-muted-foreground">verified (3+ sources)</span>
                 </div>
               </div>
             </motion.div>
