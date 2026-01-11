@@ -13,6 +13,13 @@ import { toast } from "sonner";
 import { TTSLimitModal } from "@/components/TTSLimitModal";
 import { DiscussionButton } from "@/components/discussions/DiscussionButton";
 
+export interface NewsSource {
+  source_name: string;
+  source_url: string;
+  description?: string;
+  published_at: string;
+}
+
 export interface NewsItem {
   id: string;
   headline: string;
@@ -34,6 +41,7 @@ export interface NewsItem {
   isTrending?: boolean;
   sourceCount?: number;
   locationRelevance?: "Local" | "Country" | "Global";
+  sources?: NewsSource[];
 }
 
 interface NewsCardProps {
