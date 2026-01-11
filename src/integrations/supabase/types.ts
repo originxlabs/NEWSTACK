@@ -468,36 +468,48 @@ export type Database = {
           category: string | null
           country_code: string | null
           created_at: string
+          fetch_interval_minutes: number | null
           id: string
           is_active: boolean | null
           language: string | null
           last_fetched_at: string | null
           name: string
           priority: number | null
+          publisher: string | null
+          reliability_tier: string | null
+          source_type: string | null
           url: string
         }
         Insert: {
           category?: string | null
           country_code?: string | null
           created_at?: string
+          fetch_interval_minutes?: number | null
           id?: string
           is_active?: boolean | null
           language?: string | null
           last_fetched_at?: string | null
           name: string
           priority?: number | null
+          publisher?: string | null
+          reliability_tier?: string | null
+          source_type?: string | null
           url: string
         }
         Update: {
           category?: string | null
           country_code?: string | null
           created_at?: string
+          fetch_interval_minutes?: number | null
           id?: string
           is_active?: boolean | null
           language?: string | null
           last_fetched_at?: string | null
           name?: string
           priority?: number | null
+          publisher?: string | null
+          reliability_tier?: string | null
+          source_type?: string | null
           url?: string
         }
         Relationships: []
@@ -609,64 +621,79 @@ export type Database = {
           ai_summary: string | null
           category: string | null
           city: string | null
+          confidence_level: string | null
           country_code: string | null
           created_at: string
           engagement_listens: number | null
           engagement_reads: number | null
           engagement_saves: number | null
           first_published_at: string
+          has_contradictions: boolean | null
           headline: string
           id: string
           image_url: string | null
           is_global: boolean | null
           last_updated_at: string
           normalized_headline: string
+          primary_source_count: number | null
           source_count: number | null
           story_hash: string
+          story_state: string | null
           summary: string | null
           trend_score: number | null
+          verified_source_count: number | null
         }
         Insert: {
           ai_summary?: string | null
           category?: string | null
           city?: string | null
+          confidence_level?: string | null
           country_code?: string | null
           created_at?: string
           engagement_listens?: number | null
           engagement_reads?: number | null
           engagement_saves?: number | null
           first_published_at?: string
+          has_contradictions?: boolean | null
           headline: string
           id?: string
           image_url?: string | null
           is_global?: boolean | null
           last_updated_at?: string
           normalized_headline: string
+          primary_source_count?: number | null
           source_count?: number | null
           story_hash: string
+          story_state?: string | null
           summary?: string | null
           trend_score?: number | null
+          verified_source_count?: number | null
         }
         Update: {
           ai_summary?: string | null
           category?: string | null
           city?: string | null
+          confidence_level?: string | null
           country_code?: string | null
           created_at?: string
           engagement_listens?: number | null
           engagement_reads?: number | null
           engagement_saves?: number | null
           first_published_at?: string
+          has_contradictions?: boolean | null
           headline?: string
           id?: string
           image_url?: string | null
           is_global?: boolean | null
           last_updated_at?: string
           normalized_headline?: string
+          primary_source_count?: number | null
           source_count?: number | null
           story_hash?: string
+          story_state?: string | null
           summary?: string | null
           trend_score?: number | null
+          verified_source_count?: number | null
         }
         Relationships: []
       }
@@ -675,8 +702,11 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_primary_reporting: boolean | null
           published_at: string
+          reliability_tier: string | null
           source_name: string
+          source_type: string | null
           source_url: string
           story_id: string
         }
@@ -684,8 +714,11 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_primary_reporting?: boolean | null
           published_at: string
+          reliability_tier?: string | null
           source_name: string
+          source_type?: string | null
           source_url: string
           story_id: string
         }
@@ -693,8 +726,11 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_primary_reporting?: boolean | null
           published_at?: string
+          reliability_tier?: string | null
           source_name?: string
+          source_type?: string | null
           source_url?: string
           story_id?: string
         }
