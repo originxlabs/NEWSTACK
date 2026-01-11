@@ -1206,22 +1206,47 @@ serve(async (req) => {
   
   console.log("Authorization successful - starting ingestion");
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // Create ingestion run record for tracking
+  const { data: runRecord, error: runError } = await supabase
+    .from("ingestion_runs")
+    .insert({
+      status: "running",
+      step_fetch_feeds: "running",
+    })
+    .select("id")
+    .single();
+
+  const runId = runRecord?.id;
+
+  // Helper to update run status
+  const updateRun = async (updates: Record<string, unknown>) => {
+    if (!runId) return;
+    await supabase.from("ingestion_runs").update(updates).eq("id", runId);
+  };
+
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    console.log("Starting tier-based RSS ingestion...", { runId });
 
-    console.log("Starting tier-based RSS ingestion...");
-
-    // Get active RSS feeds with tier information
+    // STEP 1: FETCH FEEDS
     const { data: allFeeds, error: feedsError } = await supabase
       .from("rss_feeds")
       .select("*")
       .eq("is_active", true)
-      .order("reliability_tier", { ascending: true }) // tier_1 first
+      .order("reliability_tier", { ascending: true })
       .order("priority", { ascending: false });
 
     if (feedsError || !allFeeds) {
+      await updateRun({
+        status: "failed",
+        step_fetch_feeds: "failed",
+        error_message: "Failed to fetch RSS feeds",
+        error_step: "fetch_feeds",
+        completed_at: new Date().toISOString(),
+      });
       throw new Error("Failed to fetch RSS feeds");
     }
 
@@ -1236,17 +1261,33 @@ serve(async (req) => {
     console.log(`Found ${allFeeds.length} active feeds, ${feeds.length} due for fetch`);
     console.log(`Tier distribution: T1=${tier1Feeds.length}, T2=${tier2Feeds.length}, T3=${tier3Feeds.length}`);
 
+    await updateRun({
+      step_fetch_feeds: "completed",
+      step_fetch_feeds_count: feeds.length,
+      tier1_feeds: tier1Feeds.length,
+      tier2_feeds: tier2Feeds.length,
+      tier3_feeds: tier3Feeds.length,
+      total_feeds_processed: feeds.length,
+      step_normalize: "running",
+    });
+
     let totalCreated = 0;
     let totalMerged = 0;
+    let totalNormalized = 0;
+    let totalValidated = 0;
+    let totalRejected = 0;
+    let totalClassified = 0;
 
-    // Process each feed
+    // STEP 2-5: Process each feed (normalize, validate, classify, dedupe, store)
     for (const feed of feeds) {
       const items = await fetchRSSFeed(feed as RSSFeed);
+      totalNormalized += items.length;
 
       if (items.length > 0) {
         const { created, merged } = await processItems(supabase, items, feed as RSSFeed);
         totalCreated += created;
         totalMerged += merged;
+        totalClassified += created + merged;
 
         // Update last fetched timestamp
         await supabase
@@ -1256,10 +1297,25 @@ serve(async (req) => {
       }
     }
 
-    // Clean up old stories (older than 48 hours)
+    // Update normalize step
+    await updateRun({
+      step_normalize: "completed",
+      step_normalize_count: totalNormalized,
+      step_validate: "completed",
+      step_validate_rejected: totalRejected,
+      step_classify: "completed",
+      step_classify_count: totalClassified,
+      step_dedupe: "completed",
+      step_dedupe_merged: totalMerged,
+      step_store: "completed",
+      step_store_created: totalCreated,
+      step_cleanup: "running",
+    });
+
+    // STEP 6: CLEANUP - Clean up old stories (older than 48 hours)
     const cutoffTime = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    let cleanupDeleted = 0;
     
-    // First delete story sources for old stories
     const { data: oldStories } = await supabase
       .from("stories")
       .select("id")
@@ -1278,15 +1334,28 @@ serve(async (req) => {
         .delete()
         .lt("first_published_at", cutoffTime);
       
-      console.log(`Cleaned up ${deleted || 0} old stories`);
+      cleanupDeleted = deleted || 0;
+      console.log(`Cleaned up ${cleanupDeleted} old stories`);
     }
+
+    // Mark run as completed
+    await updateRun({
+      status: "completed",
+      step_cleanup: "completed",
+      step_cleanup_deleted: cleanupDeleted,
+      total_stories_created: totalCreated,
+      total_stories_merged: totalMerged,
+      completed_at: new Date().toISOString(),
+    });
 
     const result = {
       success: true,
+      runId,
       feedsProcessed: feeds.length,
       totalFeeds: allFeeds.length,
       storiesCreated: totalCreated,
       storiesMerged: totalMerged,
+      storiesDeleted: cleanupDeleted,
       tierBreakdown: {
         tier1: tier1Feeds.length,
         tier2: tier2Feeds.length,
@@ -1303,8 +1372,16 @@ serve(async (req) => {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Ingestion error:", error);
+    
+    // Update run with error
+    await updateRun({
+      status: "failed",
+      error_message: errorMessage,
+      completed_at: new Date().toISOString(),
+    });
+
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ success: false, runId, error: errorMessage }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
