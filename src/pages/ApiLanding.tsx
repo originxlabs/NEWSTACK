@@ -591,31 +591,25 @@ export default function ApiLanding() {
                   
                   <Card className="mb-6">
                     <CardHeader>
-                      <CardTitle className="text-base">Base URLs</CardTitle>
+                      <CardTitle className="text-base">Base URL</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
+                      <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-lg">
                         <div>
-                          <p className="text-xs text-muted-foreground mb-1">Production</p>
+                          <p className="text-xs text-muted-foreground mb-1">Single Endpoint (Sandbox & Production)</p>
                           <code className="text-sm font-mono font-medium">
-                            https://api.newstack.live/v1
+                            https://api.newstack.online/v1
                           </code>
                         </div>
-                        <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                          Production
+                        <Badge className="bg-primary/10 text-primary border-primary/30">
+                          All Environments
                         </Badge>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Sandbox (Testing)</p>
-                          <code className="text-sm font-mono font-medium">
-                            https://sandbox.newstack.online/v1
-                          </code>
-                        </div>
-                        <Badge variant="secondary">
-                          Sandbox
-                        </Badge>
-                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Environment is determined by your API key prefix:
+                        <code className="ml-1 bg-muted px-1 rounded">nsk_test_*</code> → Sandbox |
+                        <code className="ml-1 bg-muted px-1 rounded">nsk_live_*</code> → Production
+                      </p>
                     </CardContent>
                   </Card>
 
@@ -662,8 +656,12 @@ export default function ApiLanding() {
                   </p>
                   
                   <CodeBlock 
-                    code={`curl -X GET "https://api.newstack.live/v1/news" \\
-  -H "X-API-Key: nsk_your_api_key_here"`}
+                    code={`curl -X GET "https://api.newstack.online/v1/news" \\
+  -H "X-API-Key: nsk_live_your_api_key_here"
+
+# For sandbox testing:
+curl -X GET "https://api.newstack.online/v1/news" \\
+  -H "X-API-Key: nsk_test_your_api_key_here"`}
                     language="bash"
                   />
 
@@ -765,11 +763,11 @@ Retry-After: 60  # Only on 429`}
                         Returns clustered story intelligence. Stories are evolving entities, not articles.
                       </p>
                       <CodeBlock 
-                        code={`GET https://api.newstack.live/v1/news?category=technology&confidence=high&window=24h
+                        code={`GET https://api.newstack.online/v1/news?category=technology&confidence=high&window=24h
 
 Response:
 {
-  "updated_at": "2025-01-11T16:00:00Z",
+  "updated_at": "2026-01-11T16:00:00Z",
   "stories": [
     {
       "story_id": "abc123",
@@ -778,10 +776,10 @@ Response:
       "confidence": "High",
       "sources_count": 5,
       "category": "Technology",
-      "first_published_at": "2025-01-11T14:30:00Z",
+      "first_published_at": "2026-01-11T14:30:00Z",
       "timeline": [
-        "2025-01-11T14:30:00Z: Reuters",
-        "2025-01-11T14:45:00Z: Bloomberg"
+        "2026-01-11T14:30:00Z: Reuters",
+        "2026-01-11T14:45:00Z: Bloomberg"
       ]
     }
   ]
@@ -797,7 +795,7 @@ Response:
                         Get detailed intelligence for a specific story including full timeline and sources.
                       </p>
                       <CodeBlock 
-                        code={`GET https://api.newstack.live/v1/news/abc123
+                        code={`GET https://api.newstack.online/v1/news/abc123
 
 Response:
 {
@@ -819,7 +817,7 @@ Response:
     {
       "name": "Reuters",
       "url": "https://...",
-      "published_at": "2025-01-11T14:30:00Z",
+      "published_at": "2026-01-11T14:30:00Z",
       "is_primary": true
     }
   ]
@@ -847,11 +845,11 @@ Response:
                         <code className="font-mono text-sm">/world</code>
                       </div>
                       <CodeBlock 
-                        code={`GET https://api.newstack.live/v1/world
+                        code={`GET https://api.newstack.online/v1/world
 
 Response:
 {
-  "updated_at": "2025-01-11T16:00:00Z",
+  "updated_at": "2026-01-11T16:00:00Z",
   "total_stories": 450,
   "regions": [
     {
@@ -874,7 +872,7 @@ Response:
                         <code className="font-mono text-sm">/world/regions/:region</code>
                       </div>
                       <CodeBlock 
-                        code={`GET https://api.newstack.live/v1/world/regions/asia-pacific
+                        code={`GET https://api.newstack.online/v1/world/regions/asia-pacific
 
 Response:
 {
@@ -913,7 +911,7 @@ Response:
                         <code className="font-mono text-sm">/places/:place_id</code>
                       </div>
                       <CodeBlock 
-                        code={`GET https://api.newstack.live/v1/places/mumbai
+                        code={`GET https://api.newstack.online/v1/places/mumbai
 
 Response:
 {
@@ -938,7 +936,7 @@ Response:
                         <code className="font-mono text-sm">/places/:place_id/intelligence</code>
                       </div>
                       <CodeBlock 
-                        code={`GET https://api.newstack.live/v1/places/mumbai/intelligence
+                        code={`GET https://api.newstack.online/v1/places/mumbai/intelligence
 
 Response:
 {
@@ -962,7 +960,7 @@ Response:
                         <code className="font-mono text-sm">/places/:place_id/news</code>
                       </div>
                       <CodeBlock 
-                        code={`GET https://api.newstack.live/v1/places/mumbai/news?window=30d
+                        code={`GET https://api.newstack.online/v1/places/mumbai/news?window=30d
 
 Response:
 {
@@ -975,7 +973,7 @@ Response:
       "headline": "Mumbai tech sector growth...",
       "category": "Business",
       "confidence": "high",
-      "published_at": "2025-01-10T10:00:00Z"
+      "published_at": "2026-01-10T10:00:00Z"
     }
   ]
 }`}
@@ -997,7 +995,7 @@ Response:
                     </CardHeader>
                     <CardContent>
                       <CodeBlock 
-                        code={`POST https://api.newstack.live/v1/webhooks
+                        code={`POST https://api.newstack.online/v1/webhooks
 
 {
   "url": "https://yourapp.com/webhooks/newstack",
@@ -1014,7 +1012,7 @@ Response:
   "id": "whk_abc123",
   "secret": "whsec_...",
   "events": [...],
-  "created_at": "2025-01-11T16:00:00Z"
+  "created_at": "2026-01-11T16:00:00Z"
 }`}
                       />
                     </CardContent>
@@ -1059,9 +1057,9 @@ Response:
                   </p>
 
                   <CodeBlock 
-                    code={`GET https://api.newstack.live/v1/stream/news
+                    code={`GET https://api.newstack.online/v1/stream/news
 Accept: text/event-stream
-X-API-Key: your_key
+X-API-Key: nsk_live_your_key
 
 event: story.update
 data: {"story_id":"abc123","confidence":"Medium","sources":4,"state":"developing"}

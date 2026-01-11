@@ -26,6 +26,7 @@ import RefundPolicy from "./pages/RefundPolicy";
 import NotFound from "./pages/NotFound";
 import StoryDetail from "./pages/StoryDetail";
 import ApiLanding from "./pages/ApiLanding";
+import ApiDocs from "./pages/ApiDocs";
 import ApiDashboard from "./pages/ApiDashboard";
 import NewsroomLayout from "./pages/newsroom/NewsroomLayout";
 import NewsroomLogin from "./pages/newsroom/NewsroomLogin";
@@ -141,6 +142,7 @@ function AppContent() {
           <Route path="/compare" element={<Features />} />
           <Route path="/support" element={<Support />} />
           <Route path="/api" element={<ApiLanding />} />
+          <Route path="/api/docs" element={<ApiDocs />} />
           <Route path="/api/dashboard" element={<ApiDashboard />} />
           {/* Enterprise Newsroom - separate from public */}
           <Route path="/newsroom/login" element={<NewsroomLogin />} />
