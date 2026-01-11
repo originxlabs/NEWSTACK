@@ -25,6 +25,15 @@ import TermsOfService from "./pages/TermsOfService";
 import RefundPolicy from "./pages/RefundPolicy";
 import NotFound from "./pages/NotFound";
 import StoryDetail from "./pages/StoryDetail";
+import ApiLanding from "./pages/ApiLanding";
+import NewsroomLayout from "./pages/newsroom/NewsroomLayout";
+import NewsroomLogin from "./pages/newsroom/NewsroomLogin";
+import NewsroomDashboard from "./pages/newsroom/NewsroomDashboard";
+import NewsroomStories from "./pages/newsroom/NewsroomStories";
+import NewsroomTrust from "./pages/newsroom/NewsroomTrust";
+import NewsroomAlerts from "./pages/newsroom/NewsroomAlerts";
+import NewsroomIntegrations from "./pages/newsroom/NewsroomIntegrations";
+import NewsroomSettings from "./pages/newsroom/NewsroomSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -123,6 +132,17 @@ function AppContent() {
           <Route path="/features" element={<Features />} />
           <Route path="/compare" element={<Features />} />
           <Route path="/support" element={<Support />} />
+          <Route path="/api" element={<ApiLanding />} />
+          {/* Enterprise Newsroom - separate from public */}
+          <Route path="/newsroom/login" element={<NewsroomLogin />} />
+          <Route path="/newsroom" element={<NewsroomLayout />}>
+            <Route index element={<NewsroomDashboard />} />
+            <Route path="stories" element={<NewsroomStories />} />
+            <Route path="trust" element={<NewsroomTrust />} />
+            <Route path="alerts" element={<NewsroomAlerts />} />
+            <Route path="integrations" element={<NewsroomIntegrations />} />
+            <Route path="settings" element={<NewsroomSettings />} />
+          </Route>
           {/* Legal pages */}
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />

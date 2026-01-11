@@ -15,13 +15,13 @@ const footerLinks = {
     { name: "AI Summaries", href: "/features" },
     { name: "Audio News", href: "/features" },
     { name: "Place Intelligence", href: "/features" },
-    { name: "Compare Apps", href: "/compare" },
+    { name: "API Access", href: "/api" },
   ],
-  Support: [
-    { name: "Support Us", href: "/support" },
-    { name: "Donate", href: "/support" },
-    { name: "Help Center", href: "/support" },
-    { name: "Contact", href: "/support" },
+  Enterprise: [
+    { name: "Newsroom", href: "/newsroom" },
+    { name: "API Pricing", href: "/api" },
+    { name: "Documentation", href: "/api" },
+    { name: "Contact Sales", href: "/support" },
   ],
   Legal: [
     { name: "Privacy Policy", href: "/privacy" },
