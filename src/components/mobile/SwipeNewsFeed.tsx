@@ -8,8 +8,8 @@ import { useHaptic } from "@/hooks/use-haptic";
 import { SwipeNewsCard } from "./SwipeNewsCard";
 import { NLogoSquare } from "@/components/NLogo";
 import { 
-  Loader2, Wifi, WifiOff, ChevronLeft, ChevronRight, RefreshCw, Settings,
-  Home, Newspaper, Headphones, MapPin, User, MoreHorizontal, CloudOff, Cloud
+  Loader2, Wifi, WifiOff, ChevronLeft, ChevronRight, RefreshCw,
+  Home, Newspaper, Headphones, MapPin, MoreHorizontal, CloudOff, Cloud, Star
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -607,27 +607,15 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
                     </div>
                   </Link>
                   <Link
-                    to="/saved"
+                    to="/support"
                     className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors"
                   >
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Newspaper className="w-5 h-5 text-primary" />
+                      <Star className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <span className="font-medium">Saved Articles</span>
-                      <p className="text-xs text-muted-foreground">Your bookmarks</p>
-                    </div>
-                  </Link>
-                  <Link
-                    to="/settings"
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Settings className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <span className="font-medium">Settings</span>
-                      <p className="text-xs text-muted-foreground">Preferences & more</p>
+                      <span className="font-medium">Support Us</span>
+                      <p className="text-xs text-muted-foreground">Help us grow</p>
                     </div>
                   </Link>
                 </div>
@@ -718,7 +706,6 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
               { path: "/news", icon: Newspaper, label: "News" },
               { path: "/listen", icon: Headphones, label: "Listen" },
               { path: "/places", icon: MapPin, label: "Places" },
-              { path: "/profile", icon: User, label: "Profile" },
             ].map((item) => {
               const isActive = location.pathname === item.path || 
                 (item.path === "/" && location.pathname === "/news") ||

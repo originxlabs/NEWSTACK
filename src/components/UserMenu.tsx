@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { User, Settings, Bookmark, CreditCard, LogOut, ChevronDown } from "lucide-react";
+import { CreditCard, LogOut, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -65,38 +65,14 @@ export function UserMenu() {
             <span className="text-xs text-muted-foreground truncate">
               {profile?.email || profile?.phone}
             </span>
-            <span className="text-xs mt-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary w-fit capitalize">
-              {profile?.subscription_tier || "free"}
-            </span>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         
         <DropdownMenuItem asChild>
-          <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
-            <User className="h-4 w-4" />
-            My Profile
-          </Link>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem asChild>
-          <Link to="/saved" className="flex items-center gap-2 cursor-pointer">
-            <Bookmark className="h-4 w-4" />
-            Saved Articles
-          </Link>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem asChild>
           <Link to="/support" className="flex items-center gap-2 cursor-pointer">
             <CreditCard className="h-4 w-4" />
             Support Us
-          </Link>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem asChild>
-          <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
-            <Settings className="h-4 w-4" />
-            Settings
           </Link>
         </DropdownMenuItem>
         
