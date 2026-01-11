@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import { 
   Play, RefreshCw, CheckCircle2, XCircle, Clock, 
-  AlertTriangle, Layers, Database, Filter, Trash2,
-  ArrowRight, Loader2, Rss, FileCheck, Tag, GitMerge, Save
+  AlertTriangle, Database, Filter, Trash2,
+  ArrowRight, Loader2, Rss, FileCheck, Tag, GitMerge, Save, Shield, Radio
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useNewsroomRole } from "@/hooks/use-newsroom-role";
 
 interface IngestionRun {
   id: string;
@@ -89,13 +90,15 @@ function getStepLabel(stepKey: string): string {
 }
 
 export default function NewsroomIngestion() {
+  const { isOwnerOrSuperadmin, loading: roleLoading } = useNewsroomRole();
   const [runs, setRuns] = useState<IngestionRun[]>([]);
   const [currentRun, setCurrentRun] = useState<IngestionRun | null>(null);
   const [isTriggering, setIsTriggering] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRealtime, setIsRealtime] = useState(false);
 
   // Fetch ingestion runs
-  const fetchRuns = async () => {
+  const fetchRuns = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("ingestion_runs")
@@ -120,20 +123,62 @@ export default function NewsroomIngestion() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
+  // Real-time subscription for ingestion runs
   useEffect(() => {
     fetchRuns();
-    
-    // Poll for updates when a run is in progress
-    const interval = setInterval(() => {
-      if (currentRun?.status === "running") {
-        fetchRuns();
-      }
-    }, 2000);
 
-    return () => clearInterval(interval);
-  }, [currentRun?.status]);
+    // Subscribe to real-time updates on ingestion_runs table
+    const channel = supabase
+      .channel('ingestion-runs-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ingestion_runs',
+        },
+        (payload) => {
+          console.log('Realtime update:', payload);
+          setIsRealtime(true);
+          
+          if (payload.eventType === 'INSERT') {
+            const newRun = payload.new as unknown as IngestionRun;
+            setRuns(prev => [newRun, ...prev].slice(0, 20));
+            setCurrentRun(newRun);
+            toast.info("New ingestion run started");
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedRun = payload.new as unknown as IngestionRun;
+            setRuns(prev => prev.map(r => r.id === updatedRun.id ? updatedRun : r));
+            if (currentRun?.id === updatedRun.id) {
+              setCurrentRun(updatedRun);
+            }
+            
+            // Show toast on completion
+            if (updatedRun.status === 'completed' && currentRun?.status === 'running') {
+              toast.success("Ingestion completed!", {
+                description: `Created ${updatedRun.total_stories_created} stories, merged ${updatedRun.total_stories_merged}`,
+              });
+            } else if (updatedRun.status === 'failed') {
+              toast.error("Ingestion failed", {
+                description: updatedRun.error_message || "Unknown error",
+              });
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          setIsRealtime(true);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Trigger new ingestion run
   const triggerIngestion = async () => {
@@ -147,7 +192,7 @@ export default function NewsroomIngestion() {
         description: `Run ID: ${data.runId}`,
       });
       
-      // Refresh runs list
+      // Real-time will handle the update, but fetch for immediate feedback
       await fetchRuns();
     } catch (err) {
       console.error("Failed to trigger ingestion:", err);
@@ -183,12 +228,49 @@ export default function NewsroomIngestion() {
     }
   };
 
+  // Access check
+  if (roleLoading) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Checking access...</div>
+      </div>
+    );
+  }
+
+  if (!isOwnerOrSuperadmin) {
+    return (
+      <div className="p-8">
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Shield className="w-8 h-8 text-destructive" />
+              <div>
+                <h3 className="font-semibold">Access Denied</h3>
+                <p className="text-sm text-muted-foreground">
+                  Only Owner and Superadmin can access the ingestion pipeline.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 sm:p-8 max-w-7xl">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-display text-2xl font-bold mb-2">Ingestion Pipeline</h1>
+          <div className="flex items-center gap-2 mb-2">
+            <h1 className="font-display text-2xl font-bold">Ingestion Pipeline</h1>
+            {isRealtime && (
+              <Badge variant="outline" className="text-emerald-500 border-emerald-500/30">
+                <Radio className="w-3 h-3 mr-1 animate-pulse" />
+                Live
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground">
             Monitor and trigger RSS feed ingestion with real-time step tracking
           </p>

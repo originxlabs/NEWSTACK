@@ -2,17 +2,27 @@ import { useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, FileText, Shield, Bell, 
-  Settings, Plug, LogOut, ChevronLeft, Rss
+  Settings, Plug, LogOut, ChevronLeft, Rss, Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNewsroomRole } from "@/hooks/use-newsroom-role";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+interface NavItem {
+  icon: typeof LayoutDashboard;
+  label: string;
+  href: string;
+  restricted?: boolean;
+}
+
+const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/newsroom" },
-  { icon: Rss, label: "Ingestion", href: "/newsroom/ingestion" },
+  { icon: Rss, label: "Ingestion", href: "/newsroom/ingestion", restricted: true },
+  { icon: Rss, label: "RSS Feeds", href: "/newsroom/feeds", restricted: true },
   { icon: FileText, label: "Stories", href: "/newsroom/stories" },
   { icon: Shield, label: "Trust Console", href: "/newsroom/trust" },
   { icon: Bell, label: "Alerts", href: "/newsroom/alerts" },
@@ -22,6 +32,7 @@ const navItems = [
 
 export default function NewsroomLayout() {
   const { user, loading, signOut } = useAuth();
+  const { role, isOwnerOrSuperadmin, loading: roleLoading } = useNewsroomRole();
   const navigate = useNavigate();
 
   // Auth guard - redirect to login if not authenticated
@@ -31,7 +42,7 @@ export default function NewsroomLayout() {
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
@@ -42,6 +53,14 @@ export default function NewsroomLayout() {
   if (!user) {
     return null;
   }
+
+  // Filter nav items based on role
+  const visibleNavItems = navItems.filter(item => {
+    if (item.restricted) {
+      return isOwnerOrSuperadmin;
+    }
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -55,11 +74,16 @@ export default function NewsroomLayout() {
               Newsroom
             </span>
           </div>
+          {role && (
+            <Badge variant="outline" className="mt-2 text-[10px] uppercase">
+              {role}
+            </Badge>
+          )}
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.href}
               to={item.href}
@@ -75,6 +99,9 @@ export default function NewsroomLayout() {
             >
               <item.icon className="w-4 h-4" />
               {item.label}
+              {item.restricted && (
+                <Lock className="w-3 h-3 ml-auto opacity-50" />
+              )}
             </NavLink>
           ))}
         </nav>
