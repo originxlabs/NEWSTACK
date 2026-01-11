@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Headphones, Bookmark, Heart, Share2, Shield, ChevronRight, Pause, Loader2, Clock, ExternalLink, MapPin, Globe, Building2 } from "lucide-react";
+import { Headphones, Bookmark, Heart, Share2, Shield, ChevronRight, Pause, Loader2, Clock, ExternalLink, MapPin, Globe, Building2, Layers } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -217,9 +217,19 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
                       );
                     })()}
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Shield className="w-3 h-3 text-green-500" />
-                    <span>{news.trustScore}%</span>
+                  <div className="flex items-center gap-2">
+                    {news.sourceCount && news.sourceCount >= 3 && (
+                      <div className="flex items-center gap-1 text-xs" title="Source Diversity - Multiple organizations covering this story">
+                        <Layers className="w-3 h-3 text-blue-500" />
+                        <span className="text-blue-600 font-medium">
+                          {news.sourceCount >= 10 ? "High" : news.sourceCount >= 5 ? "Med" : "Low"}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Shield className="w-3 h-3 text-green-500" />
+                      <span>{news.trustScore}%</span>
+                    </div>
                   </div>
                 </div>
 
