@@ -10,3 +10,4 @@ export { LocalImpactSummary } from "./LocalImpactSummary";
 export { GlobalPulse } from "./GlobalPulse";
 export { SourceTrustPanel } from "./SourceTrustPanel";
 export { StoryCluster } from "./StoryCluster";
+export { StoryTimeline } from "./StoryTimeline";

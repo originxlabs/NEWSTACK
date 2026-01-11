@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Radio, ChevronDown } from "lucide-react";
+import { Menu, X, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link, useLocation } from "react-router-dom";
@@ -8,11 +8,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { UserMenu } from "@/components/UserMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NLogoSquare } from "@/components/NLogo";
 
 const navLinks = [
-  { name: "News", href: "/news", description: "Signal stream" },
-  { name: "World", href: "/world", description: "Global pulse" },
-  { name: "Places", href: "/places", description: "Local intelligence" },
+  { name: "News", href: "/news" },
+  { name: "World", href: "/world" },
+  { name: "Places", href: "/places" },
 ];
 
 export function Header() {
@@ -37,15 +38,14 @@ export function Header() {
         <div className="bg-background/80 backdrop-blur-xl border-b border-border/40">
           <div className="container mx-auto max-w-6xl px-4">
             <div className="flex items-center justify-between h-14">
-              {/* Logo */}
-              <Link to="/" className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-                  <span className="text-primary-foreground font-semibold text-sm">N</span>
+              {/* Logo - Reverted to original NEWSTACK */}
+              <Link to="/" className="flex items-center gap-2">
+                <div className="flex items-center justify-center text-foreground">
+                  <NLogoSquare size={28} />
                 </div>
-                <div className="flex flex-col">
-                  <span className="font-semibold text-sm tracking-tight">Newsify</span>
-                  <span className="text-[10px] text-muted-foreground -mt-0.5 hidden sm:block">Intelligence Platform</span>
-                </div>
+                <span className="font-display font-bold text-lg tracking-tight">
+                  NEW<span className="text-primary">STACK</span>
+                </span>
               </Link>
 
               {/* Desktop Navigation */}
@@ -126,15 +126,14 @@ export function Header() {
                     <Link
                       key={link.name}
                       to={link.href}
-                      className={`px-3 py-2.5 text-sm transition-colors rounded-md flex items-center justify-between ${
+                      className={`px-3 py-2.5 text-sm transition-colors rounded-md ${
                         isActive(link.href)
                           ? "text-foreground bg-muted/50 font-medium"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
-                      <span>{link.name}</span>
-                      <span className="text-xs text-muted-foreground">{link.description}</span>
+                      {link.name}
                     </Link>
                   ))}
                   
