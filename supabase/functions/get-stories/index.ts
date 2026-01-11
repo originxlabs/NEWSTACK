@@ -160,12 +160,13 @@ serve(async (req) => {
     // Fetch sources for each story in parallel and filter by source if specified
     let storiesWithSources = await Promise.all(
       stories.map(async (story) => {
+        // Fetch sources ordered by published_at ascending to show who reported first
         let sourcesQuery = supabase
           .from("story_sources")
-          .select("source_name, source_url, published_at")
+          .select("source_name, source_url, published_at, description")
           .eq("story_id", story.id)
-          .order("published_at", { ascending: false })
-          .limit(5);
+          .order("published_at", { ascending: true })
+          .limit(10);
         
         const { data: sources } = await sourcesQuery;
 
