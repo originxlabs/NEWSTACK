@@ -112,7 +112,7 @@ serve(async (req) => {
       );
     }
 
-    // Generate email HTML
+    // Generate email HTML with unsubscribe functionality
     const today = new Date().toLocaleDateString("en-US", { 
       weekday: "long", 
       year: "numeric", 
@@ -153,7 +153,12 @@ serve(async (req) => {
       </div>
     `).join('');
 
-    const emailHtml = `
+    // Generate email for each subscriber with personalized unsubscribe link
+    const generateEmailHtml = (email: string) => {
+      const unsubscribeToken = btoa(email); // Simple base64 encoding for token
+      const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe-newsletter?token=${unsubscribeToken}`;
+      
+      return `
       <!DOCTYPE html>
       <html>
       <head>
@@ -205,27 +210,39 @@ serve(async (req) => {
             </div>
           </div>
           
-          <!-- Footer -->
+          <!-- Footer with Unsubscribe -->
           <div style="background: #1f2937; border-radius: 0 0 16px 16px; padding: 24px; text-align: center;">
             <p style="margin: 0 0 8px 0; color: #9ca3af; font-size: 12px;">
               You're receiving this because you subscribed to NEWSTACK Daily Digest.
             </p>
-            <p style="margin: 0; color: #6b7280; font-size: 11px;">
+            <p style="margin: 0 0 12px 0; color: #6b7280; font-size: 11px;">
               © ${new Date().getFullYear()} NEWSTACK • Multi-source verified news
             </p>
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #374151;">
+              <a href="${unsubscribeUrl}" style="color: #9ca3af; font-size: 12px; text-decoration: underline;">
+                Unsubscribe from Daily Digest
+              </a>
+              <span style="color: #6b7280; font-size: 12px;"> • </span>
+              <a href="https://newstack.app/privacy-policy" style="color: #9ca3af; font-size: 12px; text-decoration: underline;">
+                Privacy Policy
+              </a>
+            </div>
           </div>
           
         </div>
       </body>
       </html>
     `;
+    };
 
-    // Send emails to all subscribers
+    // Send emails to all subscribers with personalized unsubscribe links
     let sentCount = 0;
     let failedCount = 0;
 
     for (const subscriber of subscribers) {
       try {
+        const personalizedEmailHtml = generateEmailHtml(subscriber.email);
+        
         const response = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -236,7 +253,11 @@ serve(async (req) => {
             from: "NEWSTACK <digest@newstack.app>",
             to: [subscriber.email],
             subject: `📰 NEWSTACK Daily Digest - ${stories.length} Top Stories (${today})`,
-            html: emailHtml,
+            html: personalizedEmailHtml,
+            headers: {
+              "List-Unsubscribe": `<${supabaseUrl}/functions/v1/unsubscribe-newsletter?token=${btoa(subscriber.email)}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
           }),
         });
 

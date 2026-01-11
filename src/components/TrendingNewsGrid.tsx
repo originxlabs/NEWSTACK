@@ -2,12 +2,14 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Loader2, TrendingUp, Flame, Clock, Shield, ExternalLink, 
-  Headphones, Bookmark, Heart, Share2, Layers, Pause, ChevronRight
+  Headphones, Bookmark, Heart, Share2, Layers, Pause, ChevronRight,
+  Filter, ChevronDown, ChevronUp, FileText
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { useNews } from "@/hooks/use-news";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,6 +42,7 @@ interface TrendingArticle {
     description?: string;
     published_at: string;
   }>;
+  content?: string;
 }
 
 const topicColors: Record<string, string> = {
@@ -65,6 +68,8 @@ export function TrendingNewsGrid() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [showMultiSourceOnly, setShowMultiSourceOnly] = useState(false);
+  const [showFullContent, setShowFullContent] = useState(false);
   
   const { speak, toggle, isLoading: ttsLoading, isPlaying, progress, stop } = useTTS({
     language: language?.code || "en",
@@ -80,7 +85,7 @@ export function TrendingNewsGrid() {
   const trendingArticles = useMemo(() => {
     if (!data?.articles) return [];
     
-    return data.articles.map(article => {
+    let articles = data.articles.map(article => {
       const publishedDate = new Date(article.published_at);
       const now = new Date();
       const diffHours = Math.floor((now.getTime() - publishedDate.getTime()) / (1000 * 60 * 60));
@@ -101,15 +106,24 @@ export function TrendingNewsGrid() {
         whyMatters: article.why_matters,
         isTrending: true,
         sources: (article as any).sources || [],
+        content: (article as any).content || null,
       } as TrendingArticle;
     });
-  }, [data]);
+
+    // Filter for multi-source stories if enabled
+    if (showMultiSourceOnly) {
+      articles = articles.filter(a => (a.sourceCount || 0) >= 3);
+    }
+    
+    return articles;
+  }, [data, showMultiSourceOnly]);
 
   const handleCardClick = (article: TrendingArticle) => {
     setSelectedArticle(article);
     setIsModalOpen(true);
     setIsSaved(false);
     setIsLiked(false);
+    setShowFullContent(false);
     
     // Check if saved
     if (user) {
@@ -127,6 +141,7 @@ export function TrendingNewsGrid() {
     stop();
     setIsModalOpen(false);
     setSelectedArticle(null);
+    setShowFullContent(false);
   };
 
   const handleListen = async () => {
@@ -272,7 +287,7 @@ export function TrendingNewsGrid() {
             initial={{ opacity: 0, y: 20 }} 
             whileInView={{ opacity: 1, y: 0 }} 
             viewport={{ once: true }}
-            className="flex items-center justify-between mb-8"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8"
           >
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-orange-500/10">
@@ -283,12 +298,26 @@ export function TrendingNewsGrid() {
                 <p className="text-sm text-muted-foreground">Multi-source verified stories</p>
               </div>
             </div>
-            <Button variant="ghost" className="gap-2" asChild>
-              <a href="/news">
-                View All
-                <ChevronRight className="w-4 h-4" />
-              </a>
-            </Button>
+            
+            <div className="flex items-center gap-4">
+              {/* Multi-source filter */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">3+ Sources</span>
+                <Switch
+                  checked={showMultiSourceOnly}
+                  onCheckedChange={setShowMultiSourceOnly}
+                  className="data-[state=checked]:bg-green-500"
+                />
+              </div>
+              
+              <Button variant="ghost" className="gap-2" asChild>
+                <a href="/news">
+                  View All
+                  <ChevronRight className="w-4 h-4" />
+                </a>
+              </Button>
+            </div>
           </motion.div>
 
           {/* Grid */}
@@ -509,6 +538,56 @@ export function TrendingNewsGrid() {
                     </div>
                   </div>
                 )}
+
+                {/* Full Content Section */}
+                <div>
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() => setShowFullContent(!showFullContent)}
+                  >
+                    <FileText className="w-4 h-4" />
+                    {showFullContent ? "Hide Full Story" : "Read Full Story"}
+                    {showFullContent ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </Button>
+                  
+                  <AnimatePresence>
+                    {showFullContent && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-4 p-4 rounded-xl bg-muted/30 border border-border">
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                            Full Story
+                          </h3>
+                          {selectedArticle.content ? (
+                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap">{selectedArticle.content}</p>
+                            </div>
+                          ) : (
+                            <div className="text-center py-6">
+                              <p className="text-sm text-muted-foreground mb-3">
+                                Full article content is available from the original sources.
+                              </p>
+                              {selectedArticle.sourceUrl && (
+                                <Button variant="outline" size="sm" asChild>
+                                  <a href={selectedArticle.sourceUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
+                                    Read at {selectedArticle.source}
+                                    <ExternalLink className="w-4 h-4" />
+                                  </a>
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 {/* Sources */}
                 <div>
