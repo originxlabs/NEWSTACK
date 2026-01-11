@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Bookmark, MapPin, MessageCircle, Settings, LogOut, Edit, Camera, Loader2, Trash2, Crown, Sparkles, Shield, CreditCard } from "lucide-react";
+import { User, Bookmark, MapPin, Settings, LogOut, Camera, Loader2, Crown, Shield, CreditCard, Trash2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { NewsCard, NewsItem } from "@/components/NewsCard";
-import { DiscussionPanel } from "@/components/discussions/DiscussionPanel";
 import { useAdmin } from "@/hooks/use-admin";
 import { SubscriptionManagement } from "@/components/SubscriptionManagement";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
@@ -31,15 +30,6 @@ interface SavedPlace {
   created_at: string;
 }
 
-interface UserDiscussion {
-  id: string;
-  content_type: "news" | "place";
-  content_id: string;
-  message: string;
-  agrees_count: number;
-  disagrees_count: number;
-  created_at: string;
-}
 
 const Profile = () => {
   const { user, profile, signOut } = useAuth();
@@ -47,7 +37,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const [savedNews, setSavedNews] = useState<any[]>([]);
   const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
-  const [discussions, setDiscussions] = useState<UserDiscussion[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
   const [isSaving, setIsSaving] = useState(false);
@@ -89,17 +79,8 @@ const Profile = () => {
         .order("created_at", { ascending: false })
         .limit(20);
 
-      // Fetch user's discussions
-      const { data: discussionsData } = await supabase
-        .from("discussions")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-
       setSavedNews(newsData || []);
       setSavedPlaces((placesData || []) as SavedPlace[]);
-      setDiscussions((discussionsData || []) as UserDiscussion[]);
     } catch (err) {
       console.error("Failed to fetch user data:", err);
     } finally {
@@ -228,15 +209,6 @@ const Profile = () => {
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="discussions" className="gap-2">
-                <MessageCircle className="h-4 w-4" />
-                My Discussions
-                {discussions.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 px-1.5">
-                    {discussions.length}
-                  </Badge>
-                )}
-              </TabsTrigger>
               <TabsTrigger value="subscription" className="gap-2">
                 <CreditCard className="h-4 w-4" />
                 Subscription
@@ -324,48 +296,6 @@ const Profile = () => {
                               ⭐ {place.place_rating}
                             </Badge>
                           )}
-                        </div>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            {/* Discussions */}
-            <TabsContent value="discussions">
-              {isLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : discussions.length === 0 ? (
-                <EmptyState
-                  icon={MessageCircle}
-                  title="No discussions yet"
-                  description="Join the conversation on news and places"
-                />
-              ) : (
-                <div className="space-y-4">
-                  {discussions.map((discussion, index) => (
-                    <motion.div
-                      key={discussion.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <Card className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <Badge variant="outline" className="text-xs">
-                            {discussion.content_type === "news" ? "📰 News" : "📍 Place"}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(discussion.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <p className="text-sm mb-3">{discussion.message}</p>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>👍 {discussion.agrees_count}</span>
-                          <span>👎 {discussion.disagrees_count}</span>
                         </div>
                       </Card>
                     </motion.div>

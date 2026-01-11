@@ -54,48 +54,25 @@ interface NewsResponse {
 }
 
 async function fetchNews(params: FetchNewsParams): Promise<NewsResponse> {
-  // Try to fetch from RSS-backed stories first
-  try {
-    const storiesResponse = await fetch(`${SUPABASE_URL}/functions/v1/get-stories`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-      },
-      body: JSON.stringify({
-        feedType: params.feedType || "recent",
-        category: params.topic,
-        country: params.country,
-        userCity: params.userCity,
-        userState: params.userState,
-        page: params.page || 1,
-        pageSize: params.pageSize || 20,
-        source: params.source,
-        dateFrom: params.dateFrom,
-        dateTo: params.dateTo,
-      }),
-    });
-
-    if (storiesResponse.ok) {
-      const data = await storiesResponse.json();
-      if (data.articles && data.articles.length > 0) {
-        return data;
-      }
-    }
-  } catch (e) {
-    console.log("Stories endpoint not available, falling back to fetch-news");
-  }
-
-  // Fallback to external APIs
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/fetch-news`, {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/get-stories`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       apikey: SUPABASE_KEY,
       Authorization: `Bearer ${SUPABASE_KEY}`,
     },
-    body: JSON.stringify(params),
+    body: JSON.stringify({
+      feedType: params.feedType || "recent",
+      category: params.topic,
+      country: params.country,
+      userCity: params.userCity,
+      userState: params.userState,
+      page: params.page || 1,
+      pageSize: params.pageSize || 20,
+      source: params.source,
+      dateFrom: params.dateFrom,
+      dateTo: params.dateTo,
+    }),
   });
 
   if (!response.ok) {

@@ -105,12 +105,13 @@ const SavedArticles = () => {
     try {
       const { data, error } = await supabase
         .from("saved_news")
-        .select("*, news(*)")
+        .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setSavedArticles((data || []) as SavedArticle[]);
+      // Note: news table removed - saved articles will show empty until migration to stories
+      setSavedArticles([]);
     } catch (err) {
       console.error("Failed to fetch saved articles:", err);
       toast.error("Failed to load saved articles");

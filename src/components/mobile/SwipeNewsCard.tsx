@@ -15,7 +15,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { toast } from "sonner";
 import { TTSLimitModal } from "@/components/TTSLimitModal";
-import { DiscussionButton } from "@/components/discussions/DiscussionButton";
 import { useHaptic } from "@/hooks/use-haptic";
 import type { NewsItem } from "@/components/NewsCard";
 
@@ -380,13 +379,6 @@ export function SwipeNewsCard({
                     <Share2 className="w-5 h-5" />
                   </Button>
                 </motion.div>
-
-                <DiscussionButton
-                  contentType="news"
-                  contentId={news.id}
-                  contentTitle={news.headline}
-                  variant="compact"
-                />
               </div>
 
               {/* Read More button */}
@@ -605,15 +597,6 @@ export function SwipeNewsCard({
                       Read Original Article
                     </Button>
                   )}
-
-                  {/* Discussion */}
-                  <div className="pt-4 border-t">
-                    <DiscussionButton
-                      contentType="news"
-                      contentId={news.id}
-                      contentTitle={news.headline}
-                    />
-                  </div>
                 </div>
               </ScrollArea>
             </motion.div>
