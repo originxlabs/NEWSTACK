@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { Shield, Lock, Cookie, Eye, Database, Mail, Calendar } from "lucide-react";
+import { Shield, Lock, Cookie, Eye, Database, Mail, Newspaper } from "lucide-react";
 
 export default function PrivacyPolicy() {
   return (
@@ -22,19 +22,30 @@ export default function PrivacyPolicy() {
               </div>
               <h1 className="font-display text-4xl font-bold mb-4">Privacy Policy</h1>
               <p className="text-muted-foreground">
-                Last updated: January 10, 2026
+                Last updated: January 11, 2026
               </p>
             </div>
 
             {/* Content */}
             <div className="prose prose-lg dark:prose-invert max-w-none">
+              {/* Philosophy Section */}
+              <section className="mb-8 p-6 bg-primary/5 rounded-2xl border border-primary/20">
+                <h2 className="flex items-center gap-2 text-2xl font-bold mb-4">
+                  <Newspaper className="w-6 h-6 text-primary" />
+                  Media: The Main Pillar of Modern Humanity
+                </h2>
+                <p className="text-foreground/80">
+                  In an age where information shapes our understanding of the world, media stands as the primary pillar of an informed society. At NEWSTACK, we recognize the immense responsibility that comes with aggregating and presenting news to millions. We are committed to transparency not just in our news sourcing, but also in how we handle your personal information. Your privacy is as sacred to us as the truth in journalism.
+                </p>
+              </section>
+
               <section className="mb-8">
                 <h2 className="flex items-center gap-2 text-2xl font-bold mb-4">
                   <Eye className="w-6 h-6 text-primary" />
                   Introduction
                 </h2>
                 <p>
-                  NEWSTACK ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our news aggregation platform available at newstack.live (the "Service").
+                  NEWSTACK ("we," "our," or "us"), a product of <strong>CROPXON INNOVATIONS PVT LTD</strong>, is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our news aggregation platform available at newstack.live (the "Service").
                 </p>
                 <p>
                   By using NEWSTACK, you agree to the collection and use of information in accordance with this policy. We will not use or share your information with anyone except as described in this Privacy Policy.
@@ -131,7 +142,7 @@ export default function PrivacyPolicy() {
                 <h2 className="text-2xl font-bold mb-4">Third-Party Services</h2>
                 <p>We use the following third-party services:</p>
                 <ul className="list-disc pl-6 space-y-2">
-                  <li><strong>Supabase:</strong> Database and authentication</li>
+                  <li><strong>Cloud Infrastructure:</strong> Secure database and authentication services</li>
                   <li><strong>News APIs:</strong> To aggregate news from verified publishers</li>
                   <li><strong>Text-to-Speech:</strong> For audio news features</li>
                 </ul>
@@ -164,8 +175,19 @@ export default function PrivacyPolicy() {
                 </p>
                 <ul className="list-none pl-0 mt-4 space-y-2">
                   <li><strong>Email:</strong> privacy@newstack.live</li>
-                  <li><strong>Company:</strong> Cropxon Innovations Pvt Ltd</li>
+                  <li><strong>Parent Company:</strong> CROPXON INNOVATIONS PVT LTD</li>
+                  <li><strong>Website:</strong> <a href="https://cropxon.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">cropxon.com</a></li>
                 </ul>
+              </section>
+
+              {/* Copyright Notice */}
+              <section className="mt-12 p-6 bg-muted/50 rounded-2xl border border-border text-center">
+                <p className="text-sm text-muted-foreground">
+                  © 2026 NEWSTACK. All Rights Reserved.
+                </p>
+                <p className="text-sm font-semibold mt-2">
+                  A Product of CROPXON INNOVATIONS PVT LTD
+                </p>
               </section>
             </div>
           </motion.div>

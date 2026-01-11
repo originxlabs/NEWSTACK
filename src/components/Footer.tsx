@@ -102,7 +102,7 @@ export function Footer() {
         <div className="pt-8 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
             <p className="text-sm text-muted-foreground">
-              © 2026 NEWSTACK. All rights reserved.
+              © 2026 NEWSTACK. All Rights Reserved by CROPXON
             </p>
             <span className="hidden sm:inline text-muted-foreground">•</span>
             <a 
@@ -111,7 +111,7 @@ export function Footer() {
               rel="noopener noreferrer"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
             >
-              Powered by <span className="font-semibold text-primary">Cropxon Innovations Pvt Ltd</span>
+              A Product of <span className="font-semibold text-primary">CROPXON INNOVATIONS PVT LTD</span>
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>
