@@ -19,15 +19,11 @@ import World from "./pages/World";
 import Places from "./pages/Places";
 import Topics from "./pages/Topics";
 import Support from "./pages/Support";
-import Profile from "./pages/Profile";
 import Features from "./pages/Features";
-import SavedArticles from "./pages/SavedArticles";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import RefundPolicy from "./pages/RefundPolicy";
 import NotFound from "./pages/NotFound";
-import Admin from "./pages/Admin";
-import Pricing from "./pages/Pricing";
 import StoryDetail from "./pages/StoryDetail";
 
 const queryClient = new QueryClient({
@@ -127,11 +123,6 @@ function AppContent() {
           <Route path="/features" element={<Features />} />
           <Route path="/compare" element={<Features />} />
           <Route path="/support" element={<Support />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/saved" element={<SavedArticles />} />
-          <Route path="/settings" element={<Profile />} />
-          <Route path="/admin" element={<Admin />} />
           {/* Legal pages */}
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />

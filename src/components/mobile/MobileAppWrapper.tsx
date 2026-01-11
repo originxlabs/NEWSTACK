@@ -2,10 +2,9 @@ import { ReactNode, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePWAMode } from "@/hooks/use-pwa-mode";
 import { SwipeNewsFeed } from "./SwipeNewsFeed";
-import { MobileSettings } from "./MobileSettings";
 import { 
-  Home, Newspaper, Headphones, MapPin, User, Menu,
-  Globe, Bookmark, Settings, LogIn, Crown, Star
+  Home, Newspaper, Headphones, MapPin, Menu,
+  Globe, LogIn, Star
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,15 +22,12 @@ const navItems = [
   { path: "/news", icon: Newspaper, label: "News" },
   { path: "/listen", icon: Headphones, label: "Listen" },
   { path: "/places", icon: MapPin, label: "Places" },
-  { path: "/profile", icon: User, label: "Profile" },
 ];
 
 const menuItems = [
   { path: "/world", icon: Globe, label: "World News", description: "Global headlines" },
   { path: "/topics", icon: Newspaper, label: "Topics", description: "Browse categories" },
-  { path: "/saved", icon: Bookmark, label: "Saved Articles", description: "Your bookmarks" },
-  { path: "/settings", icon: Settings, label: "Settings", description: "Preferences" },
-  { path: "/pricing", icon: Crown, label: "Premium", description: "Upgrade your experience" },
+  { path: "/support", icon: Star, label: "Support Us", description: "Help us grow" },
 ];
 
 export function MobileAppWrapper({ children }: MobileAppWrapperProps) {
@@ -59,12 +55,6 @@ export function MobileAppWrapper({ children }: MobileAppWrapperProps) {
   // For desktop or non-PWA, render normal content
   if (!isPWA || (!isMobile && !isTablet)) {
     return <>{children}</>;
-  }
-
-  // Show settings page
-  const isSettingsPage = location.pathname === "/settings";
-  if (isSettingsPage && isPWA && (isMobile || isTablet)) {
-    return <MobileSettings />;
   }
 
   // Show swipe mode on home page for mobile PWA

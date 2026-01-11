@@ -228,7 +228,7 @@ const Index = () => {
               <NavCard 
                 icon={<Layers className="w-5 h-5" />}
                 title="Source Network"
-                description="66+ verified RSS feeds"
+                description="66+ verified sources"
                 href="/news?filter=sources"
               />
             </div>
@@ -261,7 +261,7 @@ const Index = () => {
         <section className="py-8 px-4 border-t border-border/50">
           <div className="container mx-auto max-w-3xl text-center">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">How it works:</strong> Stories are ingested from 66+ independent RSS sources every 15 minutes. 
+              <strong className="text-foreground">How it works:</strong> Stories are ingested from 66+ independent verified sources every 15 minutes. 
               Similar stories are clustered using fuzzy matching, scored for credibility based on source diversity, 
               and presented without editorial interpretation. This is an open intelligence layer, not a news publisher.
             </p>
