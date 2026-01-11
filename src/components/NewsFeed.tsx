@@ -63,6 +63,9 @@ function transformArticle(article: NewsArticle, feedType: FeedType): NewsItem {
   const locationRelevance = (article as any).location_relevance || 
     (article.is_global ? "Global" : "Country") as "Local" | "Country" | "Global";
 
+  // Get sources from the article data (from story_sources table)
+  const sources = (article as any).sources || [];
+
   return {
     id: article.id,
     headline: article.headline,
@@ -75,6 +78,7 @@ function transformArticle(article: NewsArticle, feedType: FeedType): NewsItem {
     sourceUrl: article.source_url || undefined,
     sourceIcon: article.source_logo || undefined,
     timestamp,
+    publishedAt: article.published_at,
     imageUrl: article.image_url || undefined,
     whyMatters: article.why_matters || "This story provides insights into developments that could impact global trends.",
     countryCode: article.country_code || undefined,
@@ -83,6 +87,7 @@ function transformArticle(article: NewsArticle, feedType: FeedType): NewsItem {
     isTrending: feedType === "trending" || (article.source_count && article.source_count >= 2),
     sourceCount: article.source_count,
     locationRelevance,
+    sources, // Pass actual sources from story_sources table
   };
 }
 
