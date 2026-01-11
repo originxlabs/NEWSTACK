@@ -8,10 +8,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTTS } from "@/hooks/use-tts";
 import { useTTSLimit } from "@/hooks/use-tts-limit";
 import { usePreferences } from "@/contexts/PreferencesContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthModal } from "@/components/auth/AuthModal";
 import { toast } from "sonner";
 import type { NewsItem } from "@/components/NewsCard";
 import { TTSLimitModal } from "@/components/TTSLimitModal";
 import { format, formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ReadMoreModalProps {
   article: NewsItem | null;
@@ -39,6 +42,7 @@ const topicColors: Record<string, string> = {
 
 export function ReadMoreModal({ article, isOpen, onClose, onOpenPanel, onCompare, onViewTimeline }: ReadMoreModalProps) {
   const { language } = usePreferences();
+  const { user } = useAuth();
   const { speak, toggle, isLoading: ttsLoading, isPlaying, progress, stop } = useTTS({
     language: language?.code || "en",
   });
@@ -46,10 +50,29 @@ export function ReadMoreModal({ article, isOpen, onClose, onOpenPanel, onCompare
   
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     return () => stop();
   }, [stop]);
+
+  // Check if article is already saved/liked by this user
+  useEffect(() => {
+    if (!user || !article) return;
+    
+    const checkSavedStatus = async () => {
+      const { data } = await supabase
+        .from("saved_news")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("news_id", article.id)
+        .maybeSingle();
+      
+      setIsSaved(!!data);
+    };
+    
+    checkSavedStatus();
+  }, [user, article?.id]);
 
   if (!article) return null;
 
@@ -82,6 +105,42 @@ export function ReadMoreModal({ article, isOpen, onClose, onOpenPanel, onCompare
     }
   };
 
+  const handleSave = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    
+    try {
+      if (isSaved) {
+        await supabase
+          .from("saved_news")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("news_id", article.id);
+        setIsSaved(false);
+        toast.success("Removed from saved");
+      } else {
+        await supabase
+          .from("saved_news")
+          .insert({ user_id: user.id, news_id: article.id });
+        setIsSaved(true);
+        toast.success("Saved for later");
+      }
+    } catch (err) {
+      toast.error("Failed to save article");
+    }
+  };
+
+  const handleLike = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    setIsLiked(!isLiked);
+    toast.success(isLiked ? "Removed from liked" : "Liked!");
+  };
+
   const handleClose = () => {
     stop();
     onClose();
@@ -93,17 +152,21 @@ export function ReadMoreModal({ article, isOpen, onClose, onOpenPanel, onCompare
     return format(date, "EEEE, MMMM d, yyyy 'at' h:mm a");
   };
 
-  // Mock sources
-  const sources = [
-    { name: article.source, url: article.sourceUrl || "#", verified: true },
-    ...(article.sourceCount && article.sourceCount > 1 
-      ? [
-          { name: "Reuters", url: "https://reuters.com", verified: true },
-          { name: "Associated Press", url: "https://apnews.com", verified: true },
-        ].slice(0, article.sourceCount - 1)
-      : []
-    ),
-  ];
+  // Get sources from article.sources if available, otherwise use article.source
+  const articleSources = (article as any).sources as Array<{source_name: string; source_url: string; description?: string; published_at: string}> | undefined;
+  const sources = articleSources && articleSources.length > 0 
+    ? articleSources.map((s, idx) => ({
+        name: s.source_name,
+        url: s.source_url,
+        description: s.description,
+        publishedAt: s.published_at,
+        verified: true,
+        // Calculate coverage percentage based on publication order (first source = 100%)
+        coverage: Math.max(100 - idx * 15, 40)
+      }))
+    : [
+        { name: article.source, url: article.sourceUrl || "#", verified: true, coverage: 100 },
+      ];
 
   return (
     <>
@@ -301,10 +364,7 @@ export function ReadMoreModal({ article, isOpen, onClose, onOpenPanel, onCompare
                     variant={isSaved ? "default" : "outline"}
                     size="sm"
                     className="flex-1 min-w-[80px]"
-                    onClick={() => {
-                      setIsSaved(!isSaved);
-                      toast.success(isSaved ? "Removed from saved" : "Saved for later");
-                    }}
+                    onClick={handleSave}
                   >
                     <Bookmark className={`w-4 h-4 mr-2 ${isSaved ? "fill-current" : ""}`} />
                     {isSaved ? "Saved" : "Save"}
@@ -313,7 +373,7 @@ export function ReadMoreModal({ article, isOpen, onClose, onOpenPanel, onCompare
                     variant={isLiked ? "default" : "outline"}
                     size="sm"
                     className="flex-1 min-w-[80px]"
-                    onClick={() => setIsLiked(!isLiked)}
+                    onClick={handleLike}
                   >
                     <Heart className={`w-4 h-4 mr-2 ${isLiked ? "fill-current" : ""}`} />
                     Like
@@ -376,6 +436,11 @@ export function ReadMoreModal({ article, isOpen, onClose, onOpenPanel, onCompare
           </motion.div>
         </DialogContent>
       </Dialog>
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
 
       <TTSLimitModal
         isOpen={showLimitModal}
