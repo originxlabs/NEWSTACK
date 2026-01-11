@@ -1,194 +1,220 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { 
-  Globe, TrendingUp, AlertTriangle, MapPin, 
-  ChevronRight, Radio, Activity,
-  Layers, Clock
+  Globe, TrendingUp, TrendingDown, AlertTriangle, 
+  ChevronRight, Radio, Activity, Minus,
+  Layers, Clock, ArrowRight
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { usePreferences } from "@/contexts/PreferencesContext";
+import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { GlobalPulse, WorldMapOverlay } from "@/components/intelligence";
-import { RegionCardSkeleton, WorldMapSkeleton } from "@/components/ui/skeleton-loaders";
+import { cn } from "@/lib/utils";
 
+// ===== REGION DATA STRUCTURE =====
 interface Region {
-  code: string;
+  id: string;
   name: string;
-  flag: string;
-  stories: number;
-  trending: string[];
+  storyCount: number;
+  activeNarratives: number;
   status: "stable" | "active" | "hotspot";
-  sentiment: "positive" | "neutral" | "negative";
-  changeDirection: "up" | "down" | "stable";
+  trendingNarrative: string;
+  trend: "up" | "down" | "stable";
 }
 
+// ===== STATIC REGION DATA =====
+// This visualizes NEWS INTELLIGENCE, not geography
 const regions: Region[] = [
   { 
-    code: "NA", 
+    id: "north-america",
     name: "North America", 
-    flag: "🇺🇸", 
-    stories: 234, 
-    trending: ["Tech earnings", "Fed policy", "Elections"],
-    status: "active", 
-    sentiment: "neutral",
-    changeDirection: "up"
+    storyCount: 234, 
+    activeNarratives: 12,
+    status: "active",
+    trendingNarrative: "Federal Reserve policy decisions",
+    trend: "up"
   },
   { 
-    code: "EU", 
+    id: "europe",
     name: "Europe", 
-    flag: "🇪🇺", 
-    stories: 189, 
-    trending: ["Energy markets", "ECB rates", "Ukraine"],
-    status: "active", 
-    sentiment: "neutral",
-    changeDirection: "stable"
+    storyCount: 189, 
+    activeNarratives: 9,
+    status: "active",
+    trendingNarrative: "Energy market developments",
+    trend: "stable"
   },
   { 
-    code: "AS", 
+    id: "asia-pacific",
     name: "Asia Pacific", 
-    flag: "🌏", 
-    stories: 312, 
-    trending: ["Trade talks", "Tech sector", "Markets"],
-    status: "hotspot", 
-    sentiment: "positive",
-    changeDirection: "up"
+    storyCount: 312, 
+    activeNarratives: 15,
+    status: "hotspot",
+    trendingNarrative: "Trade negotiations progress",
+    trend: "up"
   },
   { 
-    code: "ME", 
+    id: "middle-east",
     name: "Middle East", 
-    flag: "🌍", 
-    stories: 87, 
-    trending: ["Oil production", "Diplomacy", "Infrastructure"],
-    status: "hotspot", 
-    sentiment: "negative",
-    changeDirection: "up"
+    storyCount: 156, 
+    activeNarratives: 8,
+    status: "hotspot",
+    trendingNarrative: "Regional diplomatic efforts",
+    trend: "up"
   },
   { 
-    code: "AF", 
+    id: "africa",
     name: "Africa", 
-    flag: "🌍", 
-    stories: 56, 
-    trending: ["Climate summit", "Development", "Resources"],
-    status: "stable", 
-    sentiment: "neutral",
-    changeDirection: "stable"
+    storyCount: 67, 
+    activeNarratives: 5,
+    status: "stable",
+    trendingNarrative: "Climate adaptation initiatives",
+    trend: "stable"
   },
   { 
-    code: "SA", 
+    id: "south-america",
     name: "South America", 
-    flag: "🌎", 
-    stories: 78, 
-    trending: ["Economic reforms", "Elections", "Trade"],
-    status: "stable", 
-    sentiment: "neutral",
-    changeDirection: "down"
+    storyCount: 78, 
+    activeNarratives: 6,
+    status: "stable",
+    trendingNarrative: "Economic reform discussions",
+    trend: "down"
   },
 ];
 
-const globalMetrics = [
-  { label: "Total Stories", value: "956", icon: Layers },
-  { label: "Active Regions", value: "6", icon: Globe },
-  { label: "Hotspots", value: "2", icon: AlertTriangle },
-  { label: "Updated", value: "2m ago", icon: Clock },
-];
+// ===== STATUS STYLES =====
+const statusStyles = {
+  stable: {
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-600 dark:text-emerald-400",
+    border: "border-emerald-500/20",
+    label: "Stable",
+  },
+  active: {
+    bg: "bg-blue-500/10",
+    text: "text-blue-600 dark:text-blue-400",
+    border: "border-blue-500/20",
+    label: "Active",
+  },
+  hotspot: {
+    bg: "bg-red-500/10",
+    text: "text-red-600 dark:text-red-400",
+    border: "border-red-500/20",
+    label: "Hotspot",
+  },
+};
 
+// ===== TREND ICON COMPONENT =====
+function TrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
+  if (trend === "up") {
+    return <TrendingUp className="h-3.5 w-3.5 text-red-500" />;
+  }
+  if (trend === "down") {
+    return <TrendingDown className="h-3.5 w-3.5 text-emerald-500" />;
+  }
+  return <Minus className="h-3.5 w-3.5 text-muted-foreground" />;
+}
+
+// ===== REGION CARD COMPONENT =====
+// Abstract rectangular card - NO map icons, NO location markers, NO shapes
 function RegionCard({ region, onClick }: { region: Region; onClick: () => void }) {
-  const statusColors = {
-    stable: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-    active: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-    hotspot: "bg-red-500/10 text-red-600 border-red-500/20",
-  };
-
-  const directionIcons = {
-    up: <TrendingUp className="w-3 h-3 text-emerald-500" />,
-    down: <TrendingUp className="w-3 h-3 text-red-500 rotate-180" />,
-    stable: <Activity className="w-3 h-3 text-muted-foreground" />,
-  };
+  const style = statusStyles[region.status];
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="group cursor-pointer"
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      className="cursor-pointer"
       onClick={onClick}
     >
-      <div className="intel-card p-4 h-full hover:border-primary/30 transition-all">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="text-2xl">{region.flag}</span>
+      <Card className={cn(
+        "h-full transition-all hover:shadow-md",
+        style.border,
+        region.status === "hotspot" && "ring-1 ring-red-500/20"
+      )}>
+        <CardContent className="p-4">
+          {/* Header: Name + Status */}
+          <div className="flex items-start justify-between mb-3">
+            <h3 className="font-medium text-sm">{region.name}</h3>
+            <Badge 
+              variant="outline" 
+              className={cn("text-[10px] font-medium", style.bg, style.text, style.border)}
+            >
+              {region.status === "hotspot" && (
+                <AlertTriangle className="h-2.5 w-2.5 mr-1" />
+              )}
+              {style.label}
+            </Badge>
+          </div>
+
+          {/* Metrics Row */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <h3 className="font-medium text-sm">{region.name}</h3>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                {directionIcons[region.changeDirection]}
-                <span>{region.stories} stories</span>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">
+                Stories
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-semibold">{region.storyCount}</span>
+                <TrendIcon trend={region.trend} />
               </div>
             </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">
+                Narratives
+              </div>
+              <span className="text-lg font-semibold">{region.activeNarratives}</span>
+            </div>
           </div>
-          <Badge variant="outline" className={`text-[10px] ${statusColors[region.status]}`}>
-            {region.status}
-          </Badge>
-        </div>
 
-        <div className="space-y-2">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
-            Active narratives
+          {/* Trending Narrative */}
+          <div className="pt-3 border-t border-border/50">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
+              Top Narrative
+            </div>
+            <p className="text-xs text-foreground line-clamp-2">
+              {region.trendingNarrative}
+            </p>
           </div>
-          <div className="flex flex-wrap gap-1">
-            {region.trending.slice(0, 3).map((topic, i) => (
-              <Badge 
-                key={i} 
-                variant="secondary" 
-                className="text-[10px] px-1.5 py-0 h-5 font-normal"
-              >
-                {topic}
-              </Badge>
-            ))}
-          </div>
-        </div>
 
-        <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between">
-          <span className="text-[10px] text-muted-foreground">View details</span>
-          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
-        </div>
-      </div>
+          {/* View Details Link */}
+          <div className="mt-3 flex items-center justify-end text-[10px] text-muted-foreground group-hover:text-foreground">
+            <span>View details</span>
+            <ChevronRight className="h-3 w-3 ml-0.5" />
+          </div>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
 
+// ===== MAIN WORLD PAGE COMPONENT =====
 export default function World() {
-  const { country } = usePreferences();
   const navigate = useNavigate();
-  const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    document.documentElement.classList.add("dark");
     // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 800);
+    const timer = setTimeout(() => setIsLoading(false), 600);
     return () => clearTimeout(timer);
   }, []);
 
-  const handleRegionClick = (region: Region) => {
-    setSelectedRegion(region);
-  };
-
-  const handleMapRegionClick = (regionId: string) => {
-    const region = regions.find(r => r.code.toLowerCase() === regionId);
-    if (region) {
-      setSelectedRegion(region);
-    }
-  };
-
+  // Computed metrics
   const totalStories = useMemo(() => 
-    regions.reduce((acc, r) => acc + r.stories, 0), 
+    regions.reduce((acc, r) => acc + r.storyCount, 0), 
   []);
 
-  const hotspotCount = useMemo(() => 
-    regions.filter(r => r.status === "hotspot").length,
+  const totalNarratives = useMemo(() => 
+    regions.reduce((acc, r) => acc + r.activeNarratives, 0), 
   []);
+
+  const hotspotRegions = useMemo(() => 
+    regions.filter(r => r.status === "hotspot"),
+  []);
+
+  const handleRegionClick = (region: Region) => {
+    // Navigate to filtered news view for this region
+    navigate(`/news?region=${region.id}`);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -197,7 +223,7 @@ export default function World() {
       <main className="pt-14">
         {/* Page Header */}
         <section className="border-b border-border/50 bg-muted/20">
-          <div className="container mx-auto max-w-6xl px-4 py-8">
+          <div className="container mx-auto max-w-5xl px-4 py-8">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -213,64 +239,65 @@ export default function World() {
               </div>
 
               <h1 className="font-display text-2xl sm:text-3xl font-semibold text-foreground mb-2">
-                Global Pulse
+                Global Intelligence Overview
               </h1>
               <p className="text-muted-foreground max-w-2xl text-sm">
-                Real-time news intensity and narrative tracking across world regions. 
-                Data derived from 66+ verified sources.
+                Aggregated news intensity and narrative activity by world region. 
+                Data derived from 174 verified sources across all tiers.
               </p>
 
-              {/* Metrics */}
+              {/* Global Metrics */}
               <div className="flex flex-wrap items-center gap-6 mt-6">
-                {globalMetrics.map((metric, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm">
-                    <metric.icon className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">{metric.value}</span>
-                    <span className="text-muted-foreground">{metric.label.toLowerCase()}</span>
-                  </div>
-                ))}
+                <div className="flex items-center gap-2 text-sm">
+                  <Layers className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">{totalStories.toLocaleString()}</span>
+                  <span className="text-muted-foreground">total stories</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Activity className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">{totalNarratives}</span>
+                  <span className="text-muted-foreground">active narratives</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Globe className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">{regions.length}</span>
+                  <span className="text-muted-foreground">regions tracked</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">2m</span>
+                  <span className="text-muted-foreground">ago</span>
+                </div>
               </div>
             </motion.div>
           </div>
         </section>
 
-        {/* World Map Overlay */}
-        <section className="py-6">
-          <div className="container mx-auto max-w-6xl px-4">
-            {isLoading ? (
-              <WorldMapSkeleton />
-            ) : (
-              <WorldMapOverlay onRegionClick={handleMapRegionClick} />
-            )}
-          </div>
-        </section>
-
-        {/* Global Pulse Component */}
-        <section className="py-6">
-          <div className="container mx-auto max-w-6xl px-4">
-            <GlobalPulse />
-          </div>
-        </section>
-
-        {/* Regional Breakdown */}
-        <section className="py-6">
-          <div className="container mx-auto max-w-6xl px-4">
+        {/* ===== GLOBAL ACTIVITY OVERVIEW ===== */}
+        {/* This is an ABSTRACT REGION GRID - NO maps, NO geography */}
+        <section className="py-8">
+          <div className="container mx-auto max-w-5xl px-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-medium text-sm">Regional Breakdown</h2>
-              <span className="text-xs text-muted-foreground">{regions.length} regions tracked</span>
+              <div>
+                <h2 className="font-medium text-base">Global Activity Overview</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Aggregated news intensity and narrative activity by world region
+                </p>
+              </div>
             </div>
 
+            {/* Region Grid - Abstract rectangular cards, NOT a map */}
             {isLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[...Array(6)].map((_, i) => (
-                  <RegionCardSkeleton key={i} />
+                  <div key={i} className="h-48 bg-muted/50 rounded-lg animate-pulse" />
                 ))}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {regions.map((region, index) => (
                   <motion.div
-                    key={region.code}
+                    key={region.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
@@ -286,31 +313,62 @@ export default function World() {
           </div>
         </section>
 
-        {/* Hotspot Alert */}
-        {hotspotCount > 0 && !isLoading && (
-          <section className="py-6">
-            <div className="container mx-auto max-w-6xl px-4">
+        {/* ===== HOTSPOT SUMMARY ===== */}
+        {/* Calm, informational alert - NOT alarming */}
+        {hotspotRegions.length > 0 && !isLoading && (
+          <section className="py-4">
+            <div className="container mx-auto max-w-5xl px-4">
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="intel-card p-4 border-amber-500/20 bg-amber-500/5"
               >
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="font-medium text-sm mb-1">
-                      {hotspotCount} Active Hotspot{hotspotCount > 1 ? 's' : ''} Detected
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Elevated news activity detected in {regions.filter(r => r.status === "hotspot").map(r => r.name).join(" and ")}. 
-                      Multiple sources reporting on developing situations.
-                    </p>
-                  </div>
-                </div>
+                <Card className="border-amber-500/20 bg-amber-500/5">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Activity className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-foreground">
+                          <span className="font-medium">{hotspotRegions.length} region{hotspotRegions.length > 1 ? 's' : ''}</span>
+                          {' '}showing elevated news activity based on rapid multi-source reporting.
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {hotspotRegions.map((region) => (
+                            <Badge 
+                              key={region.id}
+                              variant="outline"
+                              className="text-xs cursor-pointer bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20 hover:bg-red-500/20"
+                              onClick={() => handleRegionClick(region)}
+                            >
+                              {region.name}
+                              <ArrowRight className="h-2.5 w-2.5 ml-1" />
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </motion.div>
             </div>
           </section>
         )}
+
+        {/* ===== METHODOLOGY NOTE ===== */}
+        <section className="py-6">
+          <div className="container mx-auto max-w-5xl px-4">
+            <Card className="bg-muted/30 border-border/50">
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Methodology:</span>
+                  {' '}Regional activity is calculated from story clusters verified across multiple 
+                  independent sources. Hotspot status is assigned when a region shows elevated 
+                  story volume with high-confidence reporting from primary wire services. 
+                  This visualization reflects reporting intensity, not editorial judgment about importance.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
       </main>
 
       <Footer />
