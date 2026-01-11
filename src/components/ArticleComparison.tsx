@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Scale, X, ChevronLeft, ChevronRight, ExternalLink, 
-  Clock, CheckCircle2, AlertTriangle, Globe, Building2, Shield, BarChart3, Info
+  Clock, CheckCircle2, AlertCircle, Globe, Building2, Shield, BarChart3, Info,
+  TrendingUp, TrendingDown, Minus, Link as LinkIcon, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,8 @@ interface ComparisonSource {
   description: string;
   published_at: string;
   coverage?: number;
+  sentiment?: "positive" | "neutral" | "negative";
+  isVerified?: boolean;
 }
 
 interface ArticleComparisonProps {
@@ -51,22 +54,69 @@ interface ArticleComparisonProps {
  *    - First source (earliest): 100%
  *    - Each subsequent source: -8% (minimum 35%)
  *    - This represents how comprehensively each source covers the story
+ * 
+ * Sentiment Analysis:
+ *    - Analyzes description keywords to determine sentiment
+ *    - Positive: Growth, success, improvement keywords
+ *    - Negative: Crisis, decline, problem keywords
+ *    - Neutral: Balanced or factual reporting
  */
 
 const TRUSTED_SOURCES = [
   "Reuters", "Associated Press", "AP", "BBC", "AFP", 
   "The Hindu", "NDTV", "Times of India", "The Guardian",
-  "NPR", "PBS", "Al Jazeera", "Bloomberg", "The Economist"
+  "NPR", "PBS", "Al Jazeera", "Bloomberg", "The Economist",
+  "New York Times", "Washington Post", "CNN", "LiveMint",
+  "Hindustan Times", "India Today", "ESPN", "TechCrunch",
+  "Economic Times", "Business Standard", "Forbes", "Google News"
 ];
 
+// Sentiment keywords for analysis
+const POSITIVE_KEYWORDS = [
+  "success", "growth", "win", "victory", "improve", "positive", "gains",
+  "breakthrough", "achievement", "celebrate", "optimism", "boost", "surge",
+  "record high", "milestone", "progress", "innovation", "recovery"
+];
+
+const NEGATIVE_KEYWORDS = [
+  "crisis", "decline", "fall", "drop", "concern", "threat", "warning",
+  "failure", "loss", "crash", "collapse", "risk", "danger", "death",
+  "killed", "arrested", "violence", "protest", "conflict", "problem"
+];
+
+function analyzeSentiment(text: string): "positive" | "neutral" | "negative" {
+  const lowerText = text.toLowerCase();
+  let positiveCount = 0;
+  let negativeCount = 0;
+
+  POSITIVE_KEYWORDS.forEach(keyword => {
+    if (lowerText.includes(keyword)) positiveCount++;
+  });
+
+  NEGATIVE_KEYWORDS.forEach(keyword => {
+    if (lowerText.includes(keyword)) negativeCount++;
+  });
+
+  if (positiveCount > negativeCount && positiveCount >= 2) return "positive";
+  if (negativeCount > positiveCount && negativeCount >= 2) return "negative";
+  return "neutral";
+}
+
+function isVerifiedSource(sourceName: string): boolean {
+  const normalizedName = sourceName.toLowerCase();
+  return TRUSTED_SOURCES.some(ts => normalizedName.includes(ts.toLowerCase()));
+}
+
 function calculateCoverage(index: number, totalSources: number): number {
-  // First source gets 100%, each subsequent source gets progressively less
-  // This represents the "coverage depth" - first to publish usually has most coverage
   const baseCoverage = 100 - (index * 8);
   return Math.max(baseCoverage, 35);
 }
 
-function calculateTrustScore(sources: ComparisonSource[]): { score: number; breakdown: { sourceCount: number; diversity: number; verification: number } } {
+function calculateTrustScore(sources: ComparisonSource[]): { 
+  score: number; 
+  breakdown: { sourceCount: number; diversity: number; verification: number };
+  sentimentBreakdown: { positive: number; neutral: number; negative: number };
+} {
   const sourceCount = sources.length;
   
   // Source Count Factor (40%)
@@ -76,17 +126,19 @@ function calculateTrustScore(sources: ComparisonSource[]): { score: number; brea
   else if (sourceCount >= 4) sourceCountScore = 85;
   else if (sourceCount >= 2) sourceCountScore = 75;
   
-  // Source Diversity (30%) - unique source names
+  // Source Diversity (30%)
   const uniqueSources = new Set(sources.map(s => s.source_name.toLowerCase())).size;
   const diversityScore = Math.min(100, (uniqueSources / Math.max(sourceCount, 1)) * 100 + 30);
   
-  // Verification Factor (30%) - trusted sources percentage
-  const trustedCount = sources.filter(s => 
-    TRUSTED_SOURCES.some(ts => s.source_name.toLowerCase().includes(ts.toLowerCase()))
-  ).length;
+  // Verification Factor (30%)
+  const trustedCount = sources.filter(s => s.isVerified).length;
   const verificationScore = Math.min(100, (trustedCount / Math.max(sourceCount, 1)) * 100 + 40);
   
-  // Weighted calculation
+  // Sentiment breakdown
+  const positiveCount = sources.filter(s => s.sentiment === "positive").length;
+  const negativeCount = sources.filter(s => s.sentiment === "negative").length;
+  const neutralCount = sources.filter(s => s.sentiment === "neutral").length;
+  
   const finalScore = Math.round(
     (sourceCountScore * 0.4) + 
     (diversityScore * 0.3) + 
@@ -99,15 +151,47 @@ function calculateTrustScore(sources: ComparisonSource[]): { score: number; brea
       sourceCount: sourceCountScore,
       diversity: Math.round(diversityScore),
       verification: Math.round(verificationScore)
+    },
+    sentimentBreakdown: {
+      positive: positiveCount,
+      neutral: neutralCount,
+      negative: negativeCount
     }
   };
 }
+
+const SentimentIcon = ({ sentiment }: { sentiment: "positive" | "neutral" | "negative" }) => {
+  switch (sentiment) {
+    case "positive":
+      return <TrendingUp className="w-4 h-4 text-green-500" />;
+    case "negative":
+      return <TrendingDown className="w-4 h-4 text-red-500" />;
+    default:
+      return <Minus className="w-4 h-4 text-blue-500" />;
+  }
+};
+
+const SentimentBadge = ({ sentiment }: { sentiment: "positive" | "neutral" | "negative" }) => {
+  const config = {
+    positive: { bg: "bg-green-500/10 border-green-500/30 text-green-600", label: "Positive" },
+    negative: { bg: "bg-red-500/10 border-red-500/30 text-red-600", label: "Negative" },
+    neutral: { bg: "bg-blue-500/10 border-blue-500/30 text-blue-600", label: "Neutral" }
+  };
+
+  const { bg, label } = config[sentiment];
+  return (
+    <Badge variant="outline" className={`text-xs ${bg} gap-1`}>
+      <SentimentIcon sentiment={sentiment} />
+      {label}
+    </Badge>
+  );
+};
 
 export function ArticleComparison({ storyHeadline, storyId, isOpen, onClose }: ArticleComparisonProps) {
   const [sources, setSources] = useState<ComparisonSource[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [trustData, setTrustData] = useState<{ score: number; breakdown: { sourceCount: number; diversity: number; verification: number } } | null>(null);
+  const [trustData, setTrustData] = useState<ReturnType<typeof calculateTrustScore> | null>(null);
 
   useEffect(() => {
     if (isOpen && storyId) {
@@ -128,27 +212,18 @@ export function ArticleComparison({ storyHeadline, storyId, isOpen, onClose }: A
       if (error) throw error;
       
       if (data && data.length > 0) {
-        // Add coverage percentage to each source
-        const sourcesWithCoverage = data.map((source, idx) => ({
+        // Add coverage, sentiment, and verification to each source
+        const enhancedSources = data.map((source, idx) => ({
           ...source,
-          coverage: calculateCoverage(idx, data.length)
+          coverage: calculateCoverage(idx, data.length),
+          sentiment: analyzeSentiment(source.description || source.source_name),
+          isVerified: isVerifiedSource(source.source_name)
         }));
-        setSources(sourcesWithCoverage);
-        setTrustData(calculateTrustScore(sourcesWithCoverage));
+        setSources(enhancedSources);
+        setTrustData(calculateTrustScore(enhancedSources));
       } else {
-        // Fallback sources if none found
-        const fallbackSources: ComparisonSource[] = [
-          {
-            id: "1",
-            source_name: "Primary Source",
-            source_url: "#",
-            description: `Original coverage of this developing story.`,
-            published_at: new Date().toISOString(),
-            coverage: 100,
-          },
-        ];
-        setSources(fallbackSources);
-        setTrustData(calculateTrustScore(fallbackSources));
+        setSources([]);
+        setTrustData(null);
       }
     } catch (err) {
       console.error("Failed to fetch sources:", err);
@@ -178,6 +253,9 @@ export function ArticleComparison({ storyHeadline, storyId, isOpen, onClose }: A
 
   if (!isOpen) return null;
 
+  const verifiedCount = sources.filter(s => s.isVerified).length;
+  const unverifiedCount = sources.length - verifiedCount;
+
   return (
     <TooltipProvider>
       <AnimatePresence>
@@ -202,7 +280,7 @@ export function ArticleComparison({ storyHeadline, storyId, isOpen, onClose }: A
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <Scale className="w-5 h-5 text-primary" />
-                    <span className="text-sm font-medium text-primary">Multi-Source Comparison</span>
+                    <span className="text-sm font-medium text-primary">Multi-Source Comparison & Sentiment</span>
                   </div>
                   <h2 className="font-display text-xl font-bold text-foreground line-clamp-2">
                     {storyHeadline}
@@ -220,12 +298,26 @@ export function ArticleComparison({ storyHeadline, storyId, isOpen, onClose }: A
                     {sources.length} Sources
                   </Badge>
                   
+                  {verifiedCount > 0 && (
+                    <Badge variant="outline" className="gap-1 border-green-500/30 text-green-600 bg-green-500/5">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {verifiedCount} Verified
+                    </Badge>
+                  )}
+                  
+                  {unverifiedCount > 0 && (
+                    <Badge variant="outline" className="gap-1 border-amber-500/30 text-amber-600 bg-amber-500/5">
+                      <AlertCircle className="w-3 h-3" />
+                      {unverifiedCount} Unverified
+                    </Badge>
+                  )}
+                  
                   {trustData && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex items-center gap-2 cursor-help">
                           <Shield className="w-4 h-4 text-green-500" />
-                          <span className="text-sm font-medium text-green-500">{trustData.score}% Verified</span>
+                          <span className="text-sm font-medium text-green-500">{trustData.score}% Trust Score</span>
                           <Info className="w-3 h-3 text-muted-foreground" />
                         </div>
                       </TooltipTrigger>
@@ -260,6 +352,36 @@ export function ArticleComparison({ storyHeadline, storyId, isOpen, onClose }: A
                   )}
                 </div>
               )}
+
+              {/* Sentiment Summary */}
+              {!isLoading && trustData && sources.length > 0 && (
+                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <span className="text-xs text-muted-foreground">Sentiment Analysis:</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {trustData.sentimentBreakdown.positive > 0 && (
+                      <div className="flex items-center gap-1 text-xs">
+                        <TrendingUp className="w-3 h-3 text-green-500" />
+                        <span className="text-green-600">{trustData.sentimentBreakdown.positive} Positive</span>
+                      </div>
+                    )}
+                    {trustData.sentimentBreakdown.neutral > 0 && (
+                      <div className="flex items-center gap-1 text-xs">
+                        <Minus className="w-3 h-3 text-blue-500" />
+                        <span className="text-blue-600">{trustData.sentimentBreakdown.neutral} Neutral</span>
+                      </div>
+                    )}
+                    {trustData.sentimentBreakdown.negative > 0 && (
+                      <div className="flex items-center gap-1 text-xs">
+                        <TrendingDown className="w-3 h-3 text-red-500" />
+                        <span className="text-red-600">{trustData.sentimentBreakdown.negative} Negative</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Content */}
@@ -272,8 +394,14 @@ export function ArticleComparison({ storyHeadline, storyId, isOpen, onClose }: A
                 </div>
               ) : sources.length === 0 ? (
                 <div className="text-center py-12">
-                  <Building2 className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-                  <p className="text-muted-foreground">No additional sources found for this story.</p>
+                  <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
+                    <AlertCircle className="w-8 h-8 text-amber-500" />
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-2">Limited Source Data</h3>
+                  <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                    Detailed comparison data is not yet available for this story. 
+                    Our system is continuously indexing sources.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -307,17 +435,37 @@ export function ArticleComparison({ storyHeadline, storyId, isOpen, onClose }: A
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
-                      className="p-6 rounded-xl bg-muted/30 border border-border"
+                      className={`p-6 rounded-xl border ${
+                        sources[currentIndex]?.isVerified 
+                          ? "bg-green-500/5 border-green-500/20" 
+                          : "bg-amber-500/5 border-amber-500/20"
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-4 mb-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <h3 className="font-display text-lg font-semibold text-foreground">
                               {sources[currentIndex]?.source_name}
                             </h3>
-                            <Badge variant="secondary" className="text-[10px] bg-green-500/20 text-green-500 border-0">
-                              ✓ Verified
-                            </Badge>
+                            {sources[currentIndex]?.isVerified ? (
+                              <Badge variant="outline" className="text-xs border-green-500/50 text-green-600 bg-green-500/5">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Verified
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-600 bg-amber-500/5">
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Unverified
+                              </Badge>
+                            )}
+                            {sources[currentIndex]?.sentiment && (
+                              <SentimentBadge sentiment={sources[currentIndex].sentiment!} />
+                            )}
+                            {currentIndex === 0 && (
+                              <Badge className="bg-green-500 text-white border-0 text-xs">
+                                🏆 First Report
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
@@ -333,17 +481,12 @@ export function ArticleComparison({ storyHeadline, storyId, isOpen, onClose }: A
                         <Button
                           variant="outline"
                           size="sm"
-                          asChild
+                          className="gap-1.5"
+                          onClick={() => window.open(sources[currentIndex]?.source_url, '_blank', 'noopener,noreferrer')}
                         >
-                          <a
-                            href={sources[currentIndex]?.source_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="gap-1"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            Read Full
-                          </a>
+                          <LinkIcon className="w-4 h-4" />
+                          Visit
+                          <ExternalLink className="w-4 h-4" />
                         </Button>
                       </div>
                       
@@ -352,20 +495,25 @@ export function ArticleComparison({ storyHeadline, storyId, isOpen, onClose }: A
                         <Progress value={sources[currentIndex]?.coverage || 0} className="h-2" />
                       </div>
                       
+                      {/* Source URL */}
+                      <div className="mb-3 text-xs text-muted-foreground truncate">
+                        🔗 {sources[currentIndex]?.source_url}
+                      </div>
+                      
                       <p className="text-foreground leading-relaxed">
                         {sources[currentIndex]?.description || "No description available."}
                       </p>
                     </motion.div>
                   </AnimatePresence>
 
-                  {/* All Sources List with Coverage */}
+                  {/* All Sources List with Coverage & Sentiment */}
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
                       <BarChart3 className="w-4 h-4" />
-                      All Sources & Coverage
+                      All Sources, Coverage & Sentiment
                     </h4>
-                    <ScrollArea className="h-48">
-                      <div className="space-y-2">
+                    <ScrollArea className="h-56">
+                      <div className="space-y-2 pr-3">
                         {sources.map((source, index) => (
                           <motion.button
                             key={source.id}
@@ -373,28 +521,33 @@ export function ArticleComparison({ storyHeadline, storyId, isOpen, onClose }: A
                             className={`w-full text-left p-3 rounded-lg transition-colors ${
                               index === currentIndex 
                                 ? "bg-primary/10 border border-primary/30" 
-                                : "bg-muted/30 hover:bg-muted/50 border border-transparent"
+                                : source.isVerified
+                                ? "bg-green-500/5 hover:bg-green-500/10 border border-green-500/20"
+                                : "bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/20"
                             }`}
                             whileHover={{ scale: 1.01 }}
                             whileTap={{ scale: 0.99 }}
                           >
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-foreground">{source.source_name}</span>
+                            <div className="flex items-center justify-between mb-1 gap-2">
+                              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                <span className="font-medium text-foreground truncate">{source.source_name}</span>
                                 {index === 0 && (
-                                  <Badge variant="outline" className="text-[10px]">First to Report</Badge>
+                                  <Badge className="bg-green-500 text-white border-0 text-[10px]">First</Badge>
+                                )}
+                                {source.isVerified ? (
+                                  <CheckCircle2 className="w-3 h-3 text-green-500 flex-shrink-0" />
+                                ) : (
+                                  <AlertCircle className="w-3 h-3 text-amber-500 flex-shrink-0" />
                                 )}
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <SentimentIcon sentiment={source.sentiment || "neutral"} />
                                 <span className="text-xs text-muted-foreground">{source.coverage}%</span>
-                                {index === currentIndex && (
-                                  <CheckCircle2 className="w-4 h-4 text-primary" />
-                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <Progress value={source.coverage} className="h-1 flex-1" />
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-muted-foreground flex-shrink-0">
                                 {formatTime(source.published_at)}
                               </span>
                             </div>
@@ -409,15 +562,28 @@ export function ArticleComparison({ storyHeadline, storyId, isOpen, onClose }: A
 
             {/* Footer with Formula Explanation */}
             <div className="p-4 border-t border-border bg-muted/30">
-              <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-foreground mb-1">Trust Score Formula</p>
-                  <p className="text-xs">
-                    Trust Score = (Source Count × 40%) + (Source Diversity × 30%) + (Trusted Outlets × 30%). 
-                    Coverage % shows how comprehensively each outlet covers the story, with first-to-report sources typically having higher coverage.
-                  </p>
+              <div className="flex items-center justify-between text-xs text-muted-foreground flex-wrap gap-2">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3 h-3 text-green-500" />
+                    <span>Verified = Major outlet</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <TrendingUp className="w-3 h-3 text-green-500" />
+                    <span>Positive</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Minus className="w-3 h-3 text-blue-500" />
+                    <span>Neutral</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <TrendingDown className="w-3 h-3 text-red-500" />
+                    <span>Negative</span>
+                  </div>
                 </div>
+                <Button variant="outline" size="sm" onClick={onClose}>
+                  Close
+                </Button>
               </div>
             </div>
           </motion.div>
