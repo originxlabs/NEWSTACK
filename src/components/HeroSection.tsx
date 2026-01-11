@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Activity, Clock, Shield, Layers } from "lucide-react";
+import { ArrowRight, Activity, Clock, Shield, Layers, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 export function HeroSection() {
   const navigate = useNavigate();
@@ -59,14 +59,22 @@ export function HeroSection() {
             No opinions. No paywalls. Just verified facts from multiple perspectives.
           </p>
 
-          {/* Stats Strip */}
+          {/* Trust Indicators Strip - Clickable Sources */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.4 }}
             className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 mb-10"
           >
-            <Stat icon={<Layers className="w-4 h-4" />} value="66+" label="RSS Sources" />
+            <Link 
+              to="/news?filter=sources"
+              className="flex items-center gap-2 text-sm hover:text-primary transition-colors group"
+            >
+              <Layers className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
+              <span className="font-semibold text-foreground group-hover:text-primary">170+</span>
+              <span className="text-muted-foreground group-hover:text-primary">Verified Sources</span>
+              <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Link>
             <Stat icon={<Shield className="w-4 h-4" />} value="100%" label="Open Access" />
             <Stat icon={<Activity className="w-4 h-4" />} value="15min" label="Update Cycle" />
           </motion.div>
@@ -97,7 +105,7 @@ export function HeroSection() {
           </motion.div>
         </motion.div>
 
-        {/* Methodology Note */}
+        {/* Supporting Line */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
