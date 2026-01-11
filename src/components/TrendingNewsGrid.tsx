@@ -22,6 +22,7 @@ import { SourceDiversityScore } from "@/components/SourceDiversityScore";
 import { TTSLimitModal } from "@/components/TTSLimitModal";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { format, formatDistanceToNow } from "date-fns";
+import { ContextLayer, StorySignal, TrustTransparency } from "@/components/intelligence";
 
 interface TrendingArticle {
   id: string;
@@ -371,11 +372,18 @@ export function TrendingNewsGrid() {
 
                     {/* Content */}
                     <div className="p-4 flex-1 flex flex-col">
-                      {/* Topic */}
+                      {/* Topic & Signal */}
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <Badge className={`${topicColors[article.topic.toLowerCase()] || "bg-primary/10 text-primary"} text-xs`}>
-                          {article.topic}
-                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Badge className={`${topicColors[article.topic.toLowerCase()] || "bg-primary/10 text-primary"} text-xs`}>
+                            {article.topic}
+                          </Badge>
+                          <StorySignal 
+                            publishedAt={article.publishedAt}
+                            sourceCount={article.sourceCount}
+                            variant="badge"
+                          />
+                        </div>
                         <div className="flex items-center gap-1.5">
                           {article.sources && article.sources.length > 1 && (
                             <SourceDiversityScore
@@ -537,16 +545,25 @@ export function TrendingNewsGrid() {
                   </div>
                 </div>
 
-                {/* Why This Matters */}
-                {selectedArticle.whyMatters && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                      Why This Matters
-                    </h3>
-                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                      <p className="text-sm leading-relaxed">{selectedArticle.whyMatters}</p>
-                    </div>
-                  </div>
+                {/* Context Layer - Why This Matters */}
+                <ContextLayer
+                  headline={selectedArticle.headline}
+                  summary={selectedArticle.summary}
+                  topic={selectedArticle.topic}
+                  sourceCount={selectedArticle.sourceCount}
+                  publishedAt={selectedArticle.publishedAt}
+                  defaultExpanded={true}
+                />
+
+                {/* Trust Transparency Panel */}
+                {selectedArticle.sources && selectedArticle.sources.length > 0 && (
+                  <TrustTransparency
+                    sources={selectedArticle.sources}
+                    sourceCount={selectedArticle.sourceCount || 1}
+                    primarySource={selectedArticle.source}
+                    primarySourceUrl={selectedArticle.sourceUrl}
+                    publishedAt={selectedArticle.publishedAt}
+                  />
                 )}
 
                 {/* Source Diversity Score */}
