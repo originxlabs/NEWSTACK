@@ -252,13 +252,20 @@ export default function News() {
 
   const updatedStoriesCount = storyUpdatesMap.size;
 
+  // Calculate aggregate trust stats from actual data
   const stats = useMemo(() => {
     const total = allStories.length;
     // Use cluster-level signal, not recalculate
     const breaking = clusters.filter(c => c.signal === "breaking").length;
     const multiSource = clusters.filter(c => c.sourceCount >= 3).length;
     const totalClusters = clusters.length;
-    return { total, breaking, multiSource, totalClusters };
+    
+    // Calculate real source counts from actual data
+    const totalSources = allStories.reduce((sum, s) => sum + (s.sourceCount || 1), 0);
+    const verifiedSources = allStories.reduce((sum, s) => sum + (s.verifiedSourceCount || 0), 0);
+    const contradictions = clusters.filter(c => c.signal === "contradicted" || c.confidence === "low").length;
+    
+    return { total, breaking, multiSource, totalClusters, totalSources, verifiedSources, contradictions };
   }, [allStories, clusters]);
 
   const handleRefresh = useCallback(async () => {
@@ -644,10 +651,10 @@ export default function News() {
 
                 {/* RIGHT COLUMN - Trust & Signals Panel (Desktop only) */}
                 <RightTrustPanel
-                  totalSources={66}
-                  primarySources={24}
-                  secondarySources={42}
-                  contradictionsDetected={stats.breaking > 0 ? 1 : 0}
+                  totalSources={stats.totalSources}
+                  primarySources={stats.verifiedSources}
+                  secondarySources={stats.totalSources - stats.verifiedSources}
+                  contradictionsDetected={stats.contradictions}
                   emergingSignals={updatedStoriesCount > 0 ? [`${updatedStoriesCount} stories updated since your last visit`] : []}
                 />
               </div>

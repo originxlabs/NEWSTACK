@@ -39,6 +39,7 @@ import NewsroomTrust from "./pages/newsroom/NewsroomTrust";
 import NewsroomAlerts from "./pages/newsroom/NewsroomAlerts";
 import NewsroomIntegrations from "./pages/newsroom/NewsroomIntegrations";
 import NewsroomSettings from "./pages/newsroom/NewsroomSettings";
+import NewsroomAnalytics from "./pages/newsroom/NewsroomAnalytics";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -145,6 +146,7 @@ function AppContent() {
             <Route path="api-health" element={<NewsroomApiHealth />} />
             <Route path="api-keys" element={<NewsroomApiKeys />} />
             <Route path="webhooks" element={<NewsroomWebhooks />} />
+            <Route path="analytics" element={<NewsroomAnalytics />} />
             <Route path="ingestion" element={<NewsroomIngestion />} />
             <Route path="feeds" element={<NewsroomFeeds />} />
             <Route path="stories" element={<NewsroomStories />} />

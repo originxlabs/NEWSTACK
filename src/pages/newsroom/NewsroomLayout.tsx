@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, FileText, Shield, Bell, 
-  Settings, Plug, LogOut, ChevronLeft, Rss, Lock, Activity, Key, Webhook
+  Settings, Plug, LogOut, ChevronLeft, Rss, Lock, Activity, Key, Webhook, BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +24,7 @@ const navItems: NavItem[] = [
   { icon: Activity, label: "API Health", href: "/newsroom/api-health", restricted: true },
   { icon: Key, label: "API Keys", href: "/newsroom/api-keys", restricted: true },
   { icon: Webhook, label: "Webhooks", href: "/newsroom/webhooks", restricted: true },
+  { icon: BarChart3, label: "Analytics", href: "/newsroom/analytics", restricted: true },
   { icon: Rss, label: "Ingestion", href: "/newsroom/ingestion", restricted: true },
   { icon: Rss, label: "RSS Feeds", href: "/newsroom/feeds", restricted: true },
   { icon: FileText, label: "Stories", href: "/newsroom/stories" },

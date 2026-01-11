@@ -1,8 +1,33 @@
 {
   "rewrites": [
+    {
+      "source": "/v1/news/:path*",
+      "destination": "https://orefmlntnfrgjvvhqxvt.supabase.co/functions/v1/api-v1-news/:path*"
+    },
+    {
+      "source": "/v1/world/:path*",
+      "destination": "https://orefmlntnfrgjvvhqxvt.supabase.co/functions/v1/api-v1-world/:path*"
+    },
+    {
+      "source": "/v1/places/:path*",
+      "destination": "https://orefmlntnfrgjvvhqxvt.supabase.co/functions/v1/api-v1-places/:path*"
+    },
+    {
+      "source": "/v1/health",
+      "destination": "https://orefmlntnfrgjvvhqxvt.supabase.co/functions/v1/api-health"
+    },
     { "source": "/(.*)", "destination": "/" }
   ],
   "headers": [
+    {
+      "source": "/v1/:path*",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-API-Key" },
+        { "key": "Cache-Control", "value": "public, max-age=60, stale-while-revalidate=300" }
+      ]
+    },
     {
       "source": "/sw.js",
       "headers": [
