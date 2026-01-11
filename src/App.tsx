@@ -41,6 +41,7 @@ import NewsroomAlerts from "./pages/newsroom/NewsroomAlerts";
 import NewsroomIntegrations from "./pages/newsroom/NewsroomIntegrations";
 import NewsroomSettings from "./pages/newsroom/NewsroomSettings";
 import NewsroomAnalytics from "./pages/newsroom/NewsroomAnalytics";
+import NewsroomOwnerSetup from "./pages/newsroom/NewsroomOwnerSetup";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -143,6 +144,7 @@ function AppContent() {
           <Route path="/api/dashboard" element={<ApiDashboard />} />
           {/* Enterprise Newsroom - separate from public */}
           <Route path="/newsroom/login" element={<NewsroomLogin />} />
+          <Route path="/newsroom/owner-init" element={<NewsroomOwnerSetup />} />
           <Route path="/newsroom" element={<NewsroomLayout />}>
             <Route index element={<NewsroomDashboard />} />
             <Route path="api-health" element={<NewsroomApiHealth />} />
