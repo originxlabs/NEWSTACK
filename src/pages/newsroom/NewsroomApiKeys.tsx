@@ -479,31 +479,22 @@ export default function NewsroomApiKeys() {
       {/* Domain Info */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-lg">API Domains</CardTitle>
+          <CardTitle className="text-lg">API Domain</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-lg">
               <div>
                 <p className="font-mono text-sm">https://api.newstack.online/v1</p>
-                <p className="text-xs text-muted-foreground">Sandbox API (testing)</p>
+                <p className="text-xs text-muted-foreground">Single endpoint for Sandbox & Production</p>
               </div>
-              <Badge variant="secondary">Sandbox</Badge>
+              <Badge className="bg-primary/10 text-primary">All Environments</Badge>
             </div>
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div>
-                <p className="font-mono text-sm">https://api.newstack.live/v1</p>
-                <p className="text-xs text-muted-foreground">Production API (primary)</p>
-              </div>
-              <Badge className="bg-emerald-500/10 text-emerald-500">Production</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div>
-                <p className="font-mono text-sm">https://api.newstack.world/v1</p>
-                <p className="text-xs text-muted-foreground">Production API (alternate)</p>
-              </div>
-              <Badge className="bg-emerald-500/10 text-emerald-500">Production</Badge>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Environment is determined by your API key prefix:
+              <code className="ml-1 bg-muted px-1 rounded">nsk_test_*</code> → Sandbox (100 req/day) |
+              <code className="ml-1 bg-muted px-1 rounded">nsk_live_*</code> → Production (plan-based)
+            </p>
           </div>
         </CardContent>
       </Card>

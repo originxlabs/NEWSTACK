@@ -15,31 +15,179 @@ function sanitizeOutput(text: string | null): string {
   return cleaned;
 }
 
+interface ApiKeyData {
+  id: string;
+  plan: string;
+  is_active: boolean;
+  is_sandbox: boolean;
+  requests_limit: number;
+  requests_used: number;
+  rate_limit_per_second: number;
+  allowed_endpoints: string[];
+}
+
+async function validateApiKey(
+  supabase: any,
+  apiKey: string | null,
+  endpoint: string
+): Promise<{ valid: boolean; keyData?: ApiKeyData; error?: string; remaining?: number; isSandbox?: boolean }> {
+  // Check for missing API key
+  if (!apiKey) {
+    return { valid: false, error: "API key required. Pass X-API-Key header." };
+  }
+
+  // Validate API key format - must start with nsk_test_ or nsk_live_
+  const isTestKey = apiKey.startsWith("nsk_test_");
+  const isLiveKey = apiKey.startsWith("nsk_live_");
+  
+  if (!isTestKey && !isLiveKey) {
+    return { valid: false, error: "Invalid API key format. Keys must start with nsk_test_ or nsk_live_" };
+  }
+
+  const { data, error } = await supabase
+    .from("api_keys")
+    .select("id, plan, is_active, is_sandbox, requests_limit, requests_used, rate_limit_per_second, allowed_endpoints")
+    .eq("api_key", apiKey)
+    .single();
+
+  if (error || !data) {
+    return { valid: false, error: "Invalid API key" };
+  }
+
+  if (!data.is_active) {
+    return { valid: false, error: "API key is inactive" };
+  }
+
+  // Check if endpoint is allowed for this plan
+  if (!data.allowed_endpoints.includes(endpoint)) {
+    return { valid: false, error: `Endpoint '${endpoint}' not available on your plan. Upgrade to access.` };
+  }
+
+  // For sandbox keys, enforce 100 requests/day limit
+  const effectiveLimit = isTestKey ? 100 : data.requests_limit;
+  
+  // Check rate limit (requests used vs limit)
+  if (data.requests_used >= effectiveLimit) {
+    const limitMessage = isTestKey 
+      ? "Sandbox daily limit (100 requests) exceeded. Wait until tomorrow or upgrade to production."
+      : "Monthly request limit exceeded. Upgrade your plan or wait until next billing cycle.";
+    return { valid: false, error: limitMessage };
+  }
+
+  return { 
+    valid: true, 
+    keyData: data,
+    remaining: effectiveLimit - data.requests_used,
+    isSandbox: isTestKey
+  };
+}
+
+async function logApiUsage(
+  supabase: any,
+  apiKeyId: string,
+  endpoint: string,
+  statusCode: number,
+  responseTimeMs: number,
+  req: Request
+): Promise<void> {
+  try {
+    await supabase.rpc("increment_api_usage", { key_id: apiKeyId });
+    await supabase.from("api_key_usage_logs").insert({
+      api_key_id: apiKeyId,
+      endpoint,
+      method: req.method,
+      status_code: statusCode,
+      response_time_ms: responseTimeMs,
+      ip_address: req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || null,
+      user_agent: req.headers.get("user-agent") || null,
+    });
+    await supabase
+      .from("api_keys")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("id", apiKeyId);
+  } catch (err) {
+    console.error("Failed to log API usage:", err);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const startTime = Date.now();
+  const rateLimitReset = Math.floor(Date.now() / 1000) + 86400;
 
   try {
     const url = new URL(req.url);
     const pathParts = url.pathname.split("/").filter(Boolean);
     
     const apiKey = req.headers.get("x-api-key");
-    const isSandbox = url.hostname.includes("sandbox") || url.searchParams.get("sandbox") === "true";
+    const sandboxQueryParam = url.searchParams.get("sandbox") === "true";
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Variables for tracking
+    let keyData: ApiKeyData | undefined;
+    let requestsRemaining = 100;
+    let isSandboxMode = sandboxQueryParam;
+
+    // If API key provided, validate it and determine environment from key prefix
+    if (apiKey) {
+      const validation = await validateApiKey(supabase, apiKey, "places");
+      if (!validation.valid) {
+        const statusCode = validation.error?.includes("format") ? 403 : 401;
+        return new Response(
+          JSON.stringify({ error: validation.error }),
+          { 
+            status: statusCode, 
+            headers: { 
+              ...corsHeaders, 
+              "Content-Type": "application/json",
+              "X-RateLimit-Limit": "0",
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Reset": String(rateLimitReset),
+              "X-Sandbox": "false"
+            } 
+          }
+        );
+      }
+      keyData = validation.keyData;
+      requestsRemaining = validation.remaining || 0;
+      isSandboxMode = validation.isSandbox || false;
+    } else if (!sandboxQueryParam) {
+      return new Response(
+        JSON.stringify({ error: "API key required. Pass X-API-Key header." }),
+        { 
+          status: 401, 
+          headers: { 
+            ...corsHeaders, 
+            "Content-Type": "application/json",
+            "X-RateLimit-Limit": "0",
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": String(rateLimitReset)
+          } 
+        }
+      );
+    }
+
     // Parse path: /api-v1-places/{place_id} or /api-v1-places/{place_id}/intelligence or /api-v1-places/{place_id}/news
-    // For this implementation, place_id can be a city name or country code
     const placeId = pathParts.length > 0 ? pathParts[0] : null;
     const subResource = pathParts.length > 1 ? pathParts[1] : null;
 
     if (!placeId) {
       return new Response(
         JSON.stringify({ error: "place_id is required. Use city name or country code." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { 
+          status: 400, 
+          headers: { 
+            ...corsHeaders, 
+            "Content-Type": "application/json",
+            "X-Sandbox": isSandboxMode ? "true" : "false"
+          } 
+        }
       );
     }
 
@@ -62,20 +210,21 @@ serve(async (req) => {
     // Match by city or country code
     const placeIdLower = placeId.toLowerCase();
     if (placeId.length === 2) {
-      // Country code
       query = query.eq("country_code", placeId.toUpperCase());
     } else {
-      // City name
       query = query.ilike("city", `%${placeId}%`);
     }
 
-    query = query.order("first_published_at", { ascending: false }).limit(50);
+    query = query.order("first_published_at", { ascending: false }).limit(isSandboxMode ? 10 : 50);
 
     const { data: stories, error } = await query;
 
     if (error) throw new Error(error.message);
 
     const storyList = stories || [];
+
+    let responseData: any;
+    let statusCode = 200;
 
     // Handle different sub-resources
     if (subResource === "intelligence") {
@@ -102,7 +251,7 @@ serve(async (req) => {
       if (highConfidenceCount > storyList.length * 0.5) confidence = "High";
       else if (highConfidenceCount > storyList.length * 0.2) confidence = "Medium";
 
-      const intelligenceResponse = {
+      responseData = {
         place_id: placeId,
         context: `Intelligence summary for ${placeId} based on ${storyList.length} stories from the past ${window}`,
         story_count: storyList.length,
@@ -111,22 +260,9 @@ serve(async (req) => {
         top_categories: topCategories,
         average_sources_per_story: storyList.length > 0 ? Math.round(totalSources / storyList.length * 10) / 10 : 0
       };
-
-      return new Response(
-        JSON.stringify(intelligenceResponse),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            "Content-Type": "application/json",
-            "X-Sandbox": isSandbox ? "true" : "false"
-          } 
-        }
-      );
-    }
-
-    if (subResource === "news") {
+    } else if (subResource === "news") {
       // Local news for place
-      const newsResponse = {
+      responseData = {
         place_id: placeId,
         window,
         total: storyList.length,
@@ -140,75 +276,68 @@ serve(async (req) => {
           published_at: s.first_published_at
         }))
       };
-
-      return new Response(
-        JSON.stringify(newsResponse),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            "Content-Type": "application/json",
-            "X-Sandbox": isSandbox ? "true" : "false"
-          } 
-        }
-      );
-    }
-
-    if (subResource === "essentials") {
+    } else if (subResource === "essentials") {
       // Nearby essentials - would integrate with places API
-      // For now, return structured placeholder
       const category = url.searchParams.get("category");
       
       if (!category || !["hotels", "restaurants", "hospitals", "transport"].includes(category)) {
         return new Response(
           JSON.stringify({ error: "category is required. Valid: hotels, restaurants, hospitals, transport" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { 
+            status: 400, 
+            headers: { 
+              ...corsHeaders, 
+              "Content-Type": "application/json",
+              "X-Sandbox": isSandboxMode ? "true" : "false"
+            } 
+          }
         );
       }
 
-      const essentialsResponse = {
+      responseData = {
         place_id: placeId,
         category,
         results: [],
         message: "Essentials data requires Places API integration. Contact sales for access."
       };
-
-      return new Response(
-        JSON.stringify(essentialsResponse),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            "Content-Type": "application/json",
-            "X-Sandbox": isSandbox ? "true" : "false"
-          } 
+    } else {
+      // Basic place info
+      responseData = {
+        place_id: placeId,
+        name: placeId.length === 2 ? placeId.toUpperCase() : placeId.charAt(0).toUpperCase() + placeId.slice(1),
+        type: placeId.length === 2 ? "country" : "city",
+        location: {
+          display_name: placeId,
+          country_code: placeId.length === 2 ? placeId.toUpperCase() : storyList[0]?.country_code || null
+        },
+        story_count: storyList.length,
+        endpoints: {
+          intelligence: `/places/${placeId}/intelligence`,
+          news: `/places/${placeId}/news`,
+          essentials: `/places/${placeId}/essentials?category={hotels|restaurants|hospitals|transport}`
         }
-      );
+      };
     }
 
-    // Basic place info
-    const placeResponse = {
-      place_id: placeId,
-      name: placeId.length === 2 ? placeId.toUpperCase() : placeId.charAt(0).toUpperCase() + placeId.slice(1),
-      type: placeId.length === 2 ? "country" : "city",
-      location: {
-        display_name: placeId,
-        country_code: placeId.length === 2 ? placeId.toUpperCase() : storyList[0]?.country_code || null
-      },
-      story_count: storyList.length,
-      endpoints: {
-        intelligence: `/places/${placeId}/intelligence`,
-        news: `/places/${placeId}/news`,
-        essentials: `/places/${placeId}/essentials?category={hotels|restaurants|hospitals|transport}`
-      }
-    };
+    const responseTimeMs = Date.now() - startTime;
+
+    // Log usage if we have a valid API key
+    if (keyData) {
+      await logApiUsage(supabase, keyData.id, "/v1/places", statusCode, responseTimeMs, req);
+    }
 
     return new Response(
-      JSON.stringify(placeResponse),
+      JSON.stringify(responseData),
       { 
+        status: statusCode,
         headers: { 
           ...corsHeaders, 
           "Content-Type": "application/json",
-          "X-Sandbox": isSandbox ? "true" : "false",
-          "X-RateLimit-Remaining": "999"
+          "X-Sandbox": isSandboxMode ? "true" : "false",
+          "X-RateLimit-Limit": keyData ? String(isSandboxMode ? 100 : keyData.requests_limit) : "100",
+          "X-RateLimit-Remaining": String(Math.max(0, requestsRemaining - 1)),
+          "X-RateLimit-Reset": String(rateLimitReset),
+          "X-Response-Time": `${responseTimeMs}ms`
         } 
       }
     );
