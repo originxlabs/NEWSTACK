@@ -339,27 +339,63 @@ function normalizeRSSContent(text: string): string {
 }
 
 /**
- * Validate normalized content - MUST pass before storage
- * Returns true if content is clean, false if still contains HTML/entities
+ * HARD VALIDATION GATE - MUST pass before storage
+ * Returns { valid: boolean, reason?: string }
+ * 
+ * Reject if ANY of these are true:
+ * - Contains < or >
+ * - Contains &lt;, &gt;, &amp;, &nbsp;
+ * - Contains URL inside summary text (not the main link)
+ * - Length < 40 characters after cleaning
  */
-function validateNormalizedContent(text: string): boolean {
-  if (!text) return true;
+interface ValidationResult {
+  valid: boolean;
+  reason?: string;
+}
+
+function validateNormalizedContent(text: string, isTitle: boolean = false): ValidationResult {
+  if (!text) return { valid: true };
   
-  const invalidPatterns = [
-    /<[^>]+>/,           // HTML tags
-    /&lt;|&gt;|&amp;/,   // Encoded entities
-    /&nbsp;/,            // Non-breaking space
-    /<!\[CDATA\[/,       // CDATA wrapper
-  ];
+  // Check for HTML tags
+  if (/<[^>]+>/.test(text)) {
+    return { valid: false, reason: "Contains HTML tags" };
+  }
   
-  return !invalidPatterns.some(p => p.test(text));
+  // Check for encoded entities
+  if (/&lt;|&gt;|&amp;|&nbsp;/.test(text)) {
+    return { valid: false, reason: "Contains encoded HTML entities" };
+  }
+  
+  // Check for CDATA wrapper
+  if (/<!\[CDATA\[/.test(text)) {
+    return { valid: false, reason: "Contains CDATA wrapper" };
+  }
+  
+  // Check for embedded URLs in summaries (not titles)
+  if (!isTitle && /https?:\/\/[^\s]+/.test(text)) {
+    return { valid: false, reason: "Contains embedded URL" };
+  }
+  
+  // Check minimum length after cleaning
+  if (text.trim().length < 40 && !isTitle) {
+    return { valid: false, reason: "Content too short after cleaning" };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * Legacy boolean validation for backward compatibility
+ */
+function isValidContent(text: string): boolean {
+  return validateNormalizedContent(text).valid;
 }
 
 /**
  * Normalize a headline for storage and display
- * Applies full normalization + length limit
+ * Applies full normalization + length limit + validation
  */
-function normalizeTitle(title: string): string {
+function normalizeTitle(title: string): string | null {
   let normalized = normalizeRSSContent(title);
   
   // Remove source suffixes
@@ -376,10 +412,18 @@ function normalizeTitle(title: string): string {
     normalized = normalized.substring(0, 197) + "...";
   }
   
-  // VALIDATE: If still contains HTML, try re-cleaning
-  if (!validateNormalizedContent(normalized)) {
-    console.warn("Title still contains HTML after normalization, re-cleaning:", normalized.substring(0, 50));
+  // VALIDATE: If still contains HTML, try re-cleaning once
+  const validation = validateNormalizedContent(normalized, true);
+  if (!validation.valid) {
+    console.warn(`Title validation failed (${validation.reason}), re-cleaning:`, normalized.substring(0, 50));
     normalized = normalizeRSSContent(normalized);
+    
+    // Second validation - if still fails, return null (reject)
+    const secondValidation = validateNormalizedContent(normalized, true);
+    if (!secondValidation.valid) {
+      console.error(`Title REJECTED after re-clean (${secondValidation.reason}):`, normalized.substring(0, 50));
+      return null;
+    }
   }
   
   return normalized;
@@ -387,9 +431,16 @@ function normalizeTitle(title: string): string {
 
 /**
  * Normalize a description/summary for storage
- * Applies full normalization + length limit
+ * Applies full normalization + length limit + validation
+ * 
+ * For AGGREGATOR feeds: Returns null (use title only)
  */
-function normalizeDescription(description: string): string {
+function normalizeDescription(description: string, isAggregator: boolean = false): string | null {
+  // RULE: Aggregators use title-only ingestion
+  if (isAggregator) {
+    return null;
+  }
+  
   let normalized = normalizeRSSContent(description);
   
   // Limit to 500 characters
@@ -397,10 +448,21 @@ function normalizeDescription(description: string): string {
     normalized = normalized.substring(0, 497) + "...";
   }
   
-  // VALIDATE: If still contains HTML, try re-cleaning
-  if (!validateNormalizedContent(normalized)) {
-    console.warn("Description still contains HTML after normalization, re-cleaning");
+  // VALIDATE with strict rules
+  const validation = validateNormalizedContent(normalized, false);
+  if (!validation.valid) {
+    console.warn(`Description validation failed (${validation.reason}), re-cleaning`);
     normalized = normalizeRSSContent(normalized);
+    
+    // Remove URLs from description
+    normalized = normalized.replace(/https?:\/\/[^\s]+/g, "").trim();
+    
+    // Second validation
+    const secondValidation = validateNormalizedContent(normalized, false);
+    if (!secondValidation.valid) {
+      console.warn(`Description still invalid (${secondValidation.reason}), using null`);
+      return null;
+    }
   }
   
   return normalized;
@@ -825,15 +887,19 @@ async function processItems(
     try {
       // ===== NORMALIZE ALL CONTENT BEFORE PROCESSING =====
       // This ensures CDATA, HTML entities, and tags never reach the database
+      const isAggregator = feed.source_type === "aggregator";
       const cleanTitle = normalizeTitle(item.title);
-      const cleanDescription = normalizeDescription(item.description);
+      const cleanDescription = normalizeDescription(item.description, isAggregator);
       const cleanUrl = cleanURL(item.link);
       
-      // VALIDATE before proceeding
-      if (!validateNormalizedContent(cleanTitle) || !validateNormalizedContent(cleanDescription)) {
-        console.warn("Skipping item with invalid content after normalization:", cleanTitle.substring(0, 50));
+      // HARD VALIDATION GATE: Reject if title normalization failed
+      if (!cleanTitle) {
+        console.warn(`REJECTED: Title normalization failed for item from ${feed.name}`);
         continue;
       }
+      
+      // For non-aggregators, we need valid description or skip (unless it's just short)
+      const finalDescription = cleanDescription || cleanTitle;
       
       // Create fingerprint for deduplication
       const normalizedHeadline = normalizeHeadline(cleanTitle);
@@ -857,7 +923,7 @@ async function processItems(
       }
 
       // Classify the story using normalized content
-      const classification = classifyStory(cleanTitle, cleanDescription, cleanUrl, feed);
+      const classification = classifyStory(cleanTitle, finalDescription, cleanUrl, feed);
 
       // Get image URL
       const imageUrl = item.enclosure?.url || item["media:content"]?.url || null;
@@ -931,7 +997,7 @@ async function processItems(
               source_name: feed.name,
               source_url: cleanUrl,
               published_at: publishedAt.toISOString(),
-              description: cleanDescription,
+              description: finalDescription,
               source_type: feed.source_type,
               reliability_tier: feed.reliability_tier,
               is_primary_reporting: feed.source_type === "primary",
@@ -1034,7 +1100,7 @@ async function processItems(
             story_hash: storyHash,
             headline: cleanTitle,
             normalized_headline: normalizedHeadline,
-            summary: cleanDescription,
+            summary: finalDescription,
             category: classification.primary_category,
             country_code: feed.country_code,
             city: classification.locality,
@@ -1059,7 +1125,7 @@ async function processItems(
             source_name: feed.name,
             source_url: cleanUrl,
             published_at: publishedAt.toISOString(),
-            description: cleanDescription,
+            description: finalDescription,
             source_type: feed.source_type,
             reliability_tier: feed.reliability_tier,
             is_primary_reporting: feed.source_type === "primary",
