@@ -412,6 +412,39 @@ export type Database = {
         }
         Relationships: []
       }
+      newsroom_members: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          invited_by: string | null
+          is_active: boolean
+          role: Database["public"]["Enums"]["newsroom_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          invited_by?: string | null
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["newsroom_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string | null
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["newsroom_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       page_views: {
         Row: {
           country: string | null
@@ -937,10 +970,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_newsroom_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["newsroom_role"]
+      }
+      has_newsroom_access: {
+        Args: {
+          _min_role: Database["public"]["Enums"]["newsroom_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_newsroom_owner_or_superadmin: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      newsroom_role: "owner" | "superadmin" | "admin" | "editor" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1067,6 +1114,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      newsroom_role: ["owner", "superadmin", "admin", "editor", "viewer"],
+    },
   },
 } as const

@@ -30,6 +30,7 @@ import NewsroomLayout from "./pages/newsroom/NewsroomLayout";
 import NewsroomLogin from "./pages/newsroom/NewsroomLogin";
 import NewsroomDashboard from "./pages/newsroom/NewsroomDashboard";
 import NewsroomIngestion from "./pages/newsroom/NewsroomIngestion";
+import NewsroomFeeds from "./pages/newsroom/NewsroomFeeds";
 import NewsroomStories from "./pages/newsroom/NewsroomStories";
 import NewsroomTrust from "./pages/newsroom/NewsroomTrust";
 import NewsroomAlerts from "./pages/newsroom/NewsroomAlerts";
@@ -139,6 +140,7 @@ function AppContent() {
           <Route path="/newsroom" element={<NewsroomLayout />}>
             <Route index element={<NewsroomDashboard />} />
             <Route path="ingestion" element={<NewsroomIngestion />} />
+            <Route path="feeds" element={<NewsroomFeeds />} />
             <Route path="stories" element={<NewsroomStories />} />
             <Route path="trust" element={<NewsroomTrust />} />
             <Route path="alerts" element={<NewsroomAlerts />} />
