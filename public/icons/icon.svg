@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- NEWSTACK App Icon - N-style logo with background -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="url(#bgGrad)"/>
+  
+  <!-- N Logo - White on gradient background -->
+  <g fill="white" transform="translate(56, 86)">
+    <!-- Row 1 - Top -->
+    <path d="M24 30 C24 22 32 14 40 14 L168 14 L168 22 L108 86 L24 86 L24 30 Z"/>
+    <path d="M232 14 L360 14 C368 14 376 22 376 30 L376 86 L292 86 L232 22 L232 14 Z"/>
+    
+    <!-- Row 2 - Middle -->
+    <path d="M24 106 L104 106 L104 186 L24 186 C12 186 0 174 0 162 L0 130 C0 118 12 106 24 106 Z"/>
+    <path d="M128 106 L272 106 L272 186 L128 186 L128 106 Z"/>
+    <path d="M296 106 L376 106 C388 106 400 118 400 130 L400 162 C400 174 388 186 376 186 L296 186 L296 106 Z"/>
+    
+    <!-- Row 3 - Bottom -->
+    <path d="M24 206 L104 206 L104 270 L48 270 C36 270 24 258 24 246 L24 206 Z"/>
+    <path d="M128 206 L184 206 L184 270 L128 270 L128 206 Z"/>
+    <path d="M224 206 L376 206 L376 246 C376 258 364 270 352 270 L176 270 L176 262 L224 206 Z"/>
+  </g>
+</svg>

@@ -16,7 +16,7 @@ import { useCategoryPreferences } from "@/hooks/use-category-preferences";
 import { useOfflineCache } from "@/hooks/use-offline-cache";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { useHaptic } from "@/hooks/use-haptic";
-import { NLogo } from "@/components/NLogo";
+import { NLogoSquare } from "@/components/NLogo";
 
 export function MobileSettings() {
   const { 
@@ -321,8 +321,8 @@ export function MobileSettings() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center space-y-3">
-              <div className="w-14 h-14 flex items-center justify-center mx-auto">
-                <NLogo size={56} color="hsl(var(--primary))" />
+              <div className="w-14 h-14 flex items-center justify-center mx-auto text-foreground">
+                <NLogoSquare size={56} />
               </div>
               <h3 className="font-display font-bold text-lg">NEWSTACK</h3>
               <p className="text-xs text-muted-foreground">

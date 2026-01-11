@@ -1,29 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <defs>
-    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  
-  <!-- N-style stacked logo mark -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- NEWSTACK N-style Logo - Stacked horizontal bars forming an N -->
   <g fill="currentColor">
-    <!-- Top row: Left block with cut + Right block with cut -->
-    <path d="M64 64 L64 140 Q64 152 76 152 L200 152 L256 96 L256 64 Q256 52 244 52 L76 52 Q64 52 64 64 Z" fill="#1a1a1a"/>
-    <path d="M288 52 L288 96 L344 152 L436 152 Q448 152 448 140 L448 64 Q448 52 436 52 L288 52 Z" fill="#1a1a1a"/>
+    <!-- Row 1 - Top -->
+    <path d="M12 15 C12 13 14 11 16 11 L42 11 L42 13 L28 27 L12 27 L12 15 Z"/>
+    <path d="M58 11 L84 11 C86 11 88 13 88 15 L88 27 L72 27 L58 13 L58 11 Z"/>
     
-    <!-- Middle row: Left block + Diagonal + Right block -->
-    <path d="M64 184 L64 268 Q64 280 76 280 L140 280 L140 184 L76 184 Q64 184 64 184 Z" fill="#1a1a1a"/>
-    <path d="M172 184 L172 280 L340 280 L340 184 L172 184 Z" fill="#1a1a1a"/>
-    <path d="M372 184 L372 280 L436 280 Q448 280 448 268 L448 184 L372 184 Z" fill="#1a1a1a"/>
+    <!-- Row 2 - Middle -->
+    <path d="M12 33 L26 33 L26 53 L12 53 C10 53 8 51 8 49 L8 37 C8 35 10 33 12 33 Z"/>
+    <path d="M32 33 L68 33 L68 53 L32 53 L32 33 Z"/>
+    <path d="M74 33 L88 33 C90 33 92 35 92 37 L92 49 C92 51 90 53 88 53 L74 53 L74 33 Z"/>
     
-    <!-- Bottom row: Left block + Right block with cut -->
-    <path d="M64 312 L64 396 Q64 408 76 408 L172 408 L172 312 L76 312 Q64 312 64 312 Z" fill="#1a1a1a"/>
-    <path d="M204 312 L204 408 L268 408 L268 312 L204 312 Z" fill="#1a1a1a"/>
-    <path d="M300 312 L256 364 L256 408 L436 408 Q448 408 448 396 L448 312 L300 312 Z" fill="#1a1a1a"/>
-    
-    <!-- Bottom left corner block -->
-    <path d="M64 440 L64 448 Q64 460 76 460 L140 460 L140 440 L64 440 Z" fill="#1a1a1a"/>
-    <path d="M372 440 L372 460 L436 460 Q448 460 448 448 L448 440 L372 440 Z" fill="#1a1a1a"/>
+    <!-- Row 3 - Bottom -->
+    <path d="M12 59 L26 59 L26 75 L16 75 C14 75 12 73 12 71 L12 59 Z"/>
+    <path d="M32 59 L46 59 L46 75 L32 75 L32 59 Z"/>
+    <path d="M56 59 L88 59 L88 71 C88 73 86 75 84 75 L48 75 L48 73 L56 59 Z"/>
   </g>
 </svg>
