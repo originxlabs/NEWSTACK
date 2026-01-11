@@ -4,7 +4,8 @@ import {
   ArrowRight, Code, Shield, Globe, Lock, Clock, Server, 
   FileJson, CheckCircle2, Copy, ExternalLink, Newspaper,
   MapPin, Zap, Radio, Bell, AlertTriangle, ChevronRight,
-  Terminal, BookOpen, Activity, Key, Webhook, Play
+  Terminal, BookOpen, Activity, Key, Webhook, Play, Send,
+  Loader2, CheckCircle, XCircle
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -12,12 +13,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+// API Domain Configuration - Updated for Vercel deployment
+const API_DOMAINS = {
+  sandbox: "https://sandbox.newstack.online/v1",
+  production: "https://api.newstack.live/v1",
+};
+
+// For testing via Supabase edge functions
+const SUPABASE_API_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
 // Documentation sidebar items
 const docNavItems = [
   { id: "overview", label: "Overview", icon: BookOpen },
+  { id: "api-tester", label: "API Tester", icon: Play },
   { id: "authentication", label: "Authentication", icon: Key },
   { id: "rate-limits", label: "Rate Limits", icon: Activity },
   { id: "news-api", label: "News API", icon: Newspaper },
@@ -85,6 +100,305 @@ const CodeBlock = ({ code, language = "json" }: { code: string; language?: strin
   );
 };
 
+// Interactive API Tester Component
+function ApiTester() {
+  const [endpoint, setEndpoint] = useState("news");
+  const [method, setMethod] = useState("GET");
+  const [category, setCategory] = useState("");
+  const [confidence, setConfidence] = useState("");
+  const [window, setWindow] = useState("24h");
+  const [region, setRegion] = useState("");
+  const [placeId, setPlaceId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [response, setResponse] = useState<any>(null);
+  const [responseTime, setResponseTime] = useState<number | null>(null);
+  const [responseStatus, setResponseStatus] = useState<number | null>(null);
+
+  const getEndpointUrl = () => {
+    switch (endpoint) {
+      case "news":
+        return `${SUPABASE_API_BASE}/api-v1-news`;
+      case "world":
+        return `${SUPABASE_API_BASE}/api-v1-world`;
+      case "world-region":
+        return `${SUPABASE_API_BASE}/api-v1-world/regions/${region || "asia-pacific"}`;
+      case "places":
+        return `${SUPABASE_API_BASE}/api-v1-places/${placeId || "mumbai"}`;
+      case "places-intelligence":
+        return `${SUPABASE_API_BASE}/api-v1-places/${placeId || "mumbai"}/intelligence`;
+      case "places-news":
+        return `${SUPABASE_API_BASE}/api-v1-places/${placeId || "mumbai"}/news`;
+      default:
+        return `${SUPABASE_API_BASE}/api-v1-news`;
+    }
+  };
+
+  const getDisplayUrl = () => {
+    switch (endpoint) {
+      case "news":
+        let newsUrl = `${API_DOMAINS.sandbox}/news`;
+        const params = [];
+        if (category) params.push(`category=${category}`);
+        if (confidence) params.push(`confidence=${confidence}`);
+        if (window !== "24h") params.push(`window=${window}`);
+        if (params.length) newsUrl += `?${params.join("&")}`;
+        return newsUrl;
+      case "world":
+        return `${API_DOMAINS.sandbox}/world`;
+      case "world-region":
+        return `${API_DOMAINS.sandbox}/world/regions/${region || "asia-pacific"}`;
+      case "places":
+        return `${API_DOMAINS.sandbox}/places/${placeId || "mumbai"}`;
+      case "places-intelligence":
+        return `${API_DOMAINS.sandbox}/places/${placeId || "mumbai"}/intelligence`;
+      case "places-news":
+        return `${API_DOMAINS.sandbox}/places/${placeId || "mumbai"}/news?window=${window}`;
+      default:
+        return `${API_DOMAINS.sandbox}/news`;
+    }
+  };
+
+  const runTest = async () => {
+    setIsLoading(true);
+    setResponse(null);
+    setResponseTime(null);
+    setResponseStatus(null);
+
+    const startTime = Date.now();
+
+    try {
+      let url = getEndpointUrl();
+      const params = new URLSearchParams();
+      params.append("sandbox", "true");
+      
+      if (endpoint === "news") {
+        if (category) params.append("category", category);
+        if (confidence) params.append("confidence", confidence);
+        if (window) params.append("window", window);
+      }
+
+      url += `?${params.toString()}`;
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+      });
+
+      const data = await res.json();
+      const endTime = Date.now();
+
+      setResponse(data);
+      setResponseTime(endTime - startTime);
+      setResponseStatus(res.status);
+    } catch (err) {
+      console.error("API test error:", err);
+      setResponse({ error: "Failed to connect to API" });
+      setResponseStatus(500);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Card className="border-2 border-primary/20">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Play className="w-5 h-5 text-primary" />
+            Live API Tester
+          </CardTitle>
+          <Badge variant="secondary" className="font-mono text-xs">
+            Sandbox Mode
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Endpoint Selection */}
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Endpoint</Label>
+            <Select value={endpoint} onValueChange={setEndpoint}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="news">GET /news - Story Feed</SelectItem>
+                <SelectItem value="world">GET /world - Global Overview</SelectItem>
+                <SelectItem value="world-region">GET /world/regions/:region</SelectItem>
+                <SelectItem value="places">GET /places/:place_id</SelectItem>
+                <SelectItem value="places-intelligence">GET /places/:place_id/intelligence</SelectItem>
+                <SelectItem value="places-news">GET /places/:place_id/news</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Dynamic Parameters */}
+          {endpoint === "news" && (
+            <div className="space-y-2">
+              <Label>Category (optional)</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All</SelectItem>
+                  <SelectItem value="technology">Technology</SelectItem>
+                  <SelectItem value="business">Business</SelectItem>
+                  <SelectItem value="politics">Politics</SelectItem>
+                  <SelectItem value="science">Science</SelectItem>
+                  <SelectItem value="health">Health</SelectItem>
+                  <SelectItem value="climate">Climate</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {endpoint === "world-region" && (
+            <div className="space-y-2">
+              <Label>Region</Label>
+              <Select value={region} onValueChange={setRegion}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select region" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="north-america">North America</SelectItem>
+                  <SelectItem value="europe">Europe</SelectItem>
+                  <SelectItem value="asia-pacific">Asia Pacific</SelectItem>
+                  <SelectItem value="middle-east">Middle East</SelectItem>
+                  <SelectItem value="africa">Africa</SelectItem>
+                  <SelectItem value="south-america">South America</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {(endpoint === "places" || endpoint === "places-intelligence" || endpoint === "places-news") && (
+            <div className="space-y-2">
+              <Label>Place ID (city or country code)</Label>
+              <Input 
+                value={placeId} 
+                onChange={(e) => setPlaceId(e.target.value)}
+                placeholder="e.g., mumbai, delhi, IN, US"
+              />
+            </div>
+          )}
+        </div>
+
+        {endpoint === "news" && (
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Confidence (optional)</Label>
+              <Select value={confidence} onValueChange={setConfidence}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All levels" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Time Window</Label>
+              <Select value={window} onValueChange={setWindow}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="6h">Last 6 hours</SelectItem>
+                  <SelectItem value="24h">Last 24 hours</SelectItem>
+                  <SelectItem value="48h">Last 48 hours</SelectItem>
+                  <SelectItem value="7d">Last 7 days</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+
+        {/* Request URL Preview */}
+        <div className="space-y-2">
+          <Label>Request URL</Label>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs bg-muted px-3 py-2 rounded font-mono overflow-x-auto">
+              {getDisplayUrl()}
+            </code>
+            <Button
+              variant="outline"
+              size="icon"
+              className="flex-shrink-0"
+              onClick={() => {
+                navigator.clipboard.writeText(getDisplayUrl());
+                toast.success("URL copied");
+              }}
+            >
+              <Copy className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Run Button */}
+        <Button 
+          onClick={runTest} 
+          disabled={isLoading}
+          className="w-full gap-2"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Sending Request...
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4" />
+              Send Request
+            </>
+          )}
+        </Button>
+
+        {/* Response */}
+        {(response || responseStatus) && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Response</Label>
+              <div className="flex items-center gap-2">
+                {responseStatus && (
+                  <Badge 
+                    variant={responseStatus < 400 ? "default" : "destructive"}
+                    className={cn(
+                      "font-mono",
+                      responseStatus < 400 && "bg-emerald-500/10 text-emerald-500"
+                    )}
+                  >
+                    {responseStatus < 400 ? (
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                    ) : (
+                      <XCircle className="w-3 h-3 mr-1" />
+                    )}
+                    {responseStatus}
+                  </Badge>
+                )}
+                {responseTime && (
+                  <Badge variant="outline" className="font-mono">
+                    {responseTime}ms
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <pre className="bg-zinc-950 text-zinc-100 p-4 rounded-lg text-xs overflow-x-auto font-mono max-h-96 overflow-y-auto">
+              {JSON.stringify(response, null, 2)}
+            </pre>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ApiLanding() {
   const [activeSection, setActiveSection] = useState("overview");
 
@@ -94,6 +408,14 @@ export default function ApiLanding() {
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+  };
+
+  const handleGetSandboxKey = () => {
+    toast.info("Contact sales@newstack.live for sandbox API access");
+  };
+
+  const handleContactSales = () => {
+    window.location.href = "mailto:sales@newstack.live?subject=NEWSTACK API Enterprise Inquiry";
   };
 
   return (
@@ -123,15 +445,15 @@ export default function ApiLanding() {
             </p>
             
             <div className="flex flex-wrap items-center gap-3">
-              <Button size="lg" className="gap-2" onClick={() => scrollToSection("news-api")}>
-                <BookOpen className="w-4 h-4" />
-                View API Documentation
+              <Button size="lg" className="gap-2" onClick={() => scrollToSection("api-tester")}>
+                <Play className="w-4 h-4" />
+                Try API Live
               </Button>
-              <Button size="lg" variant="outline" className="gap-2">
+              <Button size="lg" variant="outline" className="gap-2" onClick={handleGetSandboxKey}>
                 <Key className="w-4 h-4" />
                 Get Sandbox API Key
               </Button>
-              <Button size="lg" variant="ghost" className="gap-2">
+              <Button size="lg" variant="ghost" className="gap-2" onClick={() => scrollToSection("pricing")}>
                 Pricing
                 <ChevronRight className="w-4 h-4" />
               </Button>
@@ -271,17 +593,27 @@ export default function ApiLanding() {
                       <CardTitle className="text-base">Base URLs</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Production</p>
-                        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
-                          https://api.newstack.ai/v1
-                        </code>
+                      <div className="flex items-center justify-between p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Production</p>
+                          <code className="text-sm font-mono font-medium">
+                            https://api.newstack.live/v1
+                          </code>
+                        </div>
+                        <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                          Production
+                        </Badge>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Sandbox</p>
-                        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
-                          https://sandbox.api.newstack.ai/v1
-                        </code>
+                      <div className="flex items-center justify-between p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Sandbox (Testing)</p>
+                          <code className="text-sm font-mono font-medium">
+                            https://sandbox.newstack.online/v1
+                          </code>
+                        </div>
+                        <Badge variant="secondary">
+                          Sandbox
+                        </Badge>
                       </div>
                     </CardContent>
                   </Card>
@@ -312,6 +644,15 @@ export default function ApiLanding() {
                   </div>
                 </section>
 
+                {/* API Tester */}
+                <section id="api-tester">
+                  <h2 className="font-display text-2xl font-bold mb-4">Interactive API Tester</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Test the NEWSTACK API endpoints live. Sandbox mode provides access to real data with relaxed rate limits.
+                  </p>
+                  <ApiTester />
+                </section>
+
                 {/* Authentication */}
                 <section id="authentication">
                   <h2 className="font-display text-2xl font-bold mb-4">Authentication</h2>
@@ -320,8 +661,8 @@ export default function ApiLanding() {
                   </p>
                   
                   <CodeBlock 
-                    code={`curl -X GET "https://api.newstack.ai/v1/news" \\
-  -H "X-API-Key: your_api_key"`}
+                    code={`curl -X GET "https://api.newstack.live/v1/news" \\
+  -H "X-API-Key: nsk_your_api_key_here"`}
                     language="bash"
                   />
 
@@ -339,8 +680,8 @@ export default function ApiLanding() {
                       <CardContent className="pt-6 flex items-center gap-3">
                         <Shield className="w-8 h-8 text-primary" />
                         <div>
-                          <p className="font-medium text-sm">Org-based Access Control</p>
-                          <p className="text-xs text-muted-foreground">Team management built-in</p>
+                          <p className="font-medium text-sm">Rate Limiting</p>
+                          <p className="text-xs text-muted-foreground">Plan-based request limits</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -395,7 +736,7 @@ export default function ApiLanding() {
                       <CodeBlock 
                         code={`X-RateLimit-Limit: 100000
 X-RateLimit-Remaining: 99847
-X-RateLimit-Reset: 1704067200
+X-Response-Time: 45ms
 Retry-After: 60  # Only on 429`}
                       />
                     </CardContent>
@@ -406,92 +747,83 @@ Retry-After: 60  # Only on 429`}
                 <section id="news-api">
                   <h2 className="font-display text-2xl font-bold mb-4">News API</h2>
                   <p className="text-muted-foreground mb-6">
-                    Returns story clusters derived from multiple independent sources. 
-                    Stories are evolving entities, not articles.
+                    Access clustered news intelligence with confidence signals and source transparency.
                   </p>
 
                   <Tabs defaultValue="feed" className="mb-6">
                     <TabsList>
-                      <TabsTrigger value="feed">Get Story Feed</TabsTrigger>
-                      <TabsTrigger value="detail">Get Story Detail</TabsTrigger>
+                      <TabsTrigger value="feed">Story Feed</TabsTrigger>
+                      <TabsTrigger value="detail">Story Detail</TabsTrigger>
                     </TabsList>
-                    
-                    <TabsContent value="feed" className="mt-4">
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-emerald-500">GET</Badge>
-                            <code className="text-sm font-mono">/news</code>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div>
-                            <p className="text-sm font-medium mb-2">Parameters</p>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex gap-4">
-                                <code className="bg-muted px-2 py-0.5 rounded text-xs">category</code>
-                                <span className="text-muted-foreground">world, politics, business, tech, science, climate, health</span>
-                              </div>
-                              <div className="flex gap-4">
-                                <code className="bg-muted px-2 py-0.5 rounded text-xs">confidence</code>
-                                <span className="text-muted-foreground">Low, Medium, High</span>
-                              </div>
-                              <div className="flex gap-4">
-                                <code className="bg-muted px-2 py-0.5 rounded text-xs">window</code>
-                                <span className="text-muted-foreground">24h, 48h, 7d</span>
-                              </div>
-                            </div>
-                          </div>
-                          <CodeBlock 
-                            code={`{
-  "updated_at": "2026-01-11T16:00:00Z",
+                    <TabsContent value="feed" className="space-y-4 mt-4">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-emerald-500/10 text-emerald-600">GET</Badge>
+                        <code className="font-mono text-sm">/news</code>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Returns clustered story intelligence. Stories are evolving entities, not articles.
+                      </p>
+                      <CodeBlock 
+                        code={`GET https://api.newstack.live/v1/news?category=technology&confidence=high&window=24h
+
+Response:
+{
+  "updated_at": "2025-01-11T16:00:00Z",
   "stories": [
     {
       "story_id": "abc123",
-      "headline": "Major development in renewable energy sector",
+      "headline": "Major tech announcement...",
       "state": "confirmed",
       "confidence": "High",
       "sources_count": 5,
-      "category": "climate",
-      "first_published_at": "2026-01-11T14:30:00Z"
+      "category": "Technology",
+      "first_published_at": "2025-01-11T14:30:00Z",
+      "timeline": [
+        "2025-01-11T14:30:00Z: Reuters",
+        "2025-01-11T14:45:00Z: Bloomberg"
+      ]
     }
   ]
 }`}
-                          />
-                        </CardContent>
-                      </Card>
+                      />
                     </TabsContent>
+                    <TabsContent value="detail" className="space-y-4 mt-4">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-emerald-500/10 text-emerald-600">GET</Badge>
+                        <code className="font-mono text-sm">/news/:story_id</code>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Get detailed intelligence for a specific story including full timeline and sources.
+                      </p>
+                      <CodeBlock 
+                        code={`GET https://api.newstack.live/v1/news/abc123
 
-                    <TabsContent value="detail" className="mt-4">
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-emerald-500">GET</Badge>
-                            <code className="text-sm font-mono">/news/{'{story_id}'}</code>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <CodeBlock 
-                            code={`{
+Response:
+{
   "story_id": "abc123",
-  "headline": "Major development in renewable energy sector",
+  "headline": "Major tech announcement...",
+  "summary": "AI-generated summary of the story...",
   "state": "confirmed",
   "confidence": "High",
   "sources_count": 5,
-  "timeline": [
-    "2026-01-11T14:30:00Z - Initial report from Reuters",
-    "2026-01-11T15:00:00Z - Confirmed by AP",
-    "2026-01-11T15:45:00Z - Additional context from BBC"
-  ],
+  "verified_sources_count": 4,
+  "has_contradictions": false,
+  "location": {
+    "country_code": "US",
+    "city": null,
+    "is_global": true
+  },
+  "timeline": [...],
   "sources": [
-    {"name": "Reuters", "reliability_tier": "tier_1"},
-    {"name": "AP", "reliability_tier": "tier_1"},
-    {"name": "BBC", "reliability_tier": "tier_1"}
+    {
+      "name": "Reuters",
+      "url": "https://...",
+      "published_at": "2025-01-11T14:30:00Z",
+      "is_primary": true
+    }
   ]
 }`}
-                          />
-                        </CardContent>
-                      </Card>
+                      />
                     </TabsContent>
                   </Tabs>
                 </section>
@@ -500,193 +832,153 @@ Retry-After: 60  # Only on 429`}
                 <section id="world-api">
                   <h2 className="font-display text-2xl font-bold mb-4">World API</h2>
                   <p className="text-muted-foreground mb-6">
-                    Returns region-level narrative activity and hotspots.
+                    Global narrative intelligence with regional breakdown and hotspot detection.
                   </p>
 
-                  <div className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-emerald-500">GET</Badge>
-                          <code className="text-sm font-mono">/world</code>
-                        </div>
-                        <p className="text-sm text-muted-foreground">Global narrative intelligence overview</p>
-                      </CardHeader>
-                      <CardContent>
-                        <CodeBlock 
-                          code={`{
-  "updated_at": "2026-01-11T16:00:00Z",
-  "total_narratives": 847,
+                  <Tabs defaultValue="overview" className="mb-6">
+                    <TabsList>
+                      <TabsTrigger value="overview">Global Overview</TabsTrigger>
+                      <TabsTrigger value="region">Region Detail</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="overview" className="space-y-4 mt-4">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-emerald-500/10 text-emerald-600">GET</Badge>
+                        <code className="font-mono text-sm">/world</code>
+                      </div>
+                      <CodeBlock 
+                        code={`GET https://api.newstack.live/v1/world
+
+Response:
+{
+  "updated_at": "2025-01-11T16:00:00Z",
+  "total_stories": 450,
   "regions": [
     {
-      "region": "europe",
-      "active_narratives": 156,
-      "status": "active",
-      "trending": ["EU policy", "Energy markets"]
+      "id": "asia-pacific",
+      "name": "Asia Pacific",
+      "status": "hotspot",
+      "story_count": 120,
+      "active_narratives": 8,
+      "trending_narrative": "Technology"
     }
-  ]
+  ],
+  "hotspots": ["asia-pacific"],
+  "coverage_gaps": ["africa"]
 }`}
-                        />
-                      </CardContent>
-                    </Card>
+                      />
+                    </TabsContent>
+                    <TabsContent value="region" className="space-y-4 mt-4">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-emerald-500/10 text-emerald-600">GET</Badge>
+                        <code className="font-mono text-sm">/world/regions/:region</code>
+                      </div>
+                      <CodeBlock 
+                        code={`GET https://api.newstack.live/v1/world/regions/asia-pacific
 
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-emerald-500">GET</Badge>
-                          <code className="text-sm font-mono">/world/regions/{'{region}'}</code>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Regions: north-america, europe, asia-pacific, middle-east, africa, south-america
-                        </p>
-                      </CardHeader>
-                      <CardContent>
-                        <CodeBlock 
-                          code={`{
+Response:
+{
   "region": "asia-pacific",
-  "active_narratives": 203,
+  "name": "Asia Pacific",
   "status": "hotspot",
-  "stories": [...],
-  "trending_topics": ["Trade policy", "Technology"],
-  "coverage_gaps": ["Central Asia", "Pacific Islands"]
+  "story_count": 120,
+  "active_narratives": 8,
+  "top_categories": [
+    {"category": "Technology", "count": 45},
+    {"category": "Business", "count": 30}
+  ],
+  "stories": [...]
 }`}
-                        />
-                      </CardContent>
-                    </Card>
-                  </div>
+                      />
+                    </TabsContent>
+                  </Tabs>
                 </section>
 
                 {/* Places API */}
                 <section id="places-api">
                   <h2 className="font-display text-2xl font-bold mb-4">Places API</h2>
                   <p className="text-muted-foreground mb-6">
-                    Local intelligence about specific places — context, developments, and essentials.
+                    Location-based intelligence with local developments and travel signals.
                   </p>
 
                   <Tabs defaultValue="place" className="mb-6">
-                    <TabsList className="flex-wrap h-auto gap-1">
-                      <TabsTrigger value="place">Get Place</TabsTrigger>
+                    <TabsList>
+                      <TabsTrigger value="place">Place Info</TabsTrigger>
                       <TabsTrigger value="intelligence">Intelligence</TabsTrigger>
                       <TabsTrigger value="news">Local News</TabsTrigger>
-                      <TabsTrigger value="essentials">Essentials</TabsTrigger>
                     </TabsList>
+                    <TabsContent value="place" className="space-y-4 mt-4">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-emerald-500/10 text-emerald-600">GET</Badge>
+                        <code className="font-mono text-sm">/places/:place_id</code>
+                      </div>
+                      <CodeBlock 
+                        code={`GET https://api.newstack.live/v1/places/mumbai
 
-                    <TabsContent value="place" className="mt-4">
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-emerald-500">GET</Badge>
-                            <code className="text-sm font-mono">/places/{'{place_id}'}</code>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <CodeBlock 
-                            code={`{
-  "place_id": "pura-petali-id",
-  "name": "Pura Petali",
-  "type": "place_of_worship",
+Response:
+{
+  "place_id": "mumbai",
+  "name": "Mumbai",
+  "type": "city",
   "location": {
-    "city": "Tabanan",
-    "region": "Bali",
-    "country": "Indonesia",
-    "country_code": "ID",
-    "lat": -8.369,
-    "lng": 115.133
+    "display_name": "mumbai",
+    "country_code": "IN"
   },
-  "description": "A historic temple complex in Bali.",
-  "relevance_tags": ["culture", "religion", "tourism"],
-  "last_updated": "2026-01-11T21:10:00Z"
+  "story_count": 25,
+  "endpoints": {
+    "intelligence": "/places/mumbai/intelligence",
+    "news": "/places/mumbai/news"
+  }
 }`}
-                          />
-                        </CardContent>
-                      </Card>
+                      />
                     </TabsContent>
+                    <TabsContent value="intelligence" className="space-y-4 mt-4">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-emerald-500/10 text-emerald-600">GET</Badge>
+                        <code className="font-mono text-sm">/places/:place_id/intelligence</code>
+                      </div>
+                      <CodeBlock 
+                        code={`GET https://api.newstack.live/v1/places/mumbai/intelligence
 
-                    <TabsContent value="intelligence" className="mt-4">
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-emerald-500">GET</Badge>
-                            <code className="text-sm font-mono">/places/{'{place_id}'}/intelligence</code>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <CodeBlock 
-                            code={`{
-  "context": "Pura Petali is a culturally significant religious site in Bali.",
-  "recent_developments": [
-    "Local authorities announced infrastructure improvements.",
-    "Tourism activity increased following seasonal festivals."
-  ],
-  "best_time_to_visit": {
-    "season": "April to September",
-    "reason": "Dry weather and improved accessibility"
-  },
-  "relevant_for": ["pilgrims", "tourists", "local authorities"],
+Response:
+{
+  "place_id": "mumbai",
+  "context": "Intelligence summary for mumbai...",
+  "story_count": 25,
   "confidence": "Medium",
-  "sources_count": 3,
-  "last_30_days": true
+  "recent_developments": [
+    "Major infrastructure project announced",
+    "Tech hub expansion planned"
+  ],
+  "top_categories": [
+    {"category": "Business", "count": 10}
+  ]
 }`}
-                          />
-                        </CardContent>
-                      </Card>
+                      />
                     </TabsContent>
+                    <TabsContent value="news" className="space-y-4 mt-4">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-emerald-500/10 text-emerald-600">GET</Badge>
+                        <code className="font-mono text-sm">/places/:place_id/news</code>
+                      </div>
+                      <CodeBlock 
+                        code={`GET https://api.newstack.live/v1/places/mumbai/news?window=30d
 
-                    <TabsContent value="news" className="mt-4">
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-emerald-500">GET</Badge>
-                            <code className="text-sm font-mono">/places/{'{place_id}'}/news?window=30d</code>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <CodeBlock 
-                            code={`{
+Response:
+{
+  "place_id": "mumbai",
   "window": "30d",
+  "total": 25,
   "stories": [
     {
-      "story_id": "bali-tourism-update",
-      "headline": "Tourist access to Bali viewpoints set to improve",
-      "date": "2026-01-08",
-      "confidence": "Medium",
-      "sources": 2,
-      "source_names": ["The Bali Sun", "Regional Times"]
+      "story_id": "xyz789",
+      "headline": "Mumbai tech sector growth...",
+      "category": "Business",
+      "confidence": "high",
+      "published_at": "2025-01-10T10:00:00Z"
     }
   ]
 }`}
-                          />
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-
-                    <TabsContent value="essentials" className="mt-4">
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-emerald-500">GET</Badge>
-                            <code className="text-sm font-mono">/places/{'{place_id}'}/essentials?category=hotels</code>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            Categories: hotels, restaurants, hospitals, transport
-                          </p>
-                        </CardHeader>
-                        <CardContent>
-                          <CodeBlock 
-                            code={`{
-  "category": "hotels",
-  "radius_km": 5,
-  "results": [
-    {
-      "name": "Sangiri Glamping Resort",
-      "type": "guest_house",
-      "distance_km": 4.0
-    }
-  ]
-}`}
-                          />
-                        </CardContent>
-                      </Card>
+                      />
                     </TabsContent>
                   </Tabs>
                 </section>
@@ -695,72 +987,63 @@ Retry-After: 60  # Only on 429`}
                 <section id="webhooks">
                   <h2 className="font-display text-2xl font-bold mb-4">Webhooks</h2>
                   <p className="text-muted-foreground mb-6">
-                    Event-driven notifications when intelligence changes. Webhooks notify 
-                    <em> when intelligence changes</em>, not when content exists.
+                    Event-driven notifications when intelligence changes. Available on Enterprise plans.
                   </p>
 
                   <Card className="mb-6">
                     <CardHeader>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-blue-500">POST</Badge>
-                        <code className="text-sm font-mono">/webhooks</code>
-                      </div>
-                      <p className="text-sm text-muted-foreground">Register a webhook endpoint</p>
+                      <CardTitle className="text-base">Register Webhook</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <CodeBlock 
-                        code={`{
+                        code={`POST https://api.newstack.live/v1/webhooks
+
+{
   "url": "https://yourapp.com/webhooks/newstack",
   "events": [
     "story.created",
-    "story.updated",
     "confidence.changed",
     "story.contradicted",
     "region.hotspot"
   ]
+}
+
+Response:
+{
+  "id": "whk_abc123",
+  "secret": "whsec_...",
+  "events": [...],
+  "created_at": "2025-01-11T16:00:00Z"
 }`}
                       />
                     </CardContent>
                   </Card>
 
-                  <h3 className="font-semibold text-lg mb-4">Webhook Events</h3>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Available Events</h3>
                     {webhookEvents.map((event) => (
                       <Card key={event.event}>
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <code className="text-sm font-mono text-primary">{event.event}</code>
-                            <span className="text-xs text-muted-foreground">{event.description}</span>
+                        <CardContent className="pt-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="font-mono">{event.event}</Badge>
+                            <span className="text-sm text-muted-foreground">{event.description}</span>
                           </div>
-                        </CardHeader>
-                        <CardContent>
-                          <CodeBlock code={event.payload} />
+                          <pre className="bg-muted p-3 rounded text-xs font-mono overflow-x-auto">
+                            {event.payload}
+                          </pre>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
 
                   <Card className="mt-6">
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Shield className="w-4 h-4" />
-                        Webhook Security
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2 text-sm text-muted-foreground">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                          Signed payloads (HMAC SHA-256)
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                          Retry with exponential backoff
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                          Idempotency keys
-                        </li>
+                    <CardContent className="pt-6">
+                      <h4 className="font-semibold mb-2">Webhook Security</h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• All payloads are signed with HMAC-SHA256</li>
+                        <li>• Verify using the <code className="bg-muted px-1 rounded">X-NEWSTACK-Signature</code> header</li>
+                        <li>• Retry with exponential backoff on failure</li>
+                        <li>• Idempotency keys prevent duplicate processing</li>
                       </ul>
                     </CardContent>
                   </Card>
@@ -769,60 +1052,48 @@ Retry-After: 60  # Only on 429`}
                 {/* Streaming */}
                 <section id="streaming">
                   <h2 className="font-display text-2xl font-bold mb-4">Streaming API</h2>
-                  <Badge variant="outline" className="mb-4">Enterprise Only</Badge>
+                  <Badge variant="secondary" className="mb-4">Enterprise Only</Badge>
                   <p className="text-muted-foreground mb-6">
-                    Real-time Server-Sent Events (SSE) for newsrooms, monitoring platforms, and risk dashboards.
+                    Real-time Server-Sent Events (SSE) for live intelligence updates.
                   </p>
 
-                  <Card className="mb-6">
-                    <CardHeader>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-emerald-500">GET</Badge>
-                        <code className="text-sm font-mono">/stream/news</code>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-3">Headers</p>
-                      <CodeBlock 
-                        code={`Accept: text/event-stream
-X-API-Key: your_key`}
-                      />
-                      <p className="text-sm text-muted-foreground mt-4 mb-3">Example Event</p>
-                      <CodeBlock 
-                        code={`event: story.update
-data: {"story_id":"abc123","confidence":"Medium","sources":4,"state":"developing"}`}
-                      />
-                    </CardContent>
-                  </Card>
+                  <CodeBlock 
+                    code={`GET https://api.newstack.live/v1/stream/news
+Accept: text/event-stream
+X-API-Key: your_key
 
-                  <h3 className="font-semibold text-lg mb-4">Available Streams</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-4 font-medium">Stream</th>
-                          <th className="text-left py-3 px-4 font-medium">Purpose</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b">
-                          <td className="py-3 px-4"><code className="bg-muted px-2 py-0.5 rounded text-xs">/stream/news</code></td>
-                          <td className="py-3 px-4 text-muted-foreground">Story updates</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-3 px-4"><code className="bg-muted px-2 py-0.5 rounded text-xs">/stream/world</code></td>
-                          <td className="py-3 px-4 text-muted-foreground">Regional shifts</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-3 px-4"><code className="bg-muted px-2 py-0.5 rounded text-xs">/stream/places/{'{id}'}</code></td>
-                          <td className="py-3 px-4 text-muted-foreground">Local intelligence</td>
-                        </tr>
-                        <tr>
-                          <td className="py-3 px-4"><code className="bg-muted px-2 py-0.5 rounded text-xs">/stream/alerts</code></td>
-                          <td className="py-3 px-4 text-muted-foreground">Misinformation / contradictions</td>
-                        </tr>
-                      </tbody>
-                    </table>
+event: story.update
+data: {"story_id":"abc123","confidence":"Medium","sources":4,"state":"developing"}
+
+event: story.update
+data: {"story_id":"def456","confidence":"High","sources":6,"state":"confirmed"}`}
+                  />
+
+                  <div className="grid sm:grid-cols-2 gap-4 mt-6">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <code className="text-sm font-mono">/stream/news</code>
+                        <p className="text-xs text-muted-foreground mt-1">Story updates</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <code className="text-sm font-mono">/stream/world</code>
+                        <p className="text-xs text-muted-foreground mt-1">Regional shifts</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <code className="text-sm font-mono">/stream/places/:id</code>
+                        <p className="text-xs text-muted-foreground mt-1">Local intelligence</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <code className="text-sm font-mono">/stream/alerts</code>
+                        <p className="text-xs text-muted-foreground mt-1">Contradictions</p>
+                      </CardContent>
+                    </Card>
                   </div>
                 </section>
 
@@ -830,227 +1101,149 @@ data: {"story_id":"abc123","confidence":"Medium","sources":4,"state":"developing
                 <section id="schemas">
                   <h2 className="font-display text-2xl font-bold mb-4">Schemas</h2>
                   <p className="text-muted-foreground mb-6">
-                    Core data structures used across the API.
+                    Core data models used across the API.
                   </p>
 
-                  <Tabs defaultValue="story">
+                  <Tabs defaultValue="story" className="mb-6">
                     <TabsList>
                       <TabsTrigger value="story">Story</TabsTrigger>
                       <TabsTrigger value="place">Place</TabsTrigger>
-                      <TabsTrigger value="intelligence">PlaceIntelligence</TabsTrigger>
+                      <TabsTrigger value="region">Region</TabsTrigger>
                     </TabsList>
-
                     <TabsContent value="story" className="mt-4">
                       <CodeBlock 
-                        code={`Story:
-  type: object
-  properties:
-    story_id:
-      type: string
-    headline:
-      type: string
-    state:
-      type: string
-      enum: [single-source, developing, confirmed, contradicted]
-    confidence:
-      type: string
-      enum: [Low, Medium, High]
-    sources_count:
-      type: integer
-    timeline:
-      type: array
-      items:
-        type: string`}
+                        code={`Story {
+  story_id: string
+  headline: string
+  summary?: string
+  state: "single-source" | "developing" | "confirmed" | "contradicted"
+  confidence: "Low" | "Medium" | "High"
+  sources_count: integer
+  verified_sources_count?: integer
+  has_contradictions?: boolean
+  category?: string
+  first_published_at: datetime
+  last_updated_at?: datetime
+  location?: {
+    country_code: string
+    city?: string
+    is_global: boolean
+  }
+  timeline?: string[]
+  sources?: Source[]
+}`}
                       />
                     </TabsContent>
-
                     <TabsContent value="place" className="mt-4">
                       <CodeBlock 
-                        code={`Place:
-  type: object
-  properties:
-    place_id:
-      type: string
-    name:
-      type: string
-    type:
-      type: string
-    location:
-      type: object
-      properties:
-        city: string
-        region: string
-        country: string
-        country_code: string
-        lat: number
-        lng: number
-    description:
-      type: string
-    relevance_tags:
-      type: array
-      items:
-        type: string`}
+                        code={`Place {
+  place_id: string
+  name: string
+  type: "city" | "country"
+  location: {
+    display_name: string
+    country_code: string
+  }
+  story_count: integer
+  endpoints: {
+    intelligence: string
+    news: string
+    essentials?: string
+  }
+}`}
                       />
                     </TabsContent>
-
-                    <TabsContent value="intelligence" className="mt-4">
+                    <TabsContent value="region" className="mt-4">
                       <CodeBlock 
-                        code={`PlaceIntelligence:
-  type: object
-  properties:
-    context:
-      type: string
-    recent_developments:
-      type: array
-      items:
-        type: string
-    best_time_to_visit:
-      type: object
-      properties:
-        season: string
-        reason: string
-    relevant_for:
-      type: array
-      items:
-        type: string
-    confidence:
-      type: string
-      enum: [Low, Medium, High]`}
+                        code={`Region {
+  id: string
+  name: string
+  status: "stable" | "active" | "hotspot"
+  story_count: integer
+  active_narratives: integer
+  trending_narrative?: string
+  top_categories: Category[]
+}`}
                       />
                     </TabsContent>
                   </Tabs>
                 </section>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        {/* Sandbox Section */}
-        <section className="py-12 sm:py-16 bg-muted/30 border-y border-border">
-          <div className="container mx-auto px-4 max-w-4xl">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                <Terminal className="w-6 h-6 text-amber-500" />
-              </div>
-              <div>
-                <h2 className="font-display text-2xl font-bold mb-2">Sandbox Environment</h2>
-                <p className="text-muted-foreground">
-                  Test the API with synthetic but realistic data. No billing, safe experimentation.
-                </p>
-              </div>
-            </div>
+                {/* Pricing */}
+                <section id="pricing" className="py-8">
+                  <h2 className="font-display text-2xl font-bold mb-4">Pricing</h2>
+                  <p className="text-muted-foreground mb-8">
+                    Transparent pricing with no hidden fees. Start with Sandbox for free.
+                  </p>
 
-            <Card className="mb-6">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <code className="text-sm font-mono bg-muted px-3 py-1.5 rounded">
-                    https://sandbox.api.newstack.ai/v1
-                  </code>
-                  <Badge variant="outline" className="text-amber-500 border-amber-500/30">
-                    X-Sandbox: true
-                  </Badge>
-                </div>
-                <ul className="grid sm:grid-cols-2 gap-2 text-sm">
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    Same schema as production
-                  </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    Synthetic but realistic data
-                  </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    No billing
-                  </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    1,000 requests/day limit
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Button className="gap-2">
-              <Play className="w-4 h-4" />
-              Open in Swagger UI
-              <ExternalLink className="w-3 h-3 ml-1" />
-            </Button>
-          </div>
-        </section>
-
-        {/* Pricing */}
-        <section className="py-12 sm:py-16">
-          <div className="container mx-auto px-4 max-w-5xl">
-            <div className="text-center mb-10">
-              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-3">
-                Pricing
-              </h2>
-              <p className="text-muted-foreground">
-                Visible, no sales gate
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              {pricingTiers.map((tier, idx) => (
-                <motion.div
-                  key={tier.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                >
-                  <Card className={cn(
-                    "h-full",
-                    tier.highlighted && "border-primary shadow-lg"
-                  )}>
-                    <CardHeader>
-                      {tier.highlighted && (
-                        <Badge className="w-fit mb-2">Recommended</Badge>
-                      )}
-                      <CardTitle className="text-xl">{tier.name}</CardTitle>
-                      <div className="mt-2">
-                        <span className="text-3xl font-bold">{tier.price}</span>
-                        {tier.price !== "Custom" && <span className="text-muted-foreground">/month</span>}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                        <span>{tier.requests} requests</span>
-                        <span>•</span>
-                        <span>{tier.access}</span>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2 mb-6">
-                        {tier.features.map((feature) => (
-                          <li key={feature} className="flex items-center gap-2 text-sm">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                      <Button 
-                        className="w-full" 
-                        variant={tier.highlighted ? "default" : "outline"}
+                  <div className="grid md:grid-cols-3 gap-6">
+                    {pricingTiers.map((tier) => (
+                      <Card 
+                        key={tier.name}
+                        className={cn(
+                          "relative",
+                          tier.highlighted && "border-primary shadow-lg"
+                        )}
                       >
-                        {tier.price === "Custom" ? "Contact Sales" : "Get Started"}
-                      </Button>
+                        {tier.highlighted && (
+                          <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+                            Most Popular
+                          </Badge>
+                        )}
+                        <CardHeader>
+                          <CardTitle className="text-lg">{tier.name}</CardTitle>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-bold">{tier.price}</span>
+                            {tier.price !== "Custom" && (
+                              <span className="text-muted-foreground">/month</span>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Requests</span>
+                            <span className="font-medium">{tier.requests}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Access</span>
+                            <span className="font-medium">{tier.access}</span>
+                          </div>
+                          <ul className="space-y-2 pt-4 border-t">
+                            {tier.features.map((feature) => (
+                              <li key={feature} className="flex items-start gap-2 text-sm">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                                {feature}
+                              </li>
+                            ))}
+                          </ul>
+                          <Button 
+                            className="w-full mt-4" 
+                            variant={tier.highlighted ? "default" : "outline"}
+                            onClick={tier.name === "Enterprise" ? handleContactSales : handleGetSandboxKey}
+                          >
+                            {tier.name === "Enterprise" ? "Contact Sales" : "Get Started"}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Promise Section */}
+                <section className="py-8 border-t">
+                  <Card className="bg-muted/50">
+                    <CardContent className="pt-6 text-center">
+                      <h3 className="font-display text-xl font-bold mb-4">Our Promise</h3>
+                      <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                        No opinions. No social signals. No manipulation.<br />
+                        <span className="font-medium text-foreground">
+                          Fully auditable intelligence built from public sources.
+                        </span>
+                      </p>
                     </CardContent>
                   </Card>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Promise Section */}
-        <section className="py-12 sm:py-16 bg-zinc-950 text-zinc-100">
-          <div className="container mx-auto px-4 max-w-3xl text-center">
-            <Shield className="w-10 h-10 mx-auto mb-6 opacity-70" />
-            <div className="space-y-2 text-lg">
-              <p>No opinions.</p>
-              <p>No social signals.</p>
-              <p>No manipulation.</p>
-              <p className="font-semibold pt-3 text-xl">Fully auditable intelligence built from public sources.</p>
+                </section>
+              </div>
             </div>
           </div>
         </section>
