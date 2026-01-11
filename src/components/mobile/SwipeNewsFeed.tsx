@@ -6,7 +6,7 @@ import { useOfflineCache } from "@/hooks/use-offline-cache";
 import { useCategoryPreferences } from "@/hooks/use-category-preferences";
 import { useHaptic } from "@/hooks/use-haptic";
 import { SwipeNewsCard } from "./SwipeNewsCard";
-import { NLogo } from "@/components/NLogo";
+import { NLogoSquare } from "@/components/NLogo";
 import { 
   Loader2, Wifi, WifiOff, ChevronLeft, ChevronRight, RefreshCw, Settings,
   Home, Newspaper, Headphones, MapPin, User, MoreHorizontal, CloudOff, Cloud
@@ -364,9 +364,10 @@ export function SwipeNewsFeed({ className = "" }: SwipeNewsFeedProps) {
               ease: "easeInOut",
               repeatDelay: 0.5
             }}
-            className="relative mb-6"
+            className="relative mb-6 text-foreground"
+            style={{ perspective: 1000 }}
           >
-            <NLogo size={72} animate color="hsl(var(--primary))" />
+            <NLogoSquare size={72} />
             {/* Glow ring */}
             <motion.div
               animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}

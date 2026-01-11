@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { NLogo } from "./NLogo";
+import { NLogoSquare } from "./NLogo";
 
 interface SplashScreenProps {
   onComplete?: () => void;
@@ -72,8 +72,9 @@ export function SplashScreen({ onComplete, duration = 1800 }: SplashScreenProps)
                 repeatDelay: 0.5
               }}
               className="relative mb-6"
+              style={{ perspective: 1000 }}
             >
-              {/* N Logo - Animated */}
+              {/* N Logo - Animated, theme-aware (black on light, white on dark) */}
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -83,9 +84,9 @@ export function SplashScreen({ onComplete, duration = 1800 }: SplashScreenProps)
                   damping: 15,
                   delay: 0.2
                 }}
-                className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center"
+                className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center text-foreground"
               >
-                <NLogo size={80} animate color="hsl(var(--primary))" />
+                <NLogoSquare size={80} />
               </motion.div>
               
               {/* Glow Ring */}

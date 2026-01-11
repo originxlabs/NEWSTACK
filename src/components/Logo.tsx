@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { NLogo } from "./NLogo";
+import { NLogoSquare } from "./NLogo";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -16,8 +16,8 @@ export function Logo({ size = "md", showText = true, className = "" }: LogoProps
 
   return (
     <Link to="/" className={`flex items-center gap-2 ${className}`}>
-      <div className="flex items-center justify-center">
-        <NLogo size={sizes[size].icon} color="hsl(var(--primary))" />
+      <div className="flex items-center justify-center text-foreground">
+        <NLogoSquare size={sizes[size].icon} />
       </div>
       {showText && (
         <span className={`font-display font-bold ${sizes[size].text} tracking-tight`}>
