@@ -22,6 +22,10 @@ interface RSSFeed {
   category: string;
   country_code: string | null;
   language: string | null;
+  source_type: "primary" | "secondary" | "opinion" | "aggregator";
+  reliability_tier: "tier_1" | "tier_2" | "tier_3";
+  fetch_interval_minutes: number;
+  last_fetched_at: string | null;
 }
 
 // ===== CATEGORY TAXONOMY (LOCKED) =====
@@ -335,27 +339,50 @@ function normalizeRSSContent(text: string): string {
 }
 
 /**
+ * Validate normalized content - MUST pass before storage
+ * Returns true if content is clean, false if still contains HTML/entities
+ */
+function validateNormalizedContent(text: string): boolean {
+  if (!text) return true;
+  
+  const invalidPatterns = [
+    /<[^>]+>/,           // HTML tags
+    /&lt;|&gt;|&amp;/,   // Encoded entities
+    /&nbsp;/,            // Non-breaking space
+    /<!\[CDATA\[/,       // CDATA wrapper
+  ];
+  
+  return !invalidPatterns.some(p => p.test(text));
+}
+
+/**
  * Normalize a headline for storage and display
  * Applies full normalization + length limit
  */
 function normalizeTitle(title: string): string {
-  const normalized = normalizeRSSContent(title);
+  let normalized = normalizeRSSContent(title);
   
   // Remove source suffixes
-  let cleaned = removeSourceSuffix(normalized);
+  normalized = removeSourceSuffix(normalized);
   
   // Capitalize properly
-  cleaned = cleaned.trim();
-  if (cleaned.length > 0) {
-    cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  normalized = normalized.trim();
+  if (normalized.length > 0) {
+    normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1);
   }
   
   // Limit to 200 characters
-  if (cleaned.length > 200) {
-    cleaned = cleaned.substring(0, 197) + "...";
+  if (normalized.length > 200) {
+    normalized = normalized.substring(0, 197) + "...";
   }
   
-  return cleaned;
+  // VALIDATE: If still contains HTML, try re-cleaning
+  if (!validateNormalizedContent(normalized)) {
+    console.warn("Title still contains HTML after normalization, re-cleaning:", normalized.substring(0, 50));
+    normalized = normalizeRSSContent(normalized);
+  }
+  
+  return normalized;
 }
 
 /**
@@ -363,11 +390,17 @@ function normalizeTitle(title: string): string {
  * Applies full normalization + length limit
  */
 function normalizeDescription(description: string): string {
-  const normalized = normalizeRSSContent(description);
+  let normalized = normalizeRSSContent(description);
   
   // Limit to 500 characters
   if (normalized.length > 500) {
-    return normalized.substring(0, 497) + "...";
+    normalized = normalized.substring(0, 497) + "...";
+  }
+  
+  // VALIDATE: If still contains HTML, try re-cleaning
+  if (!validateNormalizedContent(normalized)) {
+    console.warn("Description still contains HTML after normalization, re-cleaning");
+    normalized = normalizeRSSContent(normalized);
   }
   
   return normalized;
@@ -461,6 +494,109 @@ function calculateSimilarity(text1: string, text2: string): number {
   const union = new Set([...words1, ...words2]).size;
   
   return intersection / union;
+}
+
+// ===== WEIGHTED CONFIDENCE CALCULATION =====
+
+interface ConfidenceInput {
+  sourceCount: number;
+  tier1Count: number;
+  tier2Count: number;
+  aggregatorCount: number;
+  uniquePublishers: number;
+  hasContradictions?: boolean;
+}
+
+type ConfidenceLevel = "low" | "medium" | "high";
+type StoryState = "single_source" | "developing" | "confirmed" | "contradicted";
+
+interface ConfidenceResult {
+  confidenceLevel: ConfidenceLevel;
+  storyState: StoryState;
+  primarySourceCount: number;
+  verifiedSourceCount: number;
+}
+
+/**
+ * Calculate story confidence based on WEIGHTED source quality
+ * 
+ * RULES:
+ * - Single source = ALWAYS LOW, state = single_source
+ * - Aggregators do NOT increase confidence
+ * - Tier 1 sources carry more weight than Tier 2/3
+ * - Contradictions immediately downgrade to LOW
+ * - HIGH requires: 2+ tier_1 sources from different publishers
+ */
+function calculateWeightedConfidence(input: ConfidenceInput): ConfidenceResult {
+  const { 
+    sourceCount, 
+    tier1Count, 
+    tier2Count, 
+    aggregatorCount,
+    uniquePublishers,
+    hasContradictions = false 
+  } = input;
+  
+  // Effective sources = exclude aggregators (they just mirror content)
+  const effectiveSourceCount = sourceCount - aggregatorCount;
+  const primarySourceCount = tier1Count;
+  const verifiedSourceCount = tier1Count + tier2Count;
+  
+  // RULE: Single source = always LOW
+  if (effectiveSourceCount <= 1) {
+    return {
+      confidenceLevel: "low",
+      storyState: "single_source",
+      primarySourceCount,
+      verifiedSourceCount,
+    };
+  }
+  
+  // RULE: Contradictions = always LOW
+  if (hasContradictions) {
+    return {
+      confidenceLevel: "low",
+      storyState: "contradicted",
+      primarySourceCount,
+      verifiedSourceCount,
+    };
+  }
+  
+  // RULE: HIGH requires 2+ tier_1 from different publishers, stable narrative
+  if (
+    tier1Count >= 2 && 
+    uniquePublishers >= 3 && 
+    verifiedSourceCount >= 3 &&
+    !hasContradictions
+  ) {
+    return {
+      confidenceLevel: "high",
+      storyState: "confirmed",
+      primarySourceCount,
+      verifiedSourceCount,
+    };
+  }
+  
+  // RULE: MEDIUM requires at least 1 tier_1 OR 2+ tier_2 from different publishers
+  if (
+    (tier1Count >= 1 && verifiedSourceCount >= 2) ||
+    (tier2Count >= 2 && uniquePublishers >= 2)
+  ) {
+    return {
+      confidenceLevel: "medium",
+      storyState: "developing",
+      primarySourceCount,
+      verifiedSourceCount,
+    };
+  }
+  
+  // Default: LOW, developing
+  return {
+    confidenceLevel: "low",
+    storyState: effectiveSourceCount > 1 ? "developing" : "single_source",
+    primarySourceCount,
+    verifiedSourceCount,
+  };
 }
 
 // ===== CLASSIFICATION FUNCTIONS =====
@@ -655,7 +791,7 @@ function parseRSSItems(xmlText: string): RSSItem[] {
 
 async function fetchRSSFeed(feed: RSSFeed): Promise<RSSItem[]> {
   try {
-    console.log(`Fetching: ${feed.name}`);
+    console.log(`Fetching: ${feed.name} (${feed.reliability_tier})`);
 
     const response = await fetch(feed.url, {
       headers: {
@@ -693,6 +829,12 @@ async function processItems(
       const cleanDescription = normalizeDescription(item.description);
       const cleanUrl = cleanURL(item.link);
       
+      // VALIDATE before proceeding
+      if (!validateNormalizedContent(cleanTitle) || !validateNormalizedContent(cleanDescription)) {
+        console.warn("Skipping item with invalid content after normalization:", cleanTitle.substring(0, 50));
+        continue;
+      }
+      
       // Create fingerprint for deduplication
       const normalizedHeadline = normalizeHeadline(cleanTitle);
       const storyHash = await createHash(normalizedHeadline);
@@ -721,11 +863,17 @@ async function processItems(
       const imageUrl = item.enclosure?.url || item["media:content"]?.url || null;
 
       // Check if story exists by exact hash match
-      let matchedStory: { id: string; source_count: number; normalized_headline: string } | null = null;
+      let matchedStory: { 
+        id: string; 
+        source_count: number; 
+        normalized_headline: string;
+        primary_source_count?: number;
+        verified_source_count?: number;
+      } | null = null;
       
       const { data: existingStory } = await supabase
         .from("stories")
-        .select("id, source_count, normalized_headline")
+        .select("id, source_count, normalized_headline, primary_source_count, verified_source_count")
         .eq("story_hash", storyHash)
         .single();
       
@@ -736,14 +884,14 @@ async function processItems(
         const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const { data: recentStories } = await supabase
           .from("stories")
-          .select("id, source_count, normalized_headline, headline")
+          .select("id, source_count, normalized_headline, headline, primary_source_count, verified_source_count")
           .eq("category", classification.primary_category)
           .gte("first_published_at", cutoff)
           .limit(50);
         
         if (recentStories && recentStories.length > 0) {
           // Find best match using similarity
-          let bestMatch: { id: string; source_count: number; normalized_headline: string } | null = null;
+          let bestMatch: typeof matchedStory = null;
           let bestSimilarity = 0;
           
           for (const story of recentStories) {
@@ -759,7 +907,7 @@ async function processItems(
           }
           
           if (bestMatch && bestSimilarity > 0.5) {
-            console.log(`Fuzzy match found: "${item.title}" -> existing story (${(bestSimilarity * 100).toFixed(0)}% similar)`);
+            console.log(`Fuzzy match found: "${cleanTitle.substring(0, 50)}" -> existing story (${(bestSimilarity * 100).toFixed(0)}% similar)`);
             matchedStory = bestMatch;
           }
         }
@@ -775,7 +923,7 @@ async function processItems(
           .maybeSingle();
 
         if (!existingSource) {
-          // Add new source with normalized content
+          // Add new source with tier information from feed
           const { error: sourceError } = await supabase
             .from("story_sources")
             .insert({
@@ -784,72 +932,102 @@ async function processItems(
               source_url: cleanUrl,
               published_at: publishedAt.toISOString(),
               description: cleanDescription,
+              source_type: feed.source_type,
+              reliability_tier: feed.reliability_tier,
+              is_primary_reporting: feed.source_type === "primary",
             });
 
           if (!sourceError) {
-            // Get actual current source count
-            const { count } = await supabase
+            // Get all sources for this story to recalculate confidence
+            const { data: allSources } = await supabase
               .from("story_sources")
-              .select("*", { count: "exact", head: true })
+              .select("source_name, source_type, reliability_tier")
               .eq("story_id", matchedStory.id);
             
-            const newSourceCount = count || (matchedStory.source_count || 1) + 1;
+            const sources = allSources || [];
+            const sourceCount = sources.length;
+            const tier1Count = sources.filter((s: any) => s.reliability_tier === "tier_1").length;
+            const tier2Count = sources.filter((s: any) => s.reliability_tier === "tier_2").length;
+            const aggregatorCount = sources.filter((s: any) => s.source_type === "aggregator").length;
+            
+            // Count unique publishers (by source name prefix)
+            const publishers = new Set(sources.map((s: any) => s.source_name.split(" ")[0].toLowerCase()));
+            const uniquePublishers = publishers.size;
+            
+            // Calculate weighted confidence
+            const confidence = calculateWeightedConfidence({
+              sourceCount,
+              tier1Count,
+              tier2Count,
+              aggregatorCount,
+              uniquePublishers,
+              hasContradictions: false, // TODO: implement contradiction detection
+            });
           
-          await supabase
-            .from("stories")
-            .update({
-              source_count: newSourceCount,
-              last_updated_at: new Date().toISOString(),
-              image_url: imageUrl || undefined,
-            })
-            .eq("id", matchedStory.id);
+            await supabase
+              .from("stories")
+              .update({
+                source_count: sourceCount,
+                primary_source_count: confidence.primarySourceCount,
+                verified_source_count: confidence.verifiedSourceCount,
+                confidence_level: confidence.confidenceLevel,
+                story_state: confidence.storyState,
+                last_updated_at: new Date().toISOString(),
+                image_url: imageUrl || undefined,
+              })
+              .eq("id", matchedStory.id);
 
-          // Trigger breaking news alert if story just reached 3+ sources
-          if (newSourceCount === 3 && matchedStory.source_count < 3) {
-            try {
-              const { data: sourceNames } = await supabase
-                .from("story_sources")
-                .select("source_name")
-                .eq("story_id", matchedStory.id)
-                .limit(5);
-              
-              const sources = sourceNames?.map((s: { source_name: string }) => s.source_name) || [];
-              
-              // Fetch story headline
-              const { data: storyData } = await supabase
-                .from("stories")
-                .select("headline, category")
-                .eq("id", matchedStory.id)
-                .single();
-              
-              // Call breaking news alert function
-              const alertUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-breaking-news-alert`;
-              fetch(alertUrl, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-                },
-                body: JSON.stringify({
-                  storyId: matchedStory.id,
-                  headline: storyData?.headline || item.title,
-                  sourceCount: newSourceCount,
-                  sources,
-                  category: storyData?.category || classification.primary_category,
-                }),
-              }).catch(err => console.log("Alert trigger failed:", err.message));
-              
-              console.log(`Breaking news alert triggered for story: ${matchedStory.id}`);
-            } catch (alertError) {
-              console.log("Error triggering alert:", alertError);
+            // Trigger breaking news alert if story just reached 3+ verified sources
+            if (confidence.verifiedSourceCount >= 3 && (matchedStory.verified_source_count || 0) < 3) {
+              try {
+                const sourceNames = sources.map((s: any) => s.source_name);
+                
+                // Fetch story headline
+                const { data: storyData } = await supabase
+                  .from("stories")
+                  .select("headline, category")
+                  .eq("id", matchedStory.id)
+                  .single();
+                
+                // Call breaking news alert function
+                const alertUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-breaking-news-alert`;
+                fetch(alertUrl, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                  },
+                  body: JSON.stringify({
+                    storyId: matchedStory.id,
+                    headline: storyData?.headline || cleanTitle,
+                    sourceCount: sourceCount,
+                    verifiedSourceCount: confidence.verifiedSourceCount,
+                    sources: sourceNames,
+                    category: storyData?.category || classification.primary_category,
+                    confidenceLevel: confidence.confidenceLevel,
+                  }),
+                }).catch(err => console.log("Alert trigger failed:", err.message));
+                
+                console.log(`Breaking news alert triggered for story: ${matchedStory.id} (${confidence.confidenceLevel} confidence)`);
+              } catch (alertError) {
+                console.log("Error triggering alert:", alertError);
+              }
             }
-          }
 
             merged++;
           }
         }
       } else {
-        // Create new story with normalized content
+        // Create new story with normalized content and initial confidence
+        const initialConfidence = calculateWeightedConfidence({
+          sourceCount: 1,
+          tier1Count: feed.reliability_tier === "tier_1" ? 1 : 0,
+          tier2Count: feed.reliability_tier === "tier_2" ? 1 : 0,
+          aggregatorCount: feed.source_type === "aggregator" ? 1 : 0,
+          uniquePublishers: 1,
+          hasContradictions: false,
+        });
+        
         const { data: newStory, error: storyError } = await supabase
           .from("stories")
           .insert({
@@ -865,18 +1043,26 @@ async function processItems(
             last_updated_at: new Date().toISOString(),
             image_url: imageUrl,
             source_count: 1,
+            primary_source_count: initialConfidence.primarySourceCount,
+            verified_source_count: initialConfidence.verifiedSourceCount,
+            confidence_level: initialConfidence.confidenceLevel,
+            story_state: initialConfidence.storyState,
+            has_contradictions: false,
           })
           .select("id")
           .single();
 
         if (newStory && !storyError) {
-          // Insert source with normalized content
+          // Insert source with tier information
           await supabase.from("story_sources").insert({
             story_id: newStory.id,
             source_name: feed.name,
             source_url: cleanUrl,
             published_at: publishedAt.toISOString(),
             description: cleanDescription,
+            source_type: feed.source_type,
+            reliability_tier: feed.reliability_tier,
+            is_primary_reporting: feed.source_type === "primary",
           });
 
           created++;
@@ -888,6 +1074,19 @@ async function processItems(
   }
 
   return { created, merged };
+}
+
+/**
+ * Check if a feed should be fetched based on its tier and last fetch time
+ */
+function shouldFetchFeed(feed: RSSFeed): boolean {
+  if (!feed.last_fetched_at) return true;
+  
+  const lastFetched = new Date(feed.last_fetched_at).getTime();
+  const minutesSinceLastFetch = (Date.now() - lastFetched) / (1000 * 60);
+  const intervalMinutes = feed.fetch_interval_minutes || 30;
+  
+  return minutesSinceLastFetch >= intervalMinutes;
 }
 
 serve(async (req) => {
@@ -922,18 +1121,11 @@ serve(async (req) => {
   console.log("Auth check:", {
     hasCronSecret: !!cronSecret,
     cronSecretLen: cronSecret?.length ?? 0,
-    cronSecretTrimmedLen: trimmedCronSecret?.length ?? 0,
     hasSecretParam: !!secretParam,
-    secretParamLen: secretParam?.length ?? 0,
-    secretParamTrimmedLen: trimmedSecretParam?.length ?? 0,
-    normalizedSecretParamLen: normalizedSecretParam?.length ?? 0,
     secretMatch: isValidSecretParam,
     bearerMatch: isValidBearerToken,
     internalCron: isInternalCron,
     localCron: isLocalCron,
-    cronSecretPreview: trimmedCronSecret?.substring(0, 10) ?? "none",
-    secretParamPreview: trimmedSecretParam?.substring(0, 10) ?? "none",
-    secretParamNormalizedPreview: normalizedSecretParam?.substring(0, 10) ?? "none",
   });
 
   // For external calls (cron-job.org), require the secret
@@ -953,30 +1145,40 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log("Starting enhanced RSS ingestion...");
+    console.log("Starting tier-based RSS ingestion...");
 
-    // Get active RSS feeds
-    const { data: feeds, error: feedsError } = await supabase
+    // Get active RSS feeds with tier information
+    const { data: allFeeds, error: feedsError } = await supabase
       .from("rss_feeds")
       .select("*")
       .eq("is_active", true)
+      .order("reliability_tier", { ascending: true }) // tier_1 first
       .order("priority", { ascending: false });
 
-    if (feedsError || !feeds) {
+    if (feedsError || !allFeeds) {
       throw new Error("Failed to fetch RSS feeds");
     }
 
-    console.log(`Found ${feeds.length} active feeds`);
+    // Filter feeds that should be fetched based on their interval
+    const feeds = allFeeds.filter((feed: RSSFeed) => shouldFetchFeed(feed));
+    
+    // Log tier distribution
+    const tier1Feeds = feeds.filter((f: RSSFeed) => f.reliability_tier === "tier_1");
+    const tier2Feeds = feeds.filter((f: RSSFeed) => f.reliability_tier === "tier_2");
+    const tier3Feeds = feeds.filter((f: RSSFeed) => f.reliability_tier === "tier_3");
+    
+    console.log(`Found ${allFeeds.length} active feeds, ${feeds.length} due for fetch`);
+    console.log(`Tier distribution: T1=${tier1Feeds.length}, T2=${tier2Feeds.length}, T3=${tier3Feeds.length}`);
 
     let totalCreated = 0;
     let totalMerged = 0;
 
     // Process each feed
     for (const feed of feeds) {
-      const items = await fetchRSSFeed(feed);
+      const items = await fetchRSSFeed(feed as RSSFeed);
 
       if (items.length > 0) {
-        const { created, merged } = await processItems(supabase, items, feed);
+        const { created, merged } = await processItems(supabase, items, feed as RSSFeed);
         totalCreated += created;
         totalMerged += merged;
 
@@ -990,28 +1192,57 @@ serve(async (req) => {
 
     // Clean up old stories (older than 48 hours)
     const cutoffTime = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-    await supabase.from("stories").delete().lt("first_published_at", cutoffTime);
+    
+    // First delete story sources for old stories
+    const { data: oldStories } = await supabase
+      .from("stories")
+      .select("id")
+      .lt("first_published_at", cutoffTime);
+    
+    if (oldStories && oldStories.length > 0) {
+      const oldStoryIds = oldStories.map((s: { id: string }) => s.id);
+      
+      await supabase
+        .from("story_sources")
+        .delete()
+        .in("story_id", oldStoryIds);
+      
+      const { count: deleted } = await supabase
+        .from("stories")
+        .delete()
+        .lt("first_published_at", cutoffTime);
+      
+      console.log(`Cleaned up ${deleted || 0} old stories`);
+    }
 
     const result = {
       success: true,
-      feeds_processed: feeds.length,
-      stories_created: totalCreated,
-      stories_merged: totalMerged,
+      feedsProcessed: feeds.length,
+      totalFeeds: allFeeds.length,
+      storiesCreated: totalCreated,
+      storiesMerged: totalMerged,
+      tierBreakdown: {
+        tier1: tier1Feeds.length,
+        tier2: tier2Feeds.length,
+        tier3: tier3Feeds.length,
+      },
       timestamp: new Date().toISOString(),
     };
 
-    console.log("Enhanced RSS ingestion complete:", result);
+    console.log("Ingestion complete:", result);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("RSS ingestion error:", message);
-
-    return new Response(JSON.stringify({ success: false, error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Ingestion error:", error);
+    return new Response(
+      JSON.stringify({ success: false, error: errorMessage }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });
