@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { sendWelcomeEmail } from "@/lib/email";
 
 interface Profile {
   id: string;
@@ -114,13 +115,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
       },
     });
+    
+    // Send welcome email on successful signup
+    if (!error && data.user) {
+      // Extract display name from email (before @)
+      const displayName = email.split("@")[0];
+      try {
+        await sendWelcomeEmail(email, displayName);
+      } catch (emailError) {
+        console.error("Failed to send welcome email:", emailError);
+        // Don't fail the signup if welcome email fails
+      }
+    }
+    
     return { error: error as Error | null };
   };
 

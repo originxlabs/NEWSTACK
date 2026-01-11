@@ -15,7 +15,7 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { sendPasskeyEmail } from "@/lib/email";
+// Passkey emails are sent by Supabase Auth
 
 type ViewMode = "warning" | "auth" | "request-passkey" | "verify-passkey" | "set-password" | "success";
 
@@ -73,9 +73,7 @@ export default function NewsroomOwnerSetup() {
         return;
       }
 
-      // Send branded passkey email
-      const purpose = existingMember ? "Owner Login" : "Owner Setup";
-      await sendPasskeyEmail(email.trim(), "******", purpose);
+      // Note: Supabase sends its own OTP email with the actual code
 
       setIsNewAccount(!existingMember);
       toast.success("Passkey sent to your email!");
