@@ -1187,6 +1187,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_api_usage: { Args: { key_id: string }; Returns: undefined }
       is_newsroom_owner_or_superadmin: {
         Args: { _user_id: string }
         Returns: boolean

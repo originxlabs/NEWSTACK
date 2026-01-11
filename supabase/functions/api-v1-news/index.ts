@@ -6,6 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
 };
 
+// Plan limits configuration
+const PLAN_LIMITS: Record<string, { requests: number; ratePerSecond: number; endpoints: string[] }> = {
+  starter: { requests: 100000, ratePerSecond: 10, endpoints: ["news"] },
+  pro: { requests: 1000000, ratePerSecond: 50, endpoints: ["news", "world", "places"] },
+  enterprise: { requests: 10000000, ratePerSecond: 200, endpoints: ["news", "world", "places", "streaming", "webhooks"] },
+};
+
 // Verified sources list
 const VERIFIED_SOURCES = [
   "Reuters", "AP News", "Associated Press", "AFP", "PTI",
@@ -50,29 +57,131 @@ function determineConfidence(sourceCount: number, verifiedCount: number): "Low" 
   return "Medium";
 }
 
+interface ApiKeyData {
+  id: string;
+  plan: string;
+  is_active: boolean;
+  is_sandbox: boolean;
+  requests_limit: number;
+  requests_used: number;
+  rate_limit_per_second: number;
+  allowed_endpoints: string[];
+}
+
+async function validateApiKey(
+  supabase: any,
+  apiKey: string | null,
+  endpoint: string
+): Promise<{ valid: boolean; keyData?: ApiKeyData; error?: string; remaining?: number }> {
+  if (!apiKey) {
+    return { valid: false, error: "API key required. Pass X-API-Key header." };
+  }
+
+  const { data, error } = await supabase
+    .from("api_keys")
+    .select("id, plan, is_active, is_sandbox, requests_limit, requests_used, rate_limit_per_second, allowed_endpoints")
+    .eq("api_key", apiKey)
+    .single();
+
+  if (error || !data) {
+    return { valid: false, error: "Invalid API key" };
+  }
+
+  if (!data.is_active) {
+    return { valid: false, error: "API key is inactive" };
+  }
+
+  // Check if endpoint is allowed for this plan
+  if (!data.allowed_endpoints.includes(endpoint)) {
+    return { valid: false, error: `Endpoint '${endpoint}' not available on your plan. Upgrade to access.` };
+  }
+
+  // Check rate limit (requests used vs limit)
+  if (data.requests_used >= data.requests_limit) {
+    return { valid: false, error: "Monthly request limit exceeded. Upgrade your plan or wait until next billing cycle." };
+  }
+
+  return { 
+    valid: true, 
+    keyData: data,
+    remaining: data.requests_limit - data.requests_used
+  };
+}
+
+async function logApiUsage(
+  supabase: any,
+  apiKeyId: string,
+  endpoint: string,
+  statusCode: number,
+  responseTimeMs: number,
+  req: Request
+): Promise<void> {
+  try {
+    // Increment usage count
+    await supabase.rpc("increment_api_usage", { key_id: apiKeyId });
+    
+    // Log detailed usage
+    await supabase.from("api_key_usage_logs").insert({
+      api_key_id: apiKeyId,
+      endpoint,
+      method: req.method,
+      status_code: statusCode,
+      response_time_ms: responseTimeMs,
+      ip_address: req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || null,
+      user_agent: req.headers.get("user-agent") || null,
+    });
+
+    // Update last_used_at
+    await supabase
+      .from("api_keys")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("id", apiKeyId);
+  } catch (err) {
+    console.error("Failed to log API usage:", err);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const url = new URL(req.url);
-    const pathParts = url.pathname.split("/").filter(Boolean);
-    
-    // Check for API key (in production, validate against stored keys)
-    const apiKey = req.headers.get("x-api-key");
-    const isSandbox = url.hostname.includes("sandbox") || url.searchParams.get("sandbox") === "true";
-    
-    // For now, allow requests without key for demo (in production, require valid key)
-    if (!apiKey && !isSandbox) {
-      // Still allow for demo purposes, but log
-      console.log("Request without API key - demo mode");
+  const startTime = Date.now();
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split("/").filter(Boolean);
+  
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  // Check for API key
+  const apiKey = req.headers.get("x-api-key");
+  const isSandbox = url.searchParams.get("sandbox") === "true";
+  
+  // For sandbox/demo mode, allow without key but with limited data
+  let keyData: ApiKeyData | undefined;
+  let requestsRemaining = 100;
+  
+  if (!isSandbox) {
+    const validation = await validateApiKey(supabase, apiKey, "news");
+    if (!validation.valid) {
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { 
+          status: 401, 
+          headers: { 
+            ...corsHeaders, 
+            "Content-Type": "application/json",
+            "X-RateLimit-Remaining": "0"
+          } 
+        }
+      );
     }
+    keyData = validation.keyData;
+    requestsRemaining = validation.remaining || 0;
+  }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
+  try {
     // Parse path: /api-v1-news or /api-v1-news/{story_id}
     const storyId = pathParts.length > 1 ? pathParts[1] : null;
     
@@ -91,6 +200,9 @@ serve(async (req) => {
 
     const cutoffTime = new Date(Date.now() - windowHours * 60 * 60 * 1000).toISOString();
 
+    let responseData: any;
+    let statusCode = 200;
+
     if (storyId) {
       // Single story detail
       const { data: story, error } = await supabase
@@ -104,140 +216,137 @@ serve(async (req) => {
         .single();
 
       if (error || !story) {
-        return new Response(
-          JSON.stringify({ error: "Story not found" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        statusCode = 404;
+        responseData = { error: "Story not found" };
+      } else {
+        // Get sources
+        const { data: sources } = await supabase
+          .from("story_sources")
+          .select("source_name, source_url, published_at, description, is_primary_reporting")
+          .eq("story_id", storyId)
+          .order("published_at", { ascending: true });
+
+        const actualSources = sources || [];
+        const verifiedCount = actualSources.filter(s => isVerifiedSource(s.source_name)).length;
+
+        // Build timeline from sources
+        const timeline = actualSources.map(s => 
+          `${new Date(s.published_at).toISOString()}: ${s.source_name} - ${sanitizeOutput(s.description || "Reported this story")}`
         );
+
+        responseData = {
+          story_id: story.id,
+          headline: sanitizeOutput(story.headline),
+          summary: sanitizeOutput(story.ai_summary || story.summary || ""),
+          state: story.story_state || determineStoryState(actualSources.length, verifiedCount, 60),
+          confidence: story.confidence_level?.charAt(0).toUpperCase() + story.confidence_level?.slice(1) || 
+                     determineConfidence(actualSources.length, verifiedCount),
+          sources_count: actualSources.length,
+          verified_sources_count: verifiedCount,
+          has_contradictions: story.has_contradictions || false,
+          first_published_at: story.first_published_at,
+          last_updated_at: story.last_updated_at,
+          category: story.category,
+          location: {
+            country_code: story.country_code,
+            city: story.city,
+            is_global: story.is_global
+          },
+          image_url: story.image_url,
+          timeline,
+          sources: actualSources.map(s => ({
+            name: s.source_name,
+            url: s.source_url,
+            published_at: s.published_at,
+            is_primary: s.is_primary_reporting
+          }))
+        };
+      }
+    } else {
+      // Story feed
+      let query = supabase
+        .from("stories")
+        .select(`
+          id, headline, summary, ai_summary, category, country_code, city,
+          is_global, first_published_at, last_updated_at, source_count, image_url,
+          story_state, confidence_level, verified_source_count
+        `)
+        .gte("first_published_at", cutoffTime)
+        .order("source_count", { ascending: false })
+        .order("first_published_at", { ascending: false })
+        .limit(isSandbox ? 10 : 50); // Limit sandbox to 10 results
+
+      // Apply filters
+      if (category) {
+        query = query.ilike("category", category);
       }
 
-      // Get sources
-      const { data: sources } = await supabase
-        .from("story_sources")
-        .select("source_name, source_url, published_at, description, is_primary_reporting")
-        .eq("story_id", storyId)
-        .order("published_at", { ascending: true });
+      const { data: stories, error } = await query;
 
-      const actualSources = sources || [];
-      const verifiedCount = actualSources.filter(s => isVerifiedSource(s.source_name)).length;
+      if (error) {
+        throw new Error(`Failed to fetch stories: ${error.message}`);
+      }
 
-      // Build timeline from sources
-      const timeline = actualSources.map(s => 
-        `${new Date(s.published_at).toISOString()}: ${s.source_name} - ${sanitizeOutput(s.description || "Reported this story")}`
-      );
+      // Filter by confidence if specified
+      let filteredStories = stories || [];
+      if (confidence) {
+        filteredStories = filteredStories.filter(s => {
+          const storyConf = s.confidence_level || "low";
+          return storyConf.toLowerCase() === confidence.toLowerCase();
+        });
+      }
 
-      const storyDetail = {
-        story_id: story.id,
-        headline: sanitizeOutput(story.headline),
-        summary: sanitizeOutput(story.ai_summary || story.summary || ""),
-        state: story.story_state || determineStoryState(actualSources.length, verifiedCount, 60),
-        confidence: story.confidence_level?.charAt(0).toUpperCase() + story.confidence_level?.slice(1) || 
-                   determineConfidence(actualSources.length, verifiedCount),
-        sources_count: actualSources.length,
-        verified_sources_count: verifiedCount,
-        has_contradictions: story.has_contradictions || false,
-        first_published_at: story.first_published_at,
-        last_updated_at: story.last_updated_at,
-        category: story.category,
-        location: {
-          country_code: story.country_code,
-          city: story.city,
-          is_global: story.is_global
-        },
-        image_url: story.image_url,
-        timeline,
-        sources: actualSources.map(s => ({
-          name: s.source_name,
-          url: s.source_url,
-          published_at: s.published_at,
-          is_primary: s.is_primary_reporting
-        }))
+      // Transform to API schema
+      const apiStories = await Promise.all(filteredStories.map(async (story) => {
+        // Get sources for each story
+        const { data: sources } = await supabase
+          .from("story_sources")
+          .select("source_name, published_at")
+          .eq("story_id", story.id)
+          .limit(5);
+
+        const actualSources = sources || [];
+        const verifiedCount = actualSources.filter(s => isVerifiedSource(s.source_name)).length;
+
+        return {
+          story_id: story.id,
+          headline: sanitizeOutput(story.headline),
+          state: story.story_state || determineStoryState(actualSources.length, verifiedCount, 60),
+          confidence: story.confidence_level?.charAt(0).toUpperCase() + story.confidence_level?.slice(1) || 
+                     determineConfidence(actualSources.length, verifiedCount),
+          sources_count: actualSources.length || story.source_count || 1,
+          category: story.category,
+          first_published_at: story.first_published_at,
+          timeline: actualSources.slice(0, 3).map(s => 
+            `${new Date(s.published_at).toISOString()}: ${s.source_name}`
+          )
+        };
+      }));
+
+      responseData = {
+        updated_at: new Date().toISOString(),
+        stories: apiStories
       };
-
-      return new Response(
-        JSON.stringify(storyDetail),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            "Content-Type": "application/json",
-            "X-Sandbox": isSandbox ? "true" : "false"
-          } 
-        }
-      );
     }
 
-    // Story feed
-    let query = supabase
-      .from("stories")
-      .select(`
-        id, headline, summary, ai_summary, category, country_code, city,
-        is_global, first_published_at, last_updated_at, source_count, image_url,
-        story_state, confidence_level, verified_source_count
-      `)
-      .gte("first_published_at", cutoffTime)
-      .order("source_count", { ascending: false })
-      .order("first_published_at", { ascending: false })
-      .limit(50);
+    const responseTimeMs = Date.now() - startTime;
 
-    // Apply filters
-    if (category) {
-      query = query.ilike("category", category);
+    // Log usage if we have a valid API key
+    if (keyData) {
+      await logApiUsage(supabase, keyData.id, "/v1/news", statusCode, responseTimeMs, req);
     }
-
-    const { data: stories, error } = await query;
-
-    if (error) {
-      throw new Error(`Failed to fetch stories: ${error.message}`);
-    }
-
-    // Filter by confidence if specified
-    let filteredStories = stories || [];
-    if (confidence) {
-      filteredStories = filteredStories.filter(s => {
-        const storyConf = s.confidence_level || "low";
-        return storyConf.toLowerCase() === confidence.toLowerCase();
-      });
-    }
-
-    // Transform to API schema
-    const apiStories = await Promise.all(filteredStories.map(async (story) => {
-      // Get sources for each story
-      const { data: sources } = await supabase
-        .from("story_sources")
-        .select("source_name, published_at")
-        .eq("story_id", story.id)
-        .limit(5);
-
-      const actualSources = sources || [];
-      const verifiedCount = actualSources.filter(s => isVerifiedSource(s.source_name)).length;
-
-      return {
-        story_id: story.id,
-        headline: sanitizeOutput(story.headline),
-        state: story.story_state || determineStoryState(actualSources.length, verifiedCount, 60),
-        confidence: story.confidence_level?.charAt(0).toUpperCase() + story.confidence_level?.slice(1) || 
-                   determineConfidence(actualSources.length, verifiedCount),
-        sources_count: actualSources.length || story.source_count || 1,
-        category: story.category,
-        first_published_at: story.first_published_at,
-        timeline: actualSources.slice(0, 3).map(s => 
-          `${new Date(s.published_at).toISOString()}: ${s.source_name}`
-        )
-      };
-    }));
-
-    const response = {
-      updated_at: new Date().toISOString(),
-      stories: apiStories
-    };
 
     return new Response(
-      JSON.stringify(response),
+      JSON.stringify(responseData),
       { 
+        status: statusCode,
         headers: { 
           ...corsHeaders, 
           "Content-Type": "application/json",
           "X-Sandbox": isSandbox ? "true" : "false",
-          "X-RateLimit-Remaining": "999"
+          "X-RateLimit-Limit": keyData ? String(keyData.requests_limit) : "100",
+          "X-RateLimit-Remaining": String(requestsRemaining - 1),
+          "X-Response-Time": `${responseTimeMs}ms`
         } 
       }
     );
@@ -245,6 +354,12 @@ serve(async (req) => {
   } catch (error: unknown) {
     console.error("API error:", error);
     const message = error instanceof Error ? error.message : "Internal server error";
+    const responseTimeMs = Date.now() - startTime;
+    
+    if (keyData) {
+      await logApiUsage(supabase, keyData.id, "/v1/news", 500, responseTimeMs, req);
+    }
+    
     return new Response(
       JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
