@@ -321,7 +321,7 @@ export default function News() {
                 Intelligence Stream
               </h1>
               <p className="text-muted-foreground text-sm max-w-xl">
-                Stories updated in the last 48 hours from {66} verified sources
+                Stories updated in the last 48 hours from 170+ verified sources
               </p>
 
               {/* Last session info */}
