@@ -323,13 +323,50 @@ serve(async (req) => {
         // Calculate diversity score with detailed breakdown
         const diversity = calculateDiversityScore(actualSources);
 
+        // Generate proper "Why this matters" - context, not metadata
+        const category = story.category?.toLowerCase() || "news";
+        let whyMatters: string;
+        
+        if (actualSourceCount === 1) {
+          whyMatters = "This is an early report from a single source. The details may evolve as more information becomes available.";
+        } else if (actualSourceCount >= 4 && diversity.verifiedCount >= 2) {
+          whyMatters = "Multiple independent sources are reporting this story with consistent details, indicating high reliability.";
+        } else if (actualSourceCount >= 2) {
+          whyMatters = "This story is being reported by multiple sources. Key details are still developing.";
+        } else {
+          whyMatters = "This story is developing. Check back for updates as more sources report.";
+        }
+
+        // Determine story state based on sources and age
+        const ageMinutes = Math.floor(diffMs / (1000 * 60));
+        let storyState: string;
+        if (actualSourceCount === 1) {
+          storyState = "single-source";
+        } else if (ageMinutes < 30) {
+          storyState = "breaking";
+        } else if (actualSourceCount >= 4 && diversity.verifiedCount >= 2) {
+          storyState = "confirmed";
+        } else {
+          storyState = "developing";
+        }
+
+        // Determine confidence level
+        let confidenceLevel: string;
+        if (actualSourceCount === 1 || diversity.verifiedCount === 0) {
+          confidenceLevel = "low";
+        } else if (actualSourceCount >= 4 && diversity.verifiedCount >= 2) {
+          confidenceLevel = "high";
+        } else {
+          confidenceLevel = "medium";
+        }
+
         return {
           id: story.id,
           headline: story.headline,
           summary: story.ai_summary || story.summary || "",
           content: story.summary || "",
           ai_analysis: story.ai_summary || story.summary || "",
-          why_matters: `This ${story.category || "news"} story is covered by ${actualSourceCount} source${actualSourceCount > 1 ? 's' : ''}.`,
+          why_matters: whyMatters,
           perspectives: [],
           source_name: actualSources[0]?.source_name || "Unknown",
           source_url: actualSources[0]?.source_url || "",
@@ -345,11 +382,16 @@ serve(async (req) => {
           is_global: story.is_global,
           country_code: story.country_code,
           city: story.city,
+          // CRITICAL: Use actual source count from fetched sources
           source_count: actualSourceCount,
           sources: actualSources,
           timestamp,
           location_relevance: locationRelevance,
           is_trending: actualSourceCount >= 2,
+          // NEW: Story intelligence fields
+          story_state: storyState,
+          confidence_level: confidenceLevel,
+          is_single_source: actualSourceCount === 1,
         };
       })
     );

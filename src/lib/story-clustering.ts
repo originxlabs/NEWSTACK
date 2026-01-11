@@ -23,6 +23,11 @@ export interface RawStory {
   sourceCount?: number;
   trustScore?: number;
   sources?: StorySource[];
+  // Story intelligence fields
+  storyState?: "single-source" | "breaking" | "developing" | "confirmed" | "contradicted" | "resolved";
+  confidenceLevel?: "low" | "medium" | "high";
+  isSingleSource?: boolean;
+  verifiedSourceCount?: number;
 }
 
 export interface StoryCluster {
