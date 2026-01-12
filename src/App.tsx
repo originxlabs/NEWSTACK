@@ -142,7 +142,6 @@ function AppContent() {
           <Route path="/listen" element={<Listen />} />
           <Route path="/world" element={<World />} />
           <Route path="/places" element={<Places />} />
-          <Route path="/sources" element={<Sources />} />
           <Route path="/topics" element={<Topics />} />
           <Route path="/features" element={<Features />} />
           <Route path="/compare" element={<Features />} />
@@ -163,6 +162,7 @@ function AppContent() {
             <Route path="ingestion" element={<AdminRouteGuard pageName="Ingestion"><NewsroomIngestion /></AdminRouteGuard>} />
             <Route path="ingestion-status" element={<NewsroomIngestionStatus />} />
             <Route path="feeds" element={<AdminRouteGuard pageName="RSS Feeds"><NewsroomFeeds /></AdminRouteGuard>} />
+            <Route path="sources" element={<Sources />} />
             <Route path="audit-logs" element={<NewsroomAuditLogs />} />
             <Route path="stories" element={<NewsroomStories />} />
             <Route path="trust" element={<NewsroomTrust />} />

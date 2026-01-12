@@ -48,6 +48,7 @@ const navItems: NavItem[] = [
   { icon: Rss, label: "Ingestion", href: "/newsroom/ingestion", restricted: true },
   { icon: Database, label: "Ingestion Status", href: "/newsroom/ingestion-status", ownerOnly: true },
   { icon: Rss, label: "RSS Feeds", href: "/newsroom/feeds", restricted: true },
+  { icon: Rss, label: "Source Explorer", href: "/newsroom/sources", ownerOnly: true },
   { icon: Shield, label: "Audit Logs", href: "/newsroom/audit-logs", ownerOnly: true },
   { icon: FileText, label: "Stories", href: "/newsroom/stories" },
   { icon: Shield, label: "Trust Console", href: "/newsroom/trust" },
