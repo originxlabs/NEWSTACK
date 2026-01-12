@@ -1,23 +1,89 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { NLogoSquare } from "./NLogo";
+import { useSplashPrefetch } from "@/hooks/use-splash-prefetch";
+import { Database, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface SplashScreenProps {
   onComplete?: () => void;
   duration?: number;
+  countryCode?: string;
 }
 
-export function SplashScreen({ onComplete, duration = 1800 }: SplashScreenProps) {
+export function SplashScreen({ onComplete, duration = 2200, countryCode }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
+  const { prefetch, status, progress, storiesCount } = useSplashPrefetch();
+  const [prefetchComplete, setPrefetchComplete] = useState(false);
 
+  // Start prefetch immediately when splash screen mounts
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-      onComplete?.();
+    const startPrefetch = async () => {
+      try {
+        await prefetch(countryCode);
+        setPrefetchComplete(true);
+      } catch (err) {
+        console.error("Prefetch failed:", err);
+        setPrefetchComplete(true); // Continue even if prefetch fails
+      }
+    };
+    
+    startPrefetch();
+  }, [prefetch, countryCode]);
+
+  // Complete splash screen after both prefetch and minimum duration
+  useEffect(() => {
+    const minDurationTimer = setTimeout(() => {
+      if (prefetchComplete) {
+        setIsVisible(false);
+        onComplete?.();
+      }
     }, duration);
 
-    return () => clearTimeout(timer);
-  }, [duration, onComplete]);
+    return () => clearTimeout(minDurationTimer);
+  }, [duration, onComplete, prefetchComplete]);
+
+  // If prefetch completes before min duration, wait for timer
+  // If min duration completes before prefetch, wait for prefetch
+  useEffect(() => {
+    if (prefetchComplete) {
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        onComplete?.();
+      }, Math.max(0, duration - 1800)); // Give some buffer time
+    }
+  }, [prefetchComplete, duration, onComplete]);
+
+  const getStatusText = () => {
+    switch (status) {
+      case "checking":
+        return "Checking cache...";
+      case "cached":
+        return `Loaded ${storiesCount} stories from cache`;
+      case "fetching":
+        return "Fetching latest news...";
+      case "complete":
+        return `${storiesCount} stories ready`;
+      case "error":
+        return "Loading from cache...";
+      default:
+        return "Initializing...";
+    }
+  };
+
+  const getStatusIcon = () => {
+    switch (status) {
+      case "checking":
+      case "fetching":
+        return <RefreshCw className="w-3 h-3 animate-spin" />;
+      case "cached":
+      case "complete":
+        return <CheckCircle2 className="w-3 h-3 text-emerald-500" />;
+      case "error":
+        return <AlertCircle className="w-3 h-3 text-amber-500" />;
+      default:
+        return <Database className="w-3 h-3" />;
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -109,10 +175,21 @@ export function SplashScreen({ onComplete, duration = 1800 }: SplashScreenProps)
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
-              className="text-sm sm:text-base text-muted-foreground mb-6"
+              className="text-sm sm:text-base text-muted-foreground mb-4"
             >
               Global News Intelligence
             </motion.p>
+
+            {/* Prefetch Status */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.65 }}
+              className="flex items-center gap-2 text-xs text-muted-foreground mb-4"
+            >
+              {getStatusIcon()}
+              <span>{getStatusText()}</span>
+            </motion.div>
 
             {/* Loading Animation */}
             <motion.div 
@@ -140,9 +217,9 @@ export function SplashScreen({ onComplete, duration = 1800 }: SplashScreenProps)
               </div>
             </motion.div>
 
-            {/* Progress Bar */}
+            {/* Progress Bar - Combined */}
             <motion.div 
-              className="w-48 sm:w-56 h-1 bg-muted rounded-full mt-6 overflow-hidden"
+              className="w-48 sm:w-56 h-1.5 bg-muted rounded-full mt-6 overflow-hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
@@ -150,8 +227,8 @@ export function SplashScreen({ onComplete, duration = 1800 }: SplashScreenProps)
               <motion.div
                 className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full"
                 initial={{ width: "0%" }}
-                animate={{ width: "100%" }}
-                transition={{ duration: duration / 1000 - 0.3, ease: "easeInOut" }}
+                animate={{ width: `${Math.max(progress, (Date.now() % 100))}%` }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
               />
             </motion.div>
 
