@@ -20,7 +20,9 @@ import { BreadcrumbNav, BreadcrumbItem } from "@/components/BreadcrumbNav";
 import { RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
 import { AutoRefreshTimer } from "@/components/AutoRefreshTimer";
 import { AudioPlaylistPlayer } from "@/components/AudioPlaylistPlayer";
-import { getCountryProvinces, getProvince, getCountryLanguages, COUNTRY_PROVINCES } from "@/lib/world-countries-config";
+import { WeatherWidget } from "@/components/weather/WeatherWidget";
+import { PageLoader } from "@/components/PageLoader";
+import { getCountryProvinces, getProvince, getCountryLanguages, getAdministrativeTerm, COUNTRY_PROVINCES } from "@/lib/world-countries-config";
 import { getCountryByCode, getContinentById, COUNTRY_TO_CONTINENT } from "@/lib/geo-hierarchy";
 
 // Country info database
@@ -267,6 +269,15 @@ export default function ProvincePage() {
           </div>
           <AutoRefreshTimer onRefresh={fetchStories} intervalMinutes={5} />
         </div>
+
+        {/* Weather Widget for Capital */}
+        {province.capitalCoordinates && (
+          <WeatherWidget 
+            lat={province.capitalCoordinates.lat}
+            lng={province.capitalCoordinates.lng}
+            cityName={province.capital || province.name}
+          />
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

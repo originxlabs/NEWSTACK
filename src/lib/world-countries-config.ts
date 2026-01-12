@@ -551,8 +551,395 @@ export const COUNTRY_PROVINCES: Record<string, ProvinceConfig[]> = {
       population: 21538187,
       area: 170312
     }
+  ],
+
+  // China - Provinces (Shěng), Municipalities, Autonomous Regions
+  CN: [
+    {
+      id: "beijing",
+      name: "Beijing (北京)",
+      capital: "Beijing",
+      capitalCoordinates: { lat: 39.9042, lng: 116.4074 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "zh",
+      majorCities: ["Beijing"],
+      population: 21893095,
+      area: 16410
+    },
+    {
+      id: "shanghai",
+      name: "Shanghai (上海)",
+      capital: "Shanghai",
+      capitalCoordinates: { lat: 31.2304, lng: 121.4737 },
+      flag: "🌆",
+      flagEmoji: "🌆",
+      language: "zh",
+      majorCities: ["Shanghai", "Pudong", "Minhang"],
+      population: 24870895,
+      area: 6341
+    },
+    {
+      id: "guangdong",
+      name: "Guangdong (广东)",
+      capital: "Guangzhou",
+      capitalCoordinates: { lat: 23.1291, lng: 113.2644 },
+      flag: "🌺",
+      flagEmoji: "🌺",
+      language: "zh",
+      languages: ["zh", "yue"],
+      majorCities: ["Guangzhou", "Shenzhen", "Dongguan", "Foshan", "Zhuhai", "Huizhou", "Zhongshan"],
+      population: 126012510,
+      area: 177900
+    },
+    {
+      id: "zhejiang",
+      name: "Zhejiang (浙江)",
+      capital: "Hangzhou",
+      capitalCoordinates: { lat: 30.2741, lng: 120.1551 },
+      flag: "🌊",
+      flagEmoji: "🌊",
+      language: "zh",
+      majorCities: ["Hangzhou", "Ningbo", "Wenzhou", "Shaoxing", "Jiaxing"],
+      population: 64567588,
+      area: 101800
+    },
+    {
+      id: "jiangsu",
+      name: "Jiangsu (江苏)",
+      capital: "Nanjing",
+      capitalCoordinates: { lat: 32.0603, lng: 118.7969 },
+      flag: "🏯",
+      flagEmoji: "🏯",
+      language: "zh",
+      majorCities: ["Nanjing", "Suzhou", "Wuxi", "Changzhou", "Nantong", "Xuzhou"],
+      population: 84748016,
+      area: 102600
+    },
+    {
+      id: "sichuan",
+      name: "Sichuan (四川)",
+      capital: "Chengdu",
+      capitalCoordinates: { lat: 30.5728, lng: 104.0668 },
+      flag: "🐼",
+      flagEmoji: "🐼",
+      language: "zh",
+      majorCities: ["Chengdu", "Mianyang", "Deyang", "Leshan", "Nanchong"],
+      population: 83674866,
+      area: 486000
+    },
+    {
+      id: "hubei",
+      name: "Hubei (湖北)",
+      capital: "Wuhan",
+      capitalCoordinates: { lat: 30.5928, lng: 114.3055 },
+      flag: "🌅",
+      flagEmoji: "🌅",
+      language: "zh",
+      majorCities: ["Wuhan", "Yichang", "Xiangyang", "Jingzhou", "Huangshi"],
+      population: 57752557,
+      area: 185900
+    },
+    {
+      id: "shandong",
+      name: "Shandong (山东)",
+      capital: "Jinan",
+      capitalCoordinates: { lat: 36.6512, lng: 117.1201 },
+      flag: "⛰️",
+      flagEmoji: "⛰️",
+      language: "zh",
+      majorCities: ["Jinan", "Qingdao", "Yantai", "Weifang", "Zibo", "Linyi"],
+      population: 101527453,
+      area: 157100
+    },
+    {
+      id: "henan",
+      name: "Henan (河南)",
+      capital: "Zhengzhou",
+      capitalCoordinates: { lat: 34.7466, lng: 113.6254 },
+      flag: "🌾",
+      flagEmoji: "🌾",
+      language: "zh",
+      majorCities: ["Zhengzhou", "Luoyang", "Kaifeng", "Xinxiang", "Anyang"],
+      population: 99365519,
+      area: 167000
+    },
+    {
+      id: "hong-kong",
+      name: "Hong Kong (香港)",
+      capital: "Hong Kong",
+      capitalCoordinates: { lat: 22.3193, lng: 114.1694 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "zh",
+      languages: ["zh", "yue", "en"],
+      majorCities: ["Central", "Kowloon", "Tsim Sha Tsui", "Mong Kok"],
+      population: 7500700,
+      area: 1104
+    },
+    {
+      id: "macau",
+      name: "Macau (澳门)",
+      capital: "Macau",
+      capitalCoordinates: { lat: 22.1987, lng: 113.5439 },
+      flag: "🎰",
+      flagEmoji: "🎰",
+      language: "zh",
+      languages: ["zh", "pt"],
+      majorCities: ["Macau Peninsula", "Taipa", "Cotai"],
+      population: 682500,
+      area: 33
+    }
+  ],
+
+  // Russia - Federal Subjects (Oblasts, Republics, Krais)
+  RU: [
+    {
+      id: "moscow",
+      name: "Moscow (Москва)",
+      capital: "Moscow",
+      capitalCoordinates: { lat: 55.7558, lng: 37.6173 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "ru",
+      majorCities: ["Moscow"],
+      population: 12655050,
+      area: 2561
+    },
+    {
+      id: "saint-petersburg",
+      name: "Saint Petersburg (Санкт-Петербург)",
+      capital: "Saint Petersburg",
+      capitalCoordinates: { lat: 59.9311, lng: 30.3609 },
+      flag: "⚓",
+      flagEmoji: "⚓",
+      language: "ru",
+      majorCities: ["Saint Petersburg"],
+      population: 5384342,
+      area: 1439
+    },
+    {
+      id: "moscow-oblast",
+      name: "Moscow Oblast (Московская область)",
+      capital: "Krasnogorsk",
+      capitalCoordinates: { lat: 55.8204, lng: 37.3308 },
+      flag: "🏘️",
+      flagEmoji: "🏘️",
+      language: "ru",
+      majorCities: ["Balashikha", "Podolsk", "Khimki", "Mytishchi", "Korolev"],
+      population: 7690863,
+      area: 44340
+    }
+  ],
+
+  // Brazil - States (Estados)
+  BR: [
+    {
+      id: "sao-paulo",
+      name: "São Paulo",
+      capital: "São Paulo",
+      capitalCoordinates: { lat: -23.5505, lng: -46.6333 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "pt",
+      majorCities: ["São Paulo", "Campinas", "Guarulhos", "Santos", "Ribeirão Preto"],
+      population: 46289333,
+      area: 248209
+    },
+    {
+      id: "rio-de-janeiro",
+      name: "Rio de Janeiro",
+      capital: "Rio de Janeiro",
+      capitalCoordinates: { lat: -22.9068, lng: -43.1729 },
+      flag: "🏖️",
+      flagEmoji: "🏖️",
+      language: "pt",
+      majorCities: ["Rio de Janeiro", "Niterói", "Nova Iguaçu", "Petrópolis"],
+      population: 17366189,
+      area: 43696
+    },
+    {
+      id: "minas-gerais",
+      name: "Minas Gerais",
+      capital: "Belo Horizonte",
+      capitalCoordinates: { lat: -19.9167, lng: -43.9345 },
+      flag: "⛏️",
+      flagEmoji: "⛏️",
+      language: "pt",
+      majorCities: ["Belo Horizonte", "Uberlândia", "Contagem", "Juiz de Fora"],
+      population: 21292666,
+      area: 586522
+    }
+  ],
+
+  // South Korea - Provinces (Do) and Special Cities
+  KR: [
+    {
+      id: "seoul",
+      name: "Seoul (서울)",
+      capital: "Seoul",
+      capitalCoordinates: { lat: 37.5665, lng: 126.9780 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "ko",
+      majorCities: ["Gangnam", "Jongno", "Mapo", "Yongsan"],
+      population: 9776000,
+      area: 605
+    },
+    {
+      id: "busan",
+      name: "Busan (부산)",
+      capital: "Busan",
+      capitalCoordinates: { lat: 35.1796, lng: 129.0756 },
+      flag: "⚓",
+      flagEmoji: "⚓",
+      language: "ko",
+      majorCities: ["Busan", "Haeundae", "Seomyeon"],
+      population: 3429000,
+      area: 770
+    },
+    {
+      id: "gyeonggi",
+      name: "Gyeonggi Province (경기도)",
+      capital: "Suwon",
+      capitalCoordinates: { lat: 37.2636, lng: 127.0286 },
+      flag: "🏘️",
+      flagEmoji: "🏘️",
+      language: "ko",
+      majorCities: ["Suwon", "Seongnam", "Goyang", "Yongin", "Bucheon", "Ansan"],
+      population: 13530000,
+      area: 10183
+    }
+  ],
+
+  // Spain - Autonomous Communities (Comunidades Autónomas)
+  ES: [
+    {
+      id: "madrid",
+      name: "Community of Madrid",
+      capital: "Madrid",
+      capitalCoordinates: { lat: 40.4168, lng: -3.7038 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "es",
+      majorCities: ["Madrid", "Móstoles", "Alcalá de Henares", "Getafe"],
+      population: 6779888,
+      area: 8028
+    },
+    {
+      id: "catalonia",
+      name: "Catalonia (Catalunya)",
+      capital: "Barcelona",
+      capitalCoordinates: { lat: 41.3851, lng: 2.1734 },
+      flag: "🟡🔴",
+      flagEmoji: "🟡🔴",
+      language: "es",
+      languages: ["es", "ca"],
+      majorCities: ["Barcelona", "Hospitalet", "Badalona", "Terrassa", "Tarragona"],
+      population: 7780479,
+      area: 32113
+    },
+    {
+      id: "andalusia",
+      name: "Andalusia (Andalucía)",
+      capital: "Seville",
+      capitalCoordinates: { lat: 37.3891, lng: -5.9845 },
+      flag: "🌻",
+      flagEmoji: "🌻",
+      language: "es",
+      majorCities: ["Seville", "Málaga", "Córdoba", "Granada", "Almería"],
+      population: 8464411,
+      area: 87268
+    }
+  ],
+
+  // Italy - Regions (Regioni)
+  IT: [
+    {
+      id: "lazio",
+      name: "Lazio",
+      capital: "Rome",
+      capitalCoordinates: { lat: 41.9028, lng: 12.4964 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "it",
+      majorCities: ["Rome", "Latina", "Fiumicino", "Viterbo"],
+      population: 5879082,
+      area: 17232
+    },
+    {
+      id: "lombardy",
+      name: "Lombardy (Lombardia)",
+      capital: "Milan",
+      capitalCoordinates: { lat: 45.4642, lng: 9.1900 },
+      flag: "🏢",
+      flagEmoji: "🏢",
+      language: "it",
+      majorCities: ["Milan", "Brescia", "Bergamo", "Monza", "Como"],
+      population: 10027602,
+      area: 23844
+    },
+    {
+      id: "veneto",
+      name: "Veneto",
+      capital: "Venice",
+      capitalCoordinates: { lat: 45.4408, lng: 12.3155 },
+      flag: "🦁",
+      flagEmoji: "🦁",
+      language: "it",
+      majorCities: ["Venice", "Verona", "Padua", "Vicenza", "Treviso"],
+      population: 4906210,
+      area: 18399
+    }
   ]
 };
+
+// Administrative division terminology by country
+export const ADMINISTRATIVE_TERMS: Record<string, { singular: string; plural: string; subDivision?: string }> = {
+  // Countries with States
+  US: { singular: "State", plural: "States", subDivision: "County" },
+  IN: { singular: "State", plural: "States", subDivision: "District" },
+  AU: { singular: "State/Territory", plural: "States & Territories" },
+  BR: { singular: "Estado", plural: "Estados" },
+  MX: { singular: "Estado", plural: "Estados" },
+  NG: { singular: "State", plural: "States" },
+  MY: { singular: "State", plural: "States" },
+  
+  // Countries with Provinces
+  CN: { singular: "Province", plural: "Provinces", subDivision: "Prefecture" },
+  CA: { singular: "Province/Territory", plural: "Provinces & Territories" },
+  PK: { singular: "Province", plural: "Provinces" },
+  ZA: { singular: "Province", plural: "Provinces" },
+  AR: { singular: "Provincia", plural: "Provincias" },
+  
+  // Countries with Regions/Departments
+  FR: { singular: "Région", plural: "Régions", subDivision: "Département" },
+  IT: { singular: "Regione", plural: "Regioni", subDivision: "Provincia" },
+  ES: { singular: "Comunidad Autónoma", plural: "Comunidades Autónomas" },
+  
+  // Countries with Länder/Bundesländer
+  DE: { singular: "Bundesland", plural: "Bundesländer" },
+  
+  // Countries with Prefectures
+  JP: { singular: "Prefecture", plural: "Prefectures" },
+  
+  // Countries with Constituent Countries/Nations
+  GB: { singular: "Nation", plural: "Nations" },
+  
+  // Countries with Federal Subjects
+  RU: { singular: "Federal Subject", plural: "Federal Subjects" },
+  
+  // Countries with Do/Special Cities
+  KR: { singular: "Province/City", plural: "Provinces & Cities" },
+  
+  // Default fallback
+  DEFAULT: { singular: "Region", plural: "Regions" }
+};
+
+// Get administrative term for a country
+export function getAdministrativeTerm(countryCode: string): { singular: string; plural: string; subDivision?: string } {
+  return ADMINISTRATIVE_TERMS[countryCode.toUpperCase()] || ADMINISTRATIVE_TERMS.DEFAULT;
+}
 
 // Get provinces for a country
 export function getCountryProvinces(countryCode: string): ProvinceConfig[] {
