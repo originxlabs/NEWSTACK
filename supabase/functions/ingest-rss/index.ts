@@ -129,20 +129,92 @@ const URL_PATH_MAPPING: Record<string, string> = {
   "/international/": "World",
 };
 
-// ===== INDIAN CITIES/STATES FOR LOCAL DETECTION =====
+// ===== INDIAN STATES MAPPING =====
+const INDIAN_STATES: Record<string, string> = {
+  // Full state names
+  "andhra pradesh": "Andhra Pradesh",
+  "arunachal pradesh": "Arunachal Pradesh",
+  "assam": "Assam",
+  "bihar": "Bihar",
+  "chhattisgarh": "Chhattisgarh",
+  "goa": "Goa",
+  "gujarat": "Gujarat",
+  "haryana": "Haryana",
+  "himachal pradesh": "Himachal Pradesh",
+  "jharkhand": "Jharkhand",
+  "karnataka": "Karnataka",
+  "kerala": "Kerala",
+  "madhya pradesh": "Madhya Pradesh",
+  "maharashtra": "Maharashtra",
+  "manipur": "Manipur",
+  "meghalaya": "Meghalaya",
+  "mizoram": "Mizoram",
+  "nagaland": "Nagaland",
+  "odisha": "Odisha",
+  "punjab": "Punjab",
+  "rajasthan": "Rajasthan",
+  "sikkim": "Sikkim",
+  "tamil nadu": "Tamil Nadu",
+  "telangana": "Telangana",
+  "tripura": "Tripura",
+  "uttar pradesh": "Uttar Pradesh",
+  "uttarakhand": "Uttarakhand",
+  "west bengal": "West Bengal",
+  // Union territories
+  "delhi": "Delhi",
+  "jammu and kashmir": "Jammu and Kashmir",
+  "ladakh": "Ladakh",
+  "chandigarh": "Chandigarh",
+  "puducherry": "Puducherry",
+  "andaman and nicobar": "Andaman and Nicobar Islands",
+  "dadra and nagar haveli": "Dadra and Nagar Haveli",
+  "daman and diu": "Daman and Diu",
+  "lakshadweep": "Lakshadweep",
+};
+
+// City to State mapping
+const CITY_TO_STATE: Record<string, string> = {
+  "mumbai": "Maharashtra", "pune": "Maharashtra", "nagpur": "Maharashtra", 
+  "nashik": "Maharashtra", "thane": "Maharashtra", "aurangabad": "Maharashtra",
+  "delhi": "Delhi", "new delhi": "Delhi", "noida": "Uttar Pradesh", 
+  "gurgaon": "Haryana", "gurugram": "Haryana", "faridabad": "Haryana",
+  "bangalore": "Karnataka", "bengaluru": "Karnataka", "mysore": "Karnataka",
+  "mysuru": "Karnataka", "hubli": "Karnataka", "mangalore": "Karnataka",
+  "chennai": "Tamil Nadu", "madurai": "Tamil Nadu", "coimbatore": "Tamil Nadu",
+  "tiruchirappalli": "Tamil Nadu", "tiruppur": "Tamil Nadu", "salem": "Tamil Nadu",
+  "kolkata": "West Bengal", "howrah": "West Bengal", "durgapur": "West Bengal",
+  "hyderabad": "Telangana", "secunderabad": "Telangana", "warangal": "Telangana",
+  "ahmedabad": "Gujarat", "surat": "Gujarat", "vadodara": "Gujarat", 
+  "rajkot": "Gujarat", "gandhinagar": "Gujarat",
+  "jaipur": "Rajasthan", "jodhpur": "Rajasthan", "udaipur": "Rajasthan", "kota": "Rajasthan",
+  "lucknow": "Uttar Pradesh", "kanpur": "Uttar Pradesh", "varanasi": "Uttar Pradesh",
+  "agra": "Uttar Pradesh", "allahabad": "Uttar Pradesh", "prayagraj": "Uttar Pradesh",
+  "meerut": "Uttar Pradesh", "ghaziabad": "Uttar Pradesh", "bareilly": "Uttar Pradesh",
+  "bhopal": "Madhya Pradesh", "indore": "Madhya Pradesh", "jabalpur": "Madhya Pradesh",
+  "gwalior": "Madhya Pradesh",
+  "patna": "Bihar", "gaya": "Bihar", "muzaffarpur": "Bihar",
+  "bhubaneswar": "Odisha", "cuttack": "Odisha", "rourkela": "Odisha", "puri": "Odisha",
+  "visakhapatnam": "Andhra Pradesh", "vijayawada": "Andhra Pradesh", 
+  "tirupati": "Andhra Pradesh", "guntur": "Andhra Pradesh",
+  "thiruvananthapuram": "Kerala", "kochi": "Kerala", "cochin": "Kerala",
+  "kozhikode": "Kerala", "calicut": "Kerala", "thrissur": "Kerala",
+  "chandigarh": "Chandigarh", "amritsar": "Punjab", "ludhiana": "Punjab", "jalandhar": "Punjab",
+  "ranchi": "Jharkhand", "jamshedpur": "Jharkhand", "dhanbad": "Jharkhand",
+  "raipur": "Chhattisgarh", "bilaspur": "Chhattisgarh",
+  "guwahati": "Assam", "dibrugarh": "Assam", "silchar": "Assam",
+  "srinagar": "Jammu and Kashmir", "jammu": "Jammu and Kashmir",
+  "shimla": "Himachal Pradesh", "manali": "Himachal Pradesh",
+  "dehradun": "Uttarakhand", "haridwar": "Uttarakhand", "rishikesh": "Uttarakhand",
+  "panaji": "Goa", "margao": "Goa", "vasco": "Goa",
+  "imphal": "Manipur", "shillong": "Meghalaya", "aizawl": "Mizoram",
+  "kohima": "Nagaland", "agartala": "Tripura", "itanagar": "Arunachal Pradesh",
+  "gangtok": "Sikkim", "port blair": "Andaman and Nicobar Islands",
+};
+
+// All localities for detection (cities + states)
 const INDIAN_LOCALITIES = [
-  "mumbai", "delhi", "bangalore", "bengaluru", "chennai", "kolkata",
-  "hyderabad", "pune", "ahmedabad", "jaipur", "lucknow", "kanpur",
-  "nagpur", "indore", "thane", "bhopal", "visakhapatnam", "patna",
-  "vadodara", "ghaziabad", "ludhiana", "agra", "nashik", "faridabad",
-  "meerut", "rajkot", "varanasi", "srinagar", "aurangabad", "dhanbad",
-  "amritsar", "allahabad", "ranchi", "howrah", "coimbatore", "jabalpur",
-  "gwalior", "vijayawada", "jodhpur", "madurai", "raipur", "kota",
-  "guwahati", "chandigarh", "solapur", "hubli", "tiruchirappalli",
-  "bareilly", "mysore", "tiruppur", "gurgaon", "noida", "kerala",
-  "karnataka", "maharashtra", "tamil nadu", "telangana", "gujarat",
-  "rajasthan", "uttar pradesh", "madhya pradesh", "west bengal", "bihar",
-  "odisha", "andhra pradesh", "punjab", "haryana", "jharkhand", "assam"
+  ...Object.keys(CITY_TO_STATE),
+  ...Object.keys(INDIAN_STATES),
 ];
 
 // Extended stopwords for normalization
@@ -698,46 +770,92 @@ function getCategoryFromKeywords(text: string): { primary: string | null; second
   };
 }
 
-// STEP 3: Determine region scope
+// STEP 3: Determine region scope with full location hierarchy
+interface LocationResult {
+  scope: "Local" | "India" | "World";
+  city: string | null;
+  state: string | null;
+  district: string | null;
+  locality: string | null;
+}
+
 function getRegionScope(
   headline: string,
   feedCountryCode: string | null,
   feedName: string
-): { scope: "Local" | "India" | "World"; locality: string | null } {
+): LocationResult {
   const lowerHeadline = headline.toLowerCase();
-
-  // Check for local city/state mentions
-  for (const locality of INDIAN_LOCALITIES) {
-    if (lowerHeadline.includes(locality)) {
-      return {
-        scope: "Local",
-        locality: locality.charAt(0).toUpperCase() + locality.slice(1),
-      };
+  const lowerFeedName = feedName.toLowerCase();
+  
+  let detectedCity: string | null = null;
+  let detectedState: string | null = null;
+  
+  // First, check for city mentions and derive state
+  for (const [city, state] of Object.entries(CITY_TO_STATE)) {
+    if (lowerHeadline.includes(city) || lowerFeedName.includes(city)) {
+      detectedCity = city.charAt(0).toUpperCase() + city.slice(1);
+      // Handle special cases like "bengaluru" -> "Bangalore"
+      if (city === "bengaluru") detectedCity = "Bangalore";
+      if (city === "mysuru") detectedCity = "Mysore";
+      if (city === "gurugram") detectedCity = "Gurgaon";
+      if (city === "prayagraj") detectedCity = "Allahabad";
+      if (city === "cochin") detectedCity = "Kochi";
+      if (city === "calicut") detectedCity = "Kozhikode";
+      
+      detectedState = state;
+      break;
     }
+  }
+  
+  // If no city found, check for state mentions
+  if (!detectedState) {
+    for (const [stateKey, stateName] of Object.entries(INDIAN_STATES)) {
+      if (lowerHeadline.includes(stateKey) || lowerFeedName.includes(stateKey)) {
+        detectedState = stateName;
+        break;
+      }
+    }
+  }
+  
+  // If we found a city or state, it's local scope
+  if (detectedCity || detectedState) {
+    return {
+      scope: "Local",
+      city: detectedCity,
+      state: detectedState,
+      district: null, // TODO: Implement district detection
+      locality: detectedCity || detectedState,
+    };
   }
 
   // Check for India-specific mentions
   const indiaKeywords = ["india", "indian", "modi", "parliament", "lok sabha", "rajya sabha"];
   if (indiaKeywords.some(kw => lowerHeadline.includes(kw))) {
-    return { scope: "India", locality: null };
+    return { scope: "India", city: null, state: null, district: null, locality: null };
   }
 
   // If feed is from India, default to India scope
   if (feedCountryCode === "IN") {
-    return { scope: "India", locality: null };
+    return { scope: "India", city: null, state: null, district: null, locality: null };
   }
 
   // Check for world/international signals
   const worldKeywords = ["us ", "china", "russia", "europe", "uk ", "global", "world", "un ", "united nations"];
   if (worldKeywords.some(kw => lowerHeadline.includes(kw))) {
-    return { scope: "World", locality: null };
+    return { scope: "World", city: null, state: null, district: null, locality: null };
   }
 
   // Default based on feed
-  return { scope: feedCountryCode ? "India" : "World", locality: null };
+  return { 
+    scope: feedCountryCode ? "India" : "World", 
+    city: null, 
+    state: null, 
+    district: null, 
+    locality: null 
+  };
 }
 
-// Combined classification
+// Combined classification with full location data
 function classifyStory(
   headline: string,
   description: string,
@@ -747,6 +865,9 @@ function classifyStory(
   primary_category: string;
   secondary_categories: string[];
   region_scope: "Local" | "India" | "World";
+  city: string | null;
+  state: string | null;
+  district: string | null;
   locality: string | null;
 } {
   let primaryCategory = feed.category || "World";
@@ -784,14 +905,17 @@ function classifyStory(
     ...keywordResult.secondary.filter(c => c !== primaryCategory && !secondaryCategories.includes(c))
   ].slice(0, 2);
 
-  // STEP 3: Determine region scope
-  const { scope, locality } = getRegionScope(headline, feed.country_code, feed.name);
+  // STEP 3: Determine region scope with full location hierarchy
+  const locationResult = getRegionScope(headline, feed.country_code, feed.name);
 
   return {
     primary_category: primaryCategory,
     secondary_categories: secondaryCategories,
-    region_scope: scope,
-    locality,
+    region_scope: locationResult.scope,
+    city: locationResult.city,
+    state: locationResult.state,
+    district: locationResult.district,
+    locality: locationResult.locality,
   };
 }
 
@@ -1103,7 +1227,10 @@ async function processItems(
             summary: finalDescription,
             category: classification.primary_category,
             country_code: feed.country_code,
-            city: classification.locality,
+            city: classification.city,
+            state: classification.state,
+            district: classification.district,
+            locality: classification.locality,
             is_global: classification.region_scope === "World",
             first_published_at: publishedAt.toISOString(),
             last_updated_at: new Date().toISOString(),

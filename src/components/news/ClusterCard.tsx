@@ -10,12 +10,16 @@ import {
   RefreshCw,
   CheckCircle2,
   AlertTriangle,
+  Languages,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { StoryCluster } from "@/lib/story-clustering";
 
 interface ClusterCardProps {
@@ -74,6 +78,13 @@ const topicColors: Record<string, string> = {
 
 export function ClusterCard({ cluster, onClick, showUpdateBadge }: ClusterCardProps) {
   const [showSources, setShowSources] = useState(false);
+  const [translateEnabled, setTranslateEnabled] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedHeadline, setTranslatedHeadline] = useState<string | null>(null);
+  const [translatedSummary, setTranslatedSummary] = useState<string | null>(null);
+
+  const displayHeadline = translateEnabled && translatedHeadline ? translatedHeadline : cluster.headline;
+  const displaySummary = translateEnabled && translatedSummary ? translatedSummary : cluster.summary;
 
   const signalInfo = signalConfig[cluster.signal];
   const confInfo = confidenceConfig[cluster.confidence];
@@ -82,6 +93,30 @@ export function ClusterCard({ cluster, onClick, showUpdateBadge }: ClusterCardPr
   const freshness = formatDistanceToNow(new Date(cluster.lastUpdated), {
     addSuffix: true,
   });
+
+  const handleToggleTranslation = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextEnabled = !translateEnabled;
+    setTranslateEnabled(nextEnabled);
+
+    if (nextEnabled && (!translatedHeadline || !translatedSummary) && !isTranslating) {
+      setIsTranslating(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("translate-to-english", {
+          body: { headline: cluster.headline, summary: cluster.summary },
+        });
+        if (error) throw error;
+        if (!data?.headline_en || !data?.summary_en) throw new Error("Translation failed");
+        setTranslatedHeadline(data.headline_en);
+        setTranslatedSummary(data.summary_en);
+      } catch {
+        setTranslateEnabled(false);
+        toast.error("Could not translate right now");
+      } finally {
+        setIsTranslating(false);
+      }
+    }
+  };
 
   return (
     <motion.div
