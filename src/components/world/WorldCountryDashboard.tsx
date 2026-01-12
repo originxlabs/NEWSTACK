@@ -44,6 +44,7 @@ import {
   COUNTRY_METADATA,
 } from "@/lib/world-countries-config";
 import { WeatherAQIWidget } from "@/components/weather/WeatherAQIWidget";
+import { CurrencyExchangeWidget } from "@/components/CurrencyExchangeWidget";
 import {
   getCountryByCode,
   getContinentById,
@@ -736,7 +737,21 @@ export function WorldCountryDashboard({ countryCode, countryName, countryFlag }:
             return null;
           })()}
 
-          {/* Provinces/States with Flags */}
+          {/* Currency Exchange Rates */}
+          {(() => {
+            const metadata = getCountryMetadata(upperCountryCode);
+            if (metadata?.currency) {
+              return (
+                <CurrencyExchangeWidget
+                  baseCurrency={metadata.currency}
+                  baseCurrencySymbol={metadata.currencySymbol || metadata.currency}
+                  countryName={metadata.name}
+                />
+              );
+            }
+            return null;
+          })()}
+
           {(() => {
             const provinces = getCountryProvinces(upperCountryCode);
             if (provinces.length > 0) {
