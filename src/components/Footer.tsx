@@ -13,9 +13,11 @@ const footerLinks = {
   Developers: [
     { name: "API Overview", href: "/api" },
     { name: "Documentation", href: "/api/docs" },
+    { name: "API Pricing", href: "/api/pricing" },
   ],
   Company: [
-    { name: "Contact", href: "/support" },
+    { name: "Contact", href: "/contact" },
+    { name: "Support", href: "/support" },
     { name: "Newsroom", href: "/newsroom" },
   ],
   Legal: [
