@@ -297,6 +297,8 @@ export default function World() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isConnected = useRealtimeConnection();
+  const userLocation = useUserLocation();
+  const geoStats = useMemo(() => getGeoStats(), []);
   
   // Current drill-down state
   const [currentLevel, setCurrentLevel] = useState<DrillLevel>("world");
@@ -305,6 +307,75 @@ export default function World() {
   const [selectedState, setSelectedState] = useState<State | null>(null);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [hasAutoDrilled, setHasAutoDrilled] = useState(false);
+
+  // Auto-drill to user's location on first load
+  useEffect(() => {
+    if (!hasAutoDrilled && userLocation.hasPermission && userLocation.continent && userLocation.country) {
+      setSelectedContinent(userLocation.continent);
+      setSelectedCountry(userLocation.country);
+      setCurrentLevel("country");
+      setHasAutoDrilled(true);
+    }
+  }, [hasAutoDrilled, userLocation.hasPermission, userLocation.continent, userLocation.country]);
+
+  // Handle search selection
+  const handleSearchSelect = useCallback((result: SearchResult) => {
+    setShowSearch(false);
+    
+    if (result.type === "continent" && result.id) {
+      const continent = getContinentById(result.id);
+      if (continent) {
+        setSelectedContinent(continent);
+        setSelectedCountry(null);
+        setSelectedState(null);
+        setSelectedCity(null);
+        setCurrentLevel("continent");
+      }
+    } else if (result.type === "country" && result.continentId && result.countryCode) {
+      const continent = getContinentById(result.continentId);
+      const country = continent?.countries.find(c => c.code === result.countryCode);
+      if (continent && country) {
+        setSelectedContinent(continent);
+        setSelectedCountry(country);
+        setSelectedState(null);
+        setSelectedCity(null);
+        setCurrentLevel("country");
+      }
+    } else if (result.type === "state" && result.continentId && result.countryId && result.stateId) {
+      const continent = getContinentById(result.continentId);
+      const country = getCountryById(result.countryId);
+      const state = country?.states.find(s => s.id === result.stateId);
+      if (continent && country && state) {
+        setSelectedContinent(continent);
+        setSelectedCountry(country);
+        setSelectedState(state);
+        setSelectedCity(null);
+        setCurrentLevel("state");
+      }
+    } else if (result.type === "city" && result.continentId && result.countryId && result.stateId && result.cityId) {
+      const continent = getContinentById(result.continentId);
+      const country = getCountryById(result.countryId);
+      const state = country?.states.find(s => s.id === result.stateId);
+      const city = state?.cities.find(c => c.id === result.cityId);
+      if (continent && country && state && city) {
+        setSelectedContinent(continent);
+        setSelectedCountry(country);
+        setSelectedState(state);
+        setSelectedCity(city);
+        setCurrentLevel("city");
+      }
+    } else if (result.type === "locality") {
+      navigate(`/news?locality=${result.id}`);
+    }
+  }, [navigate]);
+
+  // Detect location and auto-drill
+  const handleDetectLocation = useCallback(() => {
+    userLocation.refreshLocation();
+    setHasAutoDrilled(false);
+  }, [userLocation]);
 
   // Build breadcrumb items
   const breadcrumbItems = useMemo(() => {
@@ -463,35 +534,86 @@ export default function World() {
               animate={{ opacity: 1, y: 0 }}
             >
               {/* Status Bar */}
-              <div className="flex items-center gap-2 mb-4">
-                <Badge 
-                  variant="outline" 
-                  className={cn(
-                    "gap-1 text-[10px]",
-                    isConnected 
-                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                      : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+              <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "gap-1 text-[10px]",
+                      isConnected 
+                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                        : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                    )}
+                  >
+                    {isConnected ? <Wifi className="w-2.5 h-2.5" /> : <WifiOff className="w-2.5 h-2.5" />}
+                    {isConnected ? "LIVE" : "POLLING"}
+                  </Badge>
+                  <button 
+                    onClick={handleRefresh}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    disabled={isRefreshing}
+                  >
+                    <RefreshCw className={cn("w-3 h-3", isRefreshing && "animate-spin")} />
+                    {formatTime(lastUpdated)}
+                  </button>
+                  {userLocation.hasPermission && userLocation.country && (
+                    <Badge variant="secondary" className="gap-1 text-[10px]">
+                      <Navigation className="w-2.5 h-2.5" />
+                      {userLocation.country.flag} {userLocation.country.name}
+                    </Badge>
                   )}
-                >
-                  {isConnected ? <Wifi className="w-2.5 h-2.5" /> : <WifiOff className="w-2.5 h-2.5" />}
-                  {isConnected ? "LIVE" : "POLLING"}
-                </Badge>
-                <button 
-                  onClick={handleRefresh}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  disabled={isRefreshing}
-                >
-                  <RefreshCw className={cn("w-3 h-3", isRefreshing && "animate-spin")} />
-                  {formatTime(lastUpdated)}
-                </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-8"
+                    onClick={handleDetectLocation}
+                    disabled={userLocation.isLoading}
+                  >
+                    {userLocation.isLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Navigation className="w-3.5 h-3.5" />
+                    )}
+                    My Location
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-8"
+                    onClick={() => setShowSearch(!showSearch)}
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                    Search
+                  </Button>
+                </div>
               </div>
+
+              {/* Search Bar */}
+              <AnimatePresence>
+                {showSearch && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mb-4"
+                  >
+                    <LocationSearch
+                      onSelect={handleSearchSelect}
+                      onClose={() => setShowSearch(false)}
+                      placeholder="Search countries, states, cities, localities..."
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Title */}
               <h1 className="font-display text-2xl sm:text-3xl font-semibold text-foreground mb-2">
                 Global Intelligence
               </h1>
               <p className="text-muted-foreground text-sm max-w-2xl mb-4">
-                Drill down from continents to localities. Real-time news aggregated from 174 verified sources.
+                Drill down from {geoStats.totalContinents} continents → {geoStats.totalCountries} countries → {geoStats.totalStates.toLocaleString()} states → {geoStats.totalCities.toLocaleString()} cities. Real-time news from verified sources.
               </p>
 
               {/* Breadcrumb Navigation */}

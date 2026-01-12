@@ -59,8 +59,14 @@ export default function NewsroomOwnerLogin() {
     }
   }, [user, navigate]);
 
+  // Designated owner email for initial setup
+  const DESIGNATED_OWNER_EMAIL = "originxlabs@gmail.com";
+
   const checkOwnerAndPasswordExpiry = async (ownerEmail: string) => {
     const normalized = ownerEmail.trim().toLowerCase();
+
+    // First check if this is the designated owner email
+    const isDesignatedOwner = normalized === DESIGNATED_OWNER_EMAIL.toLowerCase();
 
     // Check if owner exists in newsroom_members (case-insensitive)
     const { data: member } = await supabase
@@ -80,8 +86,13 @@ export default function NewsroomOwnerLogin() {
         .in("role", ["super_admin", "admin"])
         .maybeSingle();
 
-      if (!adminOwner) {
+      if (!adminOwner && !isDesignatedOwner) {
         return { isOwner: false, isExpired: false, daysRemaining: 0 };
+      }
+
+      // If designated owner or in admin_users but not in newsroom_members, redirect to setup
+      if (isDesignatedOwner && !member) {
+        return { isOwner: true, isExpired: true, daysRemaining: 0, needsSetup: true };
       }
 
       // If only in admin_users (no password_last_set_at), treat as needing reset
@@ -114,15 +125,22 @@ export default function NewsroomOwnerLogin() {
 
     setIsLoading(true);
     try {
-      const { isOwner, isExpired, daysRemaining } = await checkOwnerAndPasswordExpiry(email);
+      const result = await checkOwnerAndPasswordExpiry(email);
 
-      if (!isOwner) {
+      if (!result.isOwner) {
         await auditLog.logFailed(email.trim(), "Non-owner attempted owner login");
         toast.error("Access denied: this email is not the owner");
         return;
       }
 
-      if (isExpired) {
+      // If needs setup, redirect to owner setup page
+      if ('needsSetup' in result && result.needsSetup) {
+        toast.info("Please complete first-time owner setup");
+        navigate("/newsroom/owner-init");
+        return;
+      }
+
+      if (result.isExpired) {
         setPasswordExpiredMessage(
           "Your password has expired. You must reset it to continue."
         );
@@ -142,12 +160,12 @@ export default function NewsroomOwnerLogin() {
         return;
       }
 
-      setDaysUntilExpiry(daysRemaining);
+      setDaysUntilExpiry(result.daysRemaining);
       await auditLog.logSuccess(email.trim());
 
       // Show warning if password expires soon (< 7 days)
-      if (daysRemaining <= 7) {
-        toast.warning(`Your password expires in ${daysRemaining} day(s). Consider resetting it.`);
+      if (result.daysRemaining <= 7) {
+        toast.warning(`Your password expires in ${result.daysRemaining} day(s). Consider resetting it.`);
       }
 
       navigate("/newsroom", { replace: true });
