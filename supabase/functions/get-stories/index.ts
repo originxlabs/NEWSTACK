@@ -248,6 +248,7 @@ serve(async (req) => {
         category,
         country_code,
         city,
+        state,
         is_global,
         first_published_at,
         last_updated_at,
@@ -255,7 +256,10 @@ serve(async (req) => {
         trend_score,
         image_url,
         engagement_reads,
-        engagement_listens
+        engagement_listens,
+        original_headline,
+        original_summary,
+        original_language
       `)
       .gte("first_published_at", cutoffTime);
 

@@ -1225,6 +1225,10 @@ async function processItems(
             headline: cleanTitle,
             normalized_headline: normalizedHeadline,
             summary: finalDescription,
+            // Store original language content if feed is non-English
+            original_headline: feed.language && feed.language !== 'en' ? item.title : null,
+            original_summary: feed.language && feed.language !== 'en' ? item.description : null,
+            original_language: feed.language && feed.language !== 'en' ? feed.language : null,
             category: classification.primary_category,
             country_code: feed.country_code,
             city: classification.city,
@@ -1496,6 +1500,12 @@ serve(async (req) => {
     const result = {
       success: true,
       runId,
+      stats: {
+        feedsProcessed: feeds.length,
+        storiesCreated: totalCreated,
+        storiesMerged: totalMerged,
+        storiesDeleted: cleanupDeleted,
+      },
       feedsProcessed: feeds.length,
       totalFeeds: allFeeds.length,
       storiesCreated: totalCreated,

@@ -28,7 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useTTS } from "@/hooks/use-tts";
 import { toast } from "sonner";
-import { IngestionStatusPanel } from "@/components/IngestionStatusPanel";
+import { IngestionPipelineViewer } from "@/components/IngestionPipelineViewer";
 // All 28 States of India
 const INDIAN_STATES = [
   { id: "andhra-pradesh", name: "Andhra Pradesh", code: "AP", languages: ["te", "en"], capital: "Amaravati", type: "state" },
@@ -735,50 +735,7 @@ export default function IndiaStates() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isIngesting, setIsIngesting] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
-  // Manual RSS ingestion trigger using supabase.functions.invoke
-  const handleTriggerIngestion = useCallback(async () => {
-    setIsIngesting(true);
-    toast.loading("Starting news ingestion...", { id: "ingestion" });
-    
-    try {
-      const { data, error } = await supabase.functions.invoke("ingest-rss");
-      
-      if (error) {
-        console.error("Ingestion error:", error);
-        toast.error("Ingestion failed", {
-          id: "ingestion",
-          description: error.message || "Unknown error occurred",
-        });
-        return;
-      }
-      
-      console.log("Ingestion completed:", data);
-      
-      // Show success with stats
-      const storiesCreated = data?.stats?.storiesCreated || 0;
-      const storiesMerged = data?.stats?.storiesMerged || 0;
-      const feedsProcessed = data?.stats?.feedsProcessed || 0;
-      
-      toast.success("News ingestion complete!", {
-        id: "ingestion",
-        description: `${feedsProcessed} feeds processed, ${storiesCreated} new stories, ${storiesMerged} merged`,
-      });
-      
-      // Refresh stats after ingestion
-      await refetch();
-    } catch (err) {
-      console.error("Ingestion error:", err);
-      toast.error("Ingestion failed", {
-        id: "ingestion",
-        description: err instanceof Error ? err.message : "Network error",
-      });
-    } finally {
-      setIsIngesting(false);
-    }
-  }, [refetch]);
 
   // Filter states
   const filteredStates = useMemo(() => {
@@ -879,34 +836,6 @@ export default function IndiaStates() {
                   <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
                   {formatTime(lastUpdated)}
                 </Button>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={handleTriggerIngestion}
-                        disabled={isIngesting}
-                        className="gap-1.5 bg-primary"
-                      >
-                        {isIngesting ? (
-                          <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            Fetching...
-                          </>
-                        ) : (
-                          <>
-                            <Radio className="w-3.5 h-3.5" />
-                            Fetch News
-                          </>
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p className="text-xs">Manually trigger RSS feed ingestion from all {overallStats?.totalFeeds || 150}+ sources</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
             </div>
 
@@ -975,10 +904,10 @@ export default function IndiaStates() {
           </div>
         </section>
 
-        {/* Ingestion Status Panel */}
+        {/* Ingestion Pipeline Viewer */}
         <section className="border-b border-border/50 bg-muted/10">
           <div className="container mx-auto max-w-7xl px-4 py-4">
-            <IngestionStatusPanel />
+            <IngestionPipelineViewer onIngestionComplete={refetch} />
           </div>
         </section>
 
