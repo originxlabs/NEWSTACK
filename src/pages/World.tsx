@@ -970,11 +970,11 @@ export default function World() {
                       size="sm"
                       className="gap-1.5"
                       onClick={() => {
-                        const continent = GEO_HIERARCHY.find(c => c.countries.some(co => co.code === code));
-                        if (continent) {
-                          setSelectedContinent(continent);
-                          setSelectedCountry(country);
-                          setCurrentLevel("country");
+                        // Navigate directly to dedicated pages for India
+                        if (code === "IN") {
+                          navigate("/india");
+                        } else {
+                          navigate(`/world/${code.toLowerCase()}`);
                         }
                       }}
                     >

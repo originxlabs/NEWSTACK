@@ -38,6 +38,28 @@ const COUNTRY_INFO: Record<string, { name: string; flag: string }> = {
   MY: { name: "Malaysia", flag: "🇲🇾" },
   PH: { name: "Philippines", flag: "🇵🇭" },
   QA: { name: "Qatar", flag: "🇶🇦" },
+  // Middle East
+  IR: { name: "Iran", flag: "🇮🇷" },
+  IQ: { name: "Iraq", flag: "🇮🇶" },
+  AF: { name: "Afghanistan", flag: "🇦🇫" },
+  // Central Asia
+  KZ: { name: "Kazakhstan", flag: "🇰🇿" },
+  UZ: { name: "Uzbekistan", flag: "🇺🇿" },
+  TM: { name: "Turkmenistan", flag: "🇹🇲" },
+  TJ: { name: "Tajikistan", flag: "🇹🇯" },
+  KG: { name: "Kyrgyzstan", flag: "🇰🇬" },
+  // South America
+  AR: { name: "Argentina", flag: "🇦🇷" },
+  // Europe
+  PL: { name: "Poland", flag: "🇵🇱" },
+  UA: { name: "Ukraine", flag: "🇺🇦" },
+  TR: { name: "Turkey", flag: "🇹🇷" },
+  // Southeast Asia
+  KH: { name: "Cambodia", flag: "🇰🇭" },
+  MM: { name: "Myanmar", flag: "🇲🇲" },
+  LA: { name: "Laos", flag: "🇱🇦" },
+  NP: { name: "Nepal", flag: "🇳🇵" },
+  LK: { name: "Sri Lanka", flag: "🇱🇰" },
 };
 
 export default function CountryPage() {

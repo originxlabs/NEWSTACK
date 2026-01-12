@@ -2403,6 +2403,466 @@ export const COUNTRY_PROVINCES: Record<string, ProvinceConfig[]> = {
       population: 1800000,
       area: 2590
     }
+  ],
+
+  // Iran - Ostans (Provinces)
+  IR: [
+    {
+      id: "tehran",
+      name: "Tehran",
+      capital: "Tehran",
+      capitalCoordinates: { lat: 35.6892, lng: 51.3890 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "fa",
+      majorCities: ["Tehran", "Rey", "Karaj", "Shemiran"],
+      population: 14160000,
+      area: 18814
+    },
+    {
+      id: "isfahan",
+      name: "Isfahan",
+      capital: "Isfahan",
+      capitalCoordinates: { lat: 32.6546, lng: 51.6680 },
+      flag: "🕌",
+      flagEmoji: "🕌",
+      language: "fa",
+      majorCities: ["Isfahan", "Kashan", "Najafabad", "Khomeyni Shahr"],
+      population: 5120850,
+      area: 107018
+    },
+    {
+      id: "fars",
+      name: "Fars",
+      capital: "Shiraz",
+      capitalCoordinates: { lat: 29.5918, lng: 52.5836 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "fa",
+      majorCities: ["Shiraz", "Marvdasht", "Kazerun", "Jahrom"],
+      population: 4851274,
+      area: 122608
+    },
+    {
+      id: "khorasan-razavi",
+      name: "Razavi Khorasan",
+      capital: "Mashhad",
+      capitalCoordinates: { lat: 36.2605, lng: 59.6168 },
+      flag: "🕌",
+      flagEmoji: "🕌",
+      language: "fa",
+      majorCities: ["Mashhad", "Neyshabur", "Sabzevar", "Torbat-e Heydarieh"],
+      population: 6434501,
+      area: 118851
+    },
+    {
+      id: "khuzestan",
+      name: "Khuzestan",
+      capital: "Ahvaz",
+      capitalCoordinates: { lat: 31.3183, lng: 48.6706 },
+      flag: "🛢️",
+      flagEmoji: "🛢️",
+      language: "fa",
+      languages: ["fa", "ar"],
+      majorCities: ["Ahvaz", "Abadan", "Khorramshahr", "Dezful"],
+      population: 4710509,
+      area: 64055
+    },
+    {
+      id: "east-azerbaijan",
+      name: "East Azerbaijan",
+      capital: "Tabriz",
+      capitalCoordinates: { lat: 38.0800, lng: 46.2919 },
+      flag: "⛰️",
+      flagEmoji: "⛰️",
+      language: "az",
+      languages: ["az", "fa"],
+      majorCities: ["Tabriz", "Maragheh", "Marand", "Ahar"],
+      population: 3909652,
+      area: 45651
+    }
+  ],
+
+  // Iraq - Governorates (Muhafazat)
+  IQ: [
+    {
+      id: "baghdad",
+      name: "Baghdad",
+      capital: "Baghdad",
+      capitalCoordinates: { lat: 33.3152, lng: 44.3661 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "ar",
+      majorCities: ["Baghdad", "Sadr City", "Kadhimiya"],
+      population: 8126755,
+      area: 4555
+    },
+    {
+      id: "basra",
+      name: "Basra",
+      capital: "Basra",
+      capitalCoordinates: { lat: 30.5085, lng: 47.7804 },
+      flag: "🛢️",
+      flagEmoji: "🛢️",
+      language: "ar",
+      majorCities: ["Basra", "Zubayr", "Abu Al-Khaseeb"],
+      population: 2772000,
+      area: 19070
+    },
+    {
+      id: "erbil",
+      name: "Erbil",
+      capital: "Erbil",
+      capitalCoordinates: { lat: 36.1901, lng: 44.0091 },
+      flag: "🏰",
+      flagEmoji: "🏰",
+      language: "ku",
+      languages: ["ku", "ar"],
+      majorCities: ["Erbil", "Soran", "Shaqlawa"],
+      population: 2009367,
+      area: 15074
+    },
+    {
+      id: "ninawa",
+      name: "Nineveh",
+      capital: "Mosul",
+      capitalCoordinates: { lat: 36.3350, lng: 43.1189 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "ar",
+      majorCities: ["Mosul", "Tal Afar", "Sinjar"],
+      population: 3729998,
+      area: 37323
+    },
+    {
+      id: "sulaymaniyah",
+      name: "Sulaymaniyah",
+      capital: "Sulaymaniyah",
+      capitalCoordinates: { lat: 35.5570, lng: 45.4353 },
+      flag: "⛰️",
+      flagEmoji: "⛰️",
+      language: "ku",
+      majorCities: ["Sulaymaniyah", "Halabja", "Ranya"],
+      population: 2199500,
+      area: 17023
+    },
+    {
+      id: "karbala",
+      name: "Karbala",
+      capital: "Karbala",
+      capitalCoordinates: { lat: 32.6160, lng: 44.0249 },
+      flag: "🕌",
+      flagEmoji: "🕌",
+      language: "ar",
+      majorCities: ["Karbala", "Al-Hindiyah"],
+      population: 1218732,
+      area: 5034
+    }
+  ],
+
+  // Afghanistan - Provinces (Welayat)
+  AF: [
+    {
+      id: "kabul",
+      name: "Kabul",
+      capital: "Kabul",
+      capitalCoordinates: { lat: 34.5553, lng: 69.2075 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "ps",
+      languages: ["ps", "fa"],
+      majorCities: ["Kabul", "Paghman", "Mir Bacha Kot"],
+      population: 4635000,
+      area: 4462
+    },
+    {
+      id: "herat",
+      name: "Herat",
+      capital: "Herat",
+      capitalCoordinates: { lat: 34.3510, lng: 62.2041 },
+      flag: "🕌",
+      flagEmoji: "🕌",
+      language: "fa",
+      majorCities: ["Herat", "Islam Qala", "Ghoryan"],
+      population: 1967000,
+      area: 54778
+    },
+    {
+      id: "balkh",
+      name: "Balkh",
+      capital: "Mazar-i-Sharif",
+      capitalCoordinates: { lat: 36.7096, lng: 67.1062 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "fa",
+      languages: ["fa", "uz"],
+      majorCities: ["Mazar-i-Sharif", "Balkh", "Hairatan"],
+      population: 1476000,
+      area: 17249
+    },
+    {
+      id: "kandahar",
+      name: "Kandahar",
+      capital: "Kandahar",
+      capitalCoordinates: { lat: 31.6289, lng: 65.7372 },
+      flag: "🏜️",
+      flagEmoji: "🏜️",
+      language: "ps",
+      majorCities: ["Kandahar", "Spin Boldak", "Panjwai"],
+      population: 1343000,
+      area: 54844
+    },
+    {
+      id: "nangarhar",
+      name: "Nangarhar",
+      capital: "Jalalabad",
+      capitalCoordinates: { lat: 34.4305, lng: 70.4515 },
+      flag: "⛰️",
+      flagEmoji: "⛰️",
+      language: "ps",
+      majorCities: ["Jalalabad", "Torkham", "Behsud"],
+      population: 1667000,
+      area: 7727
+    }
+  ],
+
+  // Kazakhstan - Regions (Oblystar)
+  KZ: [
+    {
+      id: "almaty-city",
+      name: "Almaty",
+      capital: "Almaty",
+      capitalCoordinates: { lat: 43.2220, lng: 76.8512 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "kk",
+      languages: ["kk", "ru"],
+      majorCities: ["Almaty"],
+      population: 1977011,
+      area: 682
+    },
+    {
+      id: "astana",
+      name: "Astana",
+      capital: "Astana",
+      capitalCoordinates: { lat: 51.1694, lng: 71.4491 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "kk",
+      languages: ["kk", "ru"],
+      majorCities: ["Astana"],
+      population: 1184469,
+      area: 797
+    },
+    {
+      id: "shymkent",
+      name: "Shymkent",
+      capital: "Shymkent",
+      capitalCoordinates: { lat: 42.3167, lng: 69.5972 },
+      flag: "🌇",
+      flagEmoji: "🌇",
+      language: "kk",
+      majorCities: ["Shymkent"],
+      population: 1074000,
+      area: 1170
+    },
+    {
+      id: "east-kazakhstan",
+      name: "East Kazakhstan",
+      capital: "Oskemen",
+      capitalCoordinates: { lat: 49.9454, lng: 82.6084 },
+      flag: "⛰️",
+      flagEmoji: "⛰️",
+      language: "kk",
+      majorCities: ["Oskemen", "Semey", "Ridder"],
+      population: 1364900,
+      area: 283226
+    }
+  ],
+
+  // Uzbekistan - Regions (Viloyatlar)
+  UZ: [
+    {
+      id: "tashkent-city",
+      name: "Tashkent City",
+      capital: "Tashkent",
+      capitalCoordinates: { lat: 41.2995, lng: 69.2401 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "uz",
+      majorCities: ["Tashkent"],
+      population: 2571668,
+      area: 335
+    },
+    {
+      id: "samarkand",
+      name: "Samarkand",
+      capital: "Samarkand",
+      capitalCoordinates: { lat: 39.6542, lng: 66.9597 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "uz",
+      majorCities: ["Samarkand", "Kattakurgan", "Urgut"],
+      population: 3877000,
+      area: 16773
+    },
+    {
+      id: "bukhara",
+      name: "Bukhara",
+      capital: "Bukhara",
+      capitalCoordinates: { lat: 39.7681, lng: 64.4556 },
+      flag: "🕌",
+      flagEmoji: "🕌",
+      language: "uz",
+      majorCities: ["Bukhara", "Kogon", "Gazli"],
+      population: 1930000,
+      area: 39400
+    },
+    {
+      id: "fergana",
+      name: "Fergana",
+      capital: "Fergana",
+      capitalCoordinates: { lat: 40.3842, lng: 71.7870 },
+      flag: "🌾",
+      flagEmoji: "🌾",
+      language: "uz",
+      majorCities: ["Fergana", "Kokand", "Margilan", "Andijan"],
+      population: 3687000,
+      area: 6800
+    }
+  ],
+
+  // Turkmenistan - Regions (Welaýatlar)
+  TM: [
+    {
+      id: "ashgabat",
+      name: "Ashgabat",
+      capital: "Ashgabat",
+      capitalCoordinates: { lat: 37.9601, lng: 58.3261 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "tk",
+      majorCities: ["Ashgabat"],
+      population: 1031992,
+      area: 470
+    },
+    {
+      id: "lebap",
+      name: "Lebap",
+      capital: "Turkmenabat",
+      capitalCoordinates: { lat: 39.0729, lng: 63.5787 },
+      flag: "🏭",
+      flagEmoji: "🏭",
+      language: "tk",
+      majorCities: ["Turkmenabat", "Atamurat", "Farap"],
+      population: 1400000,
+      area: 93730
+    },
+    {
+      id: "mary",
+      name: "Mary",
+      capital: "Mary",
+      capitalCoordinates: { lat: 37.5936, lng: 61.8283 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "tk",
+      majorCities: ["Mary", "Bayramali"],
+      population: 1950000,
+      area: 87150
+    }
+  ],
+
+  // Tajikistan - Regions (Viloyatho)
+  TJ: [
+    {
+      id: "dushanbe",
+      name: "Dushanbe",
+      capital: "Dushanbe",
+      capitalCoordinates: { lat: 38.5598, lng: 68.7870 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "tg",
+      majorCities: ["Dushanbe"],
+      population: 863400,
+      area: 125
+    },
+    {
+      id: "sughd",
+      name: "Sughd",
+      capital: "Khujand",
+      capitalCoordinates: { lat: 40.2828, lng: 69.6170 },
+      flag: "⛰️",
+      flagEmoji: "⛰️",
+      language: "tg",
+      majorCities: ["Khujand", "Istaravshan", "Panjakent"],
+      population: 2700000,
+      area: 25400
+    },
+    {
+      id: "khatlon",
+      name: "Khatlon",
+      capital: "Bokhtar",
+      capitalCoordinates: { lat: 37.8368, lng: 68.7770 },
+      flag: "🌾",
+      flagEmoji: "🌾",
+      language: "tg",
+      majorCities: ["Bokhtar", "Kulob", "Danghara"],
+      population: 3350000,
+      area: 24800
+    }
+  ],
+
+  // Kyrgyzstan - Regions (Oblasttar)
+  KG: [
+    {
+      id: "bishkek",
+      name: "Bishkek",
+      capital: "Bishkek",
+      capitalCoordinates: { lat: 42.8746, lng: 74.5698 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "ky",
+      languages: ["ky", "ru"],
+      majorCities: ["Bishkek"],
+      population: 1053915,
+      area: 127
+    },
+    {
+      id: "osh-city",
+      name: "Osh",
+      capital: "Osh",
+      capitalCoordinates: { lat: 40.5283, lng: 72.7985 },
+      flag: "🏔️",
+      flagEmoji: "🏔️",
+      language: "ky",
+      majorCities: ["Osh"],
+      population: 299500,
+      area: 182
+    },
+    {
+      id: "chuy",
+      name: "Chuy",
+      capital: "Bishkek",
+      capitalCoordinates: { lat: 42.8746, lng: 74.5698 },
+      flag: "🌾",
+      flagEmoji: "🌾",
+      language: "ky",
+      majorCities: ["Tokmok", "Kant", "Kara-Balta"],
+      population: 959800,
+      area: 20200
+    },
+    {
+      id: "issyk-kul",
+      name: "Issyk-Kul",
+      capital: "Karakol",
+      capitalCoordinates: { lat: 42.4907, lng: 78.3936 },
+      flag: "🏔️",
+      flagEmoji: "🏔️",
+      language: "ky",
+      majorCities: ["Karakol", "Cholpon-Ata", "Balykchy"],
+      population: 489900,
+      area: 43144
+    }
   ]
 };
 
@@ -2460,6 +2920,16 @@ export const ADMINISTRATIVE_TERMS: Record<string, { singular: string; plural: st
   LA: { singular: "Province", plural: "Provinces" },
   NP: { singular: "Province", plural: "Provinces" },
   LK: { singular: "Province", plural: "Provinces" },
+  
+  // Middle East & Central Asia
+  IR: { singular: "Ostan", plural: "Ostans" },
+  IQ: { singular: "Governorate", plural: "Governorates" },
+  AF: { singular: "Province", plural: "Provinces" },
+  KZ: { singular: "Region", plural: "Regions" },
+  UZ: { singular: "Viloyat", plural: "Viloyatlar" },
+  TM: { singular: "Welaýat", plural: "Welaýatlar" },
+  TJ: { singular: "Viloyat", plural: "Viloyatho" },
+  KG: { singular: "Oblast", plural: "Oblasttar" },
   
   // Default fallback
   DEFAULT: { singular: "Region", plural: "Regions" }
@@ -3099,6 +3569,120 @@ export const COUNTRY_METADATA: Record<string, CountryMetadata> = {
     currencySymbol: "Rs",
     callingCode: "+94",
     drivingSide: "left"
+  },
+  // Middle East
+  IR: {
+    code: "IR",
+    name: "Iran",
+    flag: "🇮🇷",
+    capital: "Tehran",
+    capitalCoordinates: { lat: 35.6892, lng: 51.3890 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 83992949,
+    currency: "IRR",
+    currencySymbol: "﷼",
+    callingCode: "+98",
+    drivingSide: "right"
+  },
+  IQ: {
+    code: "IQ",
+    name: "Iraq",
+    flag: "🇮🇶",
+    capital: "Baghdad",
+    capitalCoordinates: { lat: 33.3152, lng: 44.3661 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 40222493,
+    currency: "IQD",
+    currencySymbol: "ع.د",
+    callingCode: "+964",
+    drivingSide: "right"
+  },
+  AF: {
+    code: "AF",
+    name: "Afghanistan",
+    flag: "🇦🇫",
+    capital: "Kabul",
+    capitalCoordinates: { lat: 34.5553, lng: 69.2075 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 38928346,
+    currency: "AFN",
+    currencySymbol: "؋",
+    callingCode: "+93",
+    drivingSide: "right"
+  },
+  // Central Asia
+  KZ: {
+    code: "KZ",
+    name: "Kazakhstan",
+    flag: "🇰🇿",
+    capital: "Astana",
+    capitalCoordinates: { lat: 51.1694, lng: 71.4491 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 18776707,
+    currency: "KZT",
+    currencySymbol: "₸",
+    callingCode: "+7",
+    drivingSide: "right"
+  },
+  UZ: {
+    code: "UZ",
+    name: "Uzbekistan",
+    flag: "🇺🇿",
+    capital: "Tashkent",
+    capitalCoordinates: { lat: 41.2995, lng: 69.2401 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 33469203,
+    currency: "UZS",
+    currencySymbol: "лв",
+    callingCode: "+998",
+    drivingSide: "right"
+  },
+  TM: {
+    code: "TM",
+    name: "Turkmenistan",
+    flag: "🇹🇲",
+    capital: "Ashgabat",
+    capitalCoordinates: { lat: 37.9601, lng: 58.3261 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 6031200,
+    currency: "TMT",
+    currencySymbol: "m",
+    callingCode: "+993",
+    drivingSide: "right"
+  },
+  TJ: {
+    code: "TJ",
+    name: "Tajikistan",
+    flag: "🇹🇯",
+    capital: "Dushanbe",
+    capitalCoordinates: { lat: 38.5598, lng: 68.7870 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 9537645,
+    currency: "TJS",
+    currencySymbol: "SM",
+    callingCode: "+992",
+    drivingSide: "right"
+  },
+  KG: {
+    code: "KG",
+    name: "Kyrgyzstan",
+    flag: "🇰🇬",
+    capital: "Bishkek",
+    capitalCoordinates: { lat: 42.8746, lng: 74.5698 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 6524195,
+    currency: "KGS",
+    currencySymbol: "лв",
+    callingCode: "+996",
+    drivingSide: "right"
   }
 };
 
@@ -3279,6 +3863,29 @@ export const COUNTRY_LANGUAGES: Record<string, CountryLanguage[]> = {
     { code: "ar", name: "Arabic", nativeName: "العربية", script: "Arabic" },
     { code: "ku", name: "Kurdish", nativeName: "کوردی" },
   ],
+  AF: [
+    { code: "ps", name: "Pashto", nativeName: "پښتو", script: "Arabic" },
+    { code: "fa", name: "Dari", nativeName: "دری", script: "Arabic" },
+  ],
+  KZ: [
+    { code: "kk", name: "Kazakh", nativeName: "Қазақша", script: "Cyrillic" },
+    { code: "ru", name: "Russian", nativeName: "Русский" },
+  ],
+  UZ: [
+    { code: "uz", name: "Uzbek", nativeName: "Oʻzbekcha" },
+    { code: "ru", name: "Russian", nativeName: "Русский" },
+  ],
+  TM: [
+    { code: "tk", name: "Turkmen", nativeName: "Türkmen" },
+  ],
+  TJ: [
+    { code: "tg", name: "Tajik", nativeName: "Тоҷикӣ", script: "Cyrillic" },
+    { code: "ru", name: "Russian", nativeName: "Русский" },
+  ],
+  KG: [
+    { code: "ky", name: "Kyrgyz", nativeName: "Кыргызча", script: "Cyrillic" },
+    { code: "ru", name: "Russian", nativeName: "Русский" },
+  ],
 };
 
 // RSS feed sources by country for local news
@@ -3457,6 +4064,42 @@ export const COUNTRY_LOCAL_RSS: Record<string, { name: string; url: string; lang
     { name: "Daily Mirror Sri Lanka", url: "https://www.dailymirror.lk/RSS_Feed/rss", language: "en" },
     { name: "The Island", url: "https://island.lk/feed/", language: "en" },
     { name: "Ada Derana", url: "https://www.adaderana.lk/rss/", language: "en" },
+  ],
+  // Middle East
+  IR: [
+    { name: "Tehran Times", url: "https://www.tehrantimes.com/rss", language: "en" },
+    { name: "Iran Daily", url: "https://www.iran-daily.com/rss", language: "en" },
+    { name: "Press TV", url: "https://www.presstv.ir/rss", language: "en" },
+  ],
+  IQ: [
+    { name: "Iraq News", url: "https://www.iraqnews.com/feed/", language: "en" },
+    { name: "Kurdistan24", url: "https://www.kurdistan24.net/rss", language: "en" },
+    { name: "Iraqi News Agency", url: "https://ina.iq/rss/", language: "ar" },
+  ],
+  AF: [
+    { name: "TOLOnews", url: "https://tolonews.com/rss", language: "en" },
+    { name: "Pajhwok Afghan News", url: "https://pajhwok.com/feed/", language: "en" },
+    { name: "Khaama Press", url: "https://www.khaama.com/feed/", language: "en" },
+  ],
+  // Central Asia
+  KZ: [
+    { name: "Astana Times", url: "https://astanatimes.com/feed/", language: "en" },
+    { name: "Tengri News", url: "https://en.tengrinews.kz/rss/", language: "en" },
+    { name: "Inform.kz", url: "https://www.inform.kz/rss", language: "en" },
+  ],
+  UZ: [
+    { name: "UzDaily", url: "https://www.uzdaily.com/rss", language: "en" },
+    { name: "Gazeta.uz", url: "https://www.gazeta.uz/rss", language: "en" },
+  ],
+  TM: [
+    { name: "Chronicles of Turkmenistan", url: "https://www.hronikatm.com/feed/", language: "en" },
+  ],
+  TJ: [
+    { name: "Asia-Plus", url: "https://asiaplustj.info/en/rss", language: "en" },
+  ],
+  KG: [
+    { name: "24.kg", url: "https://24.kg/rss/", language: "en" },
+    { name: "Kabar", url: "https://kabar.kg/rss/", language: "en" },
   ],
 };
 
