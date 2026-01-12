@@ -39,6 +39,7 @@ import {
 } from "@/lib/india-states-config";
 import { inferDistrictFromText, normalizeLanguageCode, type InferredDistrictResult } from "@/lib/story-geo";
 import { IngestionRunHistory } from "@/components/IngestionRunHistory";
+import { IngestionTimelineChart } from "@/components/IngestionTimelineChart";
 
 interface Story {
   id: string;
@@ -425,6 +426,9 @@ export default function StatePage() {
           onIngestionComplete={fetchStories}
           className="mb-4"
         />
+
+        {/* Timeline Chart */}
+        <IngestionTimelineChart className="mb-4" />
 
         {/* Run History */}
         <IngestionRunHistory className="mb-6" />
