@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   MapPin, TrendingUp, Globe2, Newspaper, Radio, 
   Languages, Building2, ChevronRight, RefreshCw,
   Search, Filter, BarChart3, ArrowLeft, Clock,
   Users, Zap, ChevronDown, Volume2, Globe, Layers,
-  CheckCircle2, AlertCircle, Loader2, ExternalLink
+  CheckCircle2, AlertCircle, Loader2, ExternalLink, Home
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -31,6 +31,7 @@ import { ActiveFeedsPanel } from "@/components/ActiveFeedsPanel";
 import { DistrictDrilldown } from "@/components/DistrictDrilldown";
 import { CityDrilldown } from "@/components/CityDrilldown";
 import { StateFlagBadge } from "@/components/StateFlagBadge";
+import { BreadcrumbNav, BreadcrumbItem } from "@/components/BreadcrumbNav";
 import { 
   getStateConfig, 
   getLanguageConfig, 
@@ -309,16 +310,34 @@ export default function StatePage() {
       <Header />
       
       <main className="container mx-auto px-4 py-6">
-        {/* Back navigation */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/india")}
-          className="mb-4 gap-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to India
-        </Button>
+        {/* Breadcrumb Navigation */}
+        <BreadcrumbNav
+          items={[
+            { id: "home", label: "Home", path: "/", type: "home" },
+            { id: "india", label: "India", path: "/india", type: "country", icon: <span>🇮🇳</span> },
+            { id: stateId || "state", label: stateName, type: "state" },
+            ...(selectedDistrict !== "all" ? [{ id: selectedDistrict, label: selectedDistrict, type: "district" as const }] : []),
+            ...(selectedCity !== "all" ? [{ id: selectedCity, label: selectedCity, type: "city" as const }] : []),
+          ]}
+          onNavigate={(item, index) => {
+            if (item.type === "state") {
+              setSelectedDistrict("all");
+              setSelectedCity("all");
+            } else if (item.type === "district") {
+              setSelectedCity("all");
+            }
+          }}
+          onGoBack={() => {
+            if (selectedCity !== "all") {
+              setSelectedCity("all");
+            } else if (selectedDistrict !== "all") {
+              setSelectedDistrict("all");
+            } else {
+              navigate("/india");
+            }
+          }}
+          className="mb-6"
+        />
 
         {/* State Header */}
         <div className="mb-8">
