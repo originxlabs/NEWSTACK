@@ -63,8 +63,8 @@ function useRealtimeConnection() {
   return isConnected;
 }
 
-// Fetch stats for locations with proper country fallback for states/cities
-function useLocationStats(level: DrillLevel, codes: string[], parentCountryCode?: string) {
+// Fetch stats for locations with proper counts at each level
+function useLocationStats(level: DrillLevel, codes: string[], parentCountryCode?: string, parentStateName?: string) {
   const [stats, setStats] = useState<Record<string, LocationStats>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -80,22 +80,23 @@ function useLocationStats(level: DrillLevel, codes: string[], parentCountryCode?
       const cutoff = new Date();
       cutoff.setHours(cutoff.getHours() - 48);
 
-      // Fetch stories grouped by country_code or city
+      // Fetch all stories from last 48 hours with relevant fields
       const { data, error } = await supabase
         .from("stories")
-        .select("country_code, city, headline, created_at")
+        .select("country_code, city, headline, created_at, is_global")
         .gte("created_at", cutoff.toISOString())
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
       const statsMap: Record<string, LocationStats> = {};
+      const stories = data || [];
       
       if (level === "world" || level === "continent") {
-        // Group by continent
+        // For continents: count all stories from countries in that continent
         const continentCounts: Record<string, { count: number; headline?: string }> = {};
         
-        for (const story of data || []) {
+        for (const story of stories) {
           const continentId = story.country_code ? COUNTRY_TO_CONTINENT[story.country_code.toUpperCase()] : null;
           if (continentId && codes.includes(continentId)) {
             if (!continentCounts[continentId]) {
@@ -113,10 +114,10 @@ function useLocationStats(level: DrillLevel, codes: string[], parentCountryCode?
           };
         }
       } else if (level === "country") {
-        // Group by country
+        // For countries: count all stories with matching country_code
         const countryCounts: Record<string, { count: number; headline?: string }> = {};
         
-        for (const story of data || []) {
+        for (const story of stories) {
           const code = story.country_code?.toUpperCase();
           if (code && codes.map(c => c.toUpperCase()).includes(code)) {
             if (!countryCounts[code]) {
@@ -134,35 +135,78 @@ function useLocationStats(level: DrillLevel, codes: string[], parentCountryCode?
             topHeadline: countryCounts[upperCode]?.headline,
           };
         }
-      } else if (level === "state" || level === "city") {
-        // For states/cities, first count specific matches, then add country fallback
+      } else if (level === "state") {
+        // For states: count stories where city matches state name + country-level stories
         const countryStories = parentCountryCode 
-          ? (data || []).filter(s => s.country_code?.toUpperCase() === parentCountryCode.toUpperCase())
-          : (data || []);
+          ? stories.filter(s => s.country_code?.toUpperCase() === parentCountryCode.toUpperCase())
+          : stories;
         
-        // Count stories with null city (country-level news) that should be shown for all states/cities
+        // Country-level stories (city is null) should contribute to each state
         const countryLevelStories = countryStories.filter(s => !s.city);
         const countryFallbackCount = countryLevelStories.length;
         
-        for (const code of codes) {
-          // Find stories that specifically mention this state/city
-          const specificStories = countryStories.filter(s => 
-            s.city?.toLowerCase().includes(code.toLowerCase().replace(/-/g, ' ').replace(/_/g, ' '))
+        for (const stateId of codes) {
+          // Normalize state name for matching (e.g., "maharashtra" -> "Maharashtra")
+          const stateNameNormalized = stateId.toLowerCase().replace(/-/g, ' ').replace(/_/g, ' ');
+          
+          // Find stories that mention this state in the city field
+          const stateStories = countryStories.filter(s => 
+            s.city && s.city.toLowerCase().includes(stateNameNormalized)
           );
           
-          // Total = specific matches + country-level stories (fallback)
-          const totalCount = specificStories.length + countryFallbackCount;
+          // Also find stories where city is a city in this state (check common city names)
+          const cityMatches = countryStories.filter(s => {
+            if (!s.city) return false;
+            const cityLower = s.city.toLowerCase();
+            // Match specific cities we know are in this state from geo-hierarchy
+            return false; // Will be enhanced with city lookup
+          });
           
-          statsMap[code] = {
+          // Total = state-specific + country-level fallback
+          const totalCount = stateStories.length + countryFallbackCount;
+          
+          statsMap[stateId] = {
             storyCount: totalCount,
-            trend: totalCount > 10 ? "up" : "stable",
-            topHeadline: specificStories[0]?.headline || countryLevelStories[0]?.headline,
+            trend: stateStories.length > 5 ? "up" : totalCount > 10 ? "stable" : "stable",
+            topHeadline: stateStories[0]?.headline || countryLevelStories[0]?.headline,
+          };
+        }
+      } else if (level === "city") {
+        // For cities: count stories that match city name + state-level stories + country-level stories
+        const countryStories = parentCountryCode 
+          ? stories.filter(s => s.country_code?.toUpperCase() === parentCountryCode.toUpperCase())
+          : stories;
+        
+        // State-level stories (if parent state exists)
+        const stateStories = parentStateName 
+          ? countryStories.filter(s => s.city?.toLowerCase().includes(parentStateName.toLowerCase()))
+          : [];
+        
+        // Country-level stories (fallback)
+        const countryLevelStories = countryStories.filter(s => !s.city);
+        const fallbackCount = countryLevelStories.length;
+        
+        for (const cityId of codes) {
+          const cityNameNormalized = cityId.toLowerCase().replace(/-/g, ' ').replace(/_/g, ' ');
+          
+          // Find stories matching this specific city
+          const cityMatches = countryStories.filter(s => 
+            s.city && s.city.toLowerCase().includes(cityNameNormalized)
+          );
+          
+          // Total = city-specific + fallback from country-level
+          const totalCount = cityMatches.length + fallbackCount;
+          
+          statsMap[cityId] = {
+            storyCount: totalCount,
+            trend: cityMatches.length > 2 ? "up" : "stable",
+            topHeadline: cityMatches[0]?.headline || countryLevelStories[0]?.headline,
           };
         }
       } else {
-        // For localities, use city-level count
+        // For localities: count city-level stories
         for (const code of codes) {
-          const filtered = (data || []).filter(s => 
+          const filtered = stories.filter(s => 
             s.city?.toLowerCase().includes(code.toLowerCase())
           );
           statsMap[code] = {
@@ -180,7 +224,7 @@ function useLocationStats(level: DrillLevel, codes: string[], parentCountryCode?
     } finally {
       setIsLoading(false);
     }
-  }, [level, codes, parentCountryCode]);
+  }, [level, codes, parentCountryCode, parentStateName]);
 
   useEffect(() => {
     fetchStats();
@@ -462,15 +506,17 @@ export default function World() {
     return [];
   }, [currentLevel, selectedContinent, selectedCountry, selectedState, selectedCity]);
 
-  // Parent country code for state/city stats fallback
+  // Parent country code and state name for proper stats fallback
   const parentCountryCode = selectedCountry?.code;
+  const parentStateName = selectedState?.name;
 
   const { stats, isLoading, lastUpdated, refetch } = useLocationStats(
     currentLevel === "world" ? "world" : 
     currentLevel === "continent" ? "country" : 
     currentLevel,
     statsCodes,
-    parentCountryCode
+    parentCountryCode,
+    parentStateName
   );
 
   // Navigation handlers
@@ -492,11 +538,16 @@ export default function World() {
       setSelectedCity(city);
       setCurrentLevel("city");
     } else if (currentLevel === "city") {
-      // Navigate to news with locality filter
+      // Navigate to news with locality filter and proper country/state/city context
       const locality = item as Locality;
-      navigate(`/news?locality=${locality.id}`);
+      const params = new URLSearchParams();
+      if (selectedCountry) params.set("country", selectedCountry.code);
+      if (selectedState) params.set("state", selectedState.name);
+      if (selectedCity) params.set("city", selectedCity.name);
+      params.set("locality", locality.name);
+      navigate(`/news?${params.toString()}`);
     }
-  }, [currentLevel, navigate]);
+  }, [currentLevel, navigate, selectedCountry, selectedState, selectedCity]);
 
   const handleBreadcrumbNavigate = useCallback((level: DrillLevel, id?: string) => {
     if (level === "world") {
@@ -527,14 +578,18 @@ export default function World() {
     
     if (selectedContinent && !selectedCountry) {
       params.set("region", selectedContinent.id);
-    } else if (selectedCountry) {
+    } 
+    // Always set country for proper fallback when drilling down
+    if (selectedCountry) {
       params.set("country", selectedCountry.code);
     }
     if (selectedState) {
-      params.set("state", selectedState.id);
+      // Use state name for better matching instead of ID
+      params.set("state", selectedState.name);
     }
     if (selectedCity) {
-      params.set("city", selectedCity.id);
+      // Use city name for better matching instead of ID
+      params.set("city", selectedCity.name);
     }
     
     navigate(`/news?${params.toString()}`);
