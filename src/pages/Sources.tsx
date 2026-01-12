@@ -7,8 +7,6 @@ import {
   TrendingUp, Search, Plus, Edit2, Trash2, Power, PowerOff,
   ExternalLink, Save, X, Loader2
 } from "lucide-react";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -502,9 +500,7 @@ export default function Sources() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-      
-      <main className="flex-1 container max-w-7xl mx-auto px-4 py-6 sm:py-8">
+      <main className="flex-1 p-6 sm:p-8">
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between gap-3 mb-3">
@@ -831,8 +827,6 @@ export default function Sources() {
           </div>
         )}
       </main>
-
-      <Footer />
 
       {/* Modals - Only rendered for owners */}
       {isOwnerOrSuperadmin && (
