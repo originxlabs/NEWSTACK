@@ -29,7 +29,10 @@ interface FetchNewsParams {
   country?: string;
   topic?: string;
   language?: string;
-  region?: string; // World region filter
+  region?: string; // World region/continent filter
+  state?: string; // State filter for drill-down
+  city?: string; // City filter for drill-down
+  locality?: string; // Locality filter for drill-down
   page?: number;
   pageSize?: number;
   query?: string;
@@ -67,6 +70,9 @@ async function fetchNews(params: FetchNewsParams): Promise<NewsResponse> {
       category: params.topic,
       country: params.country,
       region: params.region,
+      state: params.state,
+      city: params.city,
+      locality: params.locality,
       userCity: params.userCity,
       userState: params.userState,
       page: params.page || 1,
