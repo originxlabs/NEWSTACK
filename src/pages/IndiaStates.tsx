@@ -373,7 +373,7 @@ function useRealtimeConnection() {
   return isConnected;
 }
 
-// State Card Component with local news indicator and listen feature
+// State Card Component with local news indicator, listen feature, and translation
 function StateCard({ 
   state, 
   stats, 
@@ -386,7 +386,13 @@ function StateCard({
   const hasStories = (stats?.storyCount || 0) > 0;
   const hasLocalNews = stats?.hasLocalNews || false;
   const primaryLang = state.languages[0] || 'en';
+  const isNonEnglish = primaryLang !== 'en';
   const { speak, isPlaying, isLoading: isSpeaking, stop } = useTTS({ language: primaryLang });
+  
+  // Translation state
+  const [showTranslated, setShowTranslated] = useState(false);
+  const [translatedHeadline, setTranslatedHeadline] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
   
   const handleListen = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -394,6 +400,44 @@ function StateCard({
       stop();
     } else if (stats?.recentHeadlines[0]) {
       speak(stats.recentHeadlines[0]);
+    }
+  };
+  
+  const handleTranslate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // If already translated, just toggle display
+    if (translatedHeadline) {
+      setShowTranslated(!showTranslated);
+      return;
+    }
+    
+    // Translate the headline
+    const headline = stats?.recentHeadlines[0];
+    if (!headline) return;
+    
+    setIsTranslating(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-to-english`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ headline, summary: headline }),
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.headline_en) {
+          setTranslatedHeadline(data.headline_en);
+          setShowTranslated(true);
+        }
+      }
+    } catch (err) {
+      console.error("Translation failed:", err);
+    } finally {
+      setIsTranslating(false);
     }
   };
   
@@ -495,11 +539,44 @@ function StateCard({
             </div>
           )}
           
-          {/* Recent Headline */}
+          {/* Recent Headline with Translation Toggle */}
           {stats?.recentHeadlines[0] && (
-            <p className="text-[11px] text-muted-foreground mt-2 line-clamp-2 border-t pt-2 border-border/50">
-              {stats.recentHeadlines[0]}
-            </p>
+            <div className="mt-2 border-t pt-2 border-border/50">
+              <div className="flex items-center gap-1 mb-1">
+                {/* Translation Button - only for non-English states */}
+                {isNonEnglish && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={cn(
+                            "h-5 px-1.5 text-[9px] gap-1",
+                            showTranslated && "bg-primary/10 text-primary"
+                          )}
+                          onClick={handleTranslate}
+                          disabled={isTranslating}
+                        >
+                          {isTranslating ? (
+                            <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                          ) : (
+                            <Languages className="w-2.5 h-2.5" />
+                          )}
+                          {showTranslated ? "Original" : "English"}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-[10px]">
+                        {showTranslated ? `Show original ${LANGUAGE_NAMES[primaryLang]}` : "Translate to English"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground line-clamp-2">
+                {showTranslated && translatedHeadline ? translatedHeadline : stats.recentHeadlines[0]}
+              </p>
+            </div>
           )}
           
           <div className="flex items-center justify-end text-[10px] text-primary mt-2">
