@@ -71,6 +71,9 @@ interface StoryRequest {
   category?: string;
   country?: string;
   region?: string; // World region filter (north-america, europe, asia-pacific, middle-east, africa, south-america)
+  state?: string; // State/region filter for drill-down
+  city?: string; // City filter for drill-down
+  locality?: string; // Locality/area filter for drill-down
   userCity?: string;
   userState?: string;
   page?: number;
@@ -81,14 +84,18 @@ interface StoryRequest {
   dateTo?: string;
 }
 
-// Region to country code mapping
+// Region to country code mapping for all 7 continents
 const REGION_COUNTRIES: Record<string, string[]> = {
-  "north-america": ["US", "CA", "MX"],
-  "europe": ["GB", "FR", "DE", "IT", "ES", "NL", "BE", "CH", "AT", "SE", "NO", "DK", "FI", "PL", "PT", "IE", "GR", "CZ", "RO", "HU", "UA", "RU"],
+  "asia": ["CN", "JP", "KR", "IN", "ID", "PK", "BD", "VN", "TH", "MY", "PH", "MM", "NP", "LK", "KH", "LA", "SG", "BT", "MV", "BN", "TL", "MN", "KZ", "UZ", "TM", "KG", "TJ", "AF", "IR", "IQ", "SA", "AE", "QA", "KW", "BH", "OM", "YE", "JO", "LB", "SY", "PS", "IL", "TR", "GE", "AM", "AZ", "CY"],
+  "africa": ["NG", "EG", "ZA", "ET", "CD", "TZ", "KE", "UG", "DZ", "SD", "MA", "AO", "GH", "MZ", "MG", "CI", "CM", "NE", "BF", "ML", "MW", "ZM", "SN", "ZW", "TD", "SO", "SS", "RW", "TN", "GN", "BJ", "BI", "TG", "SL", "LR", "CF", "MR", "ER", "NA", "GM", "BW", "GA", "LS", "GW", "GQ", "MU", "SZ", "DJ", "KM", "CV", "ST", "SC"],
+  "europe": ["RU", "DE", "GB", "FR", "IT", "ES", "UA", "PL", "RO", "NL", "BE", "CZ", "GR", "PT", "SE", "HU", "BY", "AT", "CH", "RS", "BG", "DK", "FI", "SK", "NO", "IE", "HR", "MD", "BA", "AL", "LT", "MK", "SI", "LV", "EE", "ME", "LU", "MT", "IS", "AD", "MC", "LI", "SM", "VA"],
+  "north-america": ["US", "CA", "MX", "GT", "CU", "HT", "DO", "HN", "NI", "SV", "CR", "PA", "JM", "TT", "BZ", "BS", "BB", "LC", "GD", "VC", "AG", "DM", "KN"],
+  "south-america": ["BR", "AR", "CO", "PE", "VE", "CL", "EC", "BO", "PY", "UY", "GY", "SR"],
+  "oceania": ["AU", "PG", "NZ", "FJ", "SB", "VU", "NC", "PF", "WS", "GU", "KI", "FM", "TO", "PW", "MH"],
+  "antarctica": [],
+  // Legacy aliases for backward compatibility
   "asia-pacific": ["CN", "JP", "KR", "IN", "AU", "NZ", "SG", "MY", "TH", "VN", "PH", "ID", "TW", "HK", "PK", "BD", "LK", "NP"],
   "middle-east": ["AE", "SA", "IL", "TR", "IR", "IQ", "QA", "KW", "BH", "OM", "JO", "LB", "SY", "YE", "PS"],
-  "africa": ["ZA", "EG", "NG", "KE", "GH", "ET", "TZ", "UG", "MA", "DZ", "TN", "SN", "CI", "CM"],
-  "south-america": ["BR", "AR", "CL", "CO", "PE", "VE", "EC", "UY", "PY", "BO"],
 };
 
 // Verified sources list for accurate scoring
@@ -202,6 +209,9 @@ serve(async (req) => {
       category,
       country,
       region,
+      state,
+      city,
+      locality,
       userCity,
       userState,
       page = 1,
@@ -212,7 +222,7 @@ serve(async (req) => {
       dateTo,
     } = params;
 
-    console.log("Fetching stories:", { feedType, category, country, region, userCity, userState, page, sortBy, source });
+    console.log("Fetching stories:", { feedType, category, country, region, state, city, locality, userCity, userState, page, sortBy, source });
 
     // Calculate cutoff for stories
     const now = new Date();
@@ -259,11 +269,32 @@ serve(async (req) => {
       }
     }
 
-    // Apply feed type specific filters with improved local news logic
-    if (region && REGION_COUNTRIES[region]) {
-      // Region filter: filter by country codes in the region
+    // Apply geographic filters in order of specificity: locality > city > state > country > region
+    // This implements the drill-down from World page: Continent → Country → State → City → Locality
+    
+    if (locality) {
+      // Locality filter - search in city field as localities are often stored as part of city
+      query = query.ilike("city", `%${locality}%`);
+      console.log(`Filtering by locality: ${locality}`);
+    } else if (city) {
+      // City filter - exact or partial match
+      query = query.ilike("city", `%${city}%`);
+      console.log(`Filtering by city: ${city}`);
+    } else if (state) {
+      // State filter - search in city field as states might be mentioned there
+      // Many Indian stories have state names in the city field
+      const stateSearchTerm = state.replace(/-/g, ' ').replace(/_/g, ' ');
+      query = query.ilike("city", `%${stateSearchTerm}%`);
+      console.log(`Filtering by state: ${state}`);
+    } else if (country) {
+      // Country filter - filter by country code
+      query = query.eq("country_code", country.toUpperCase());
+      console.log(`Filtering by country: ${country}`);
+    } else if (region && REGION_COUNTRIES[region]) {
+      // Region/Continent filter: filter by country codes in the region
       const regionCodes = REGION_COUNTRIES[region];
       query = query.in("country_code", regionCodes);
+      console.log(`Filtering by region: ${region} (${regionCodes.length} countries)`);
     } else if (feedType === "local") {
       // Local news: search for stories matching user's city, nearby cities, state, or country
       if (userCity) {
@@ -282,21 +313,18 @@ serve(async (req) => {
           if (userState) localFilters.push(`city.ilike.%${userState}%`);
           
           // Also include country-specific non-global stories
-          if (country) {
-            query = query.or(`${localFilters.join(',')},and(country_code.eq.${country},is_global.eq.false)`);
+          const userCountry = params.country;
+          if (userCountry) {
+            query = query.or(`${localFilters.join(',')},and(country_code.eq.${userCountry},is_global.eq.false)`);
           } else if (localFilters.length > 0) {
             query = query.or(localFilters.join(','));
           }
         } else {
           query = query.ilike("city", `%${userCity}%`);
         }
-      } else if (country) {
-        query = query.eq("country_code", country).eq("is_global", false);
       }
     } else if (feedType === "world") {
       query = query.eq("is_global", true);
-    } else if (country) {
-      query = query.or(`country_code.eq.${country},is_global.eq.true`);
     }
 
     // IMPORTANT: For recent feed, prioritize multi-source stories first, then fresh news

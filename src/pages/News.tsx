@@ -194,13 +194,16 @@ export default function News() {
   const { newStories, isConnected, refresh: realtimeRefresh, resetNewCount } = useRealtimeStories();
 
   const queryParams = useMemo(() => ({
-    country: country?.code,
+    country: countryFilter || country?.code,
     language: language?.code === "en" ? "eng" : language?.code,
     topic: selectedCategory === "all" ? undefined : selectedCategory,
     region: regionFilter || undefined,
+    state: stateFilter || undefined,
+    city: cityFilter || undefined,
+    locality: localityFilter || undefined,
     pageSize: 500, // Load all available stories for comprehensive clustering
     feedType: "recent" as const,
-  }), [country?.code, language?.code, selectedCategory, regionFilter]);
+  }), [country?.code, language?.code, selectedCategory, regionFilter, countryFilter, stateFilter, cityFilter, localityFilter]);
 
   const {
     data,
@@ -225,10 +228,15 @@ export default function News() {
     return () => clearInterval(interval);
   }, [handleFullRefresh]);
 
-  // Clear region filter
-  const clearRegionFilter = useCallback(() => {
-    searchParams.delete("region");
-    setSearchParams(searchParams);
+  // Clear all geographic filters
+  const clearGeoFilters = useCallback(() => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("region");
+    newParams.delete("country");
+    newParams.delete("state");
+    newParams.delete("city");
+    newParams.delete("locality");
+    setSearchParams(newParams);
   }, [searchParams, setSearchParams]);
 
   // Transform stories with consistent data from API
@@ -430,7 +438,7 @@ export default function News() {
                     <Globe className="w-3 h-3" />
                     {filterDisplayName}
                     <button 
-                      onClick={clearRegionFilter}
+                      onClick={clearGeoFilters}
                       className="ml-1 p-0.5 rounded hover:bg-primary/20 transition-colors"
                     >
                       <X className="w-3 h-3" />
