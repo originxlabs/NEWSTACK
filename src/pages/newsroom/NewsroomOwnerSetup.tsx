@@ -1,9 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Shield, Crown, Check, Loader2, AlertTriangle, 
-  Mail, Key, ArrowRight, Lock, Eye, EyeOff
+import {
+  Shield,
+  Crown,
+  Check,
+  Loader2,
+  AlertTriangle,
+  Mail,
+  ArrowRight,
+  Lock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useOwnerAuditLog } from "@/hooks/use-owner-audit-log";
 
-type ViewMode = "warning" | "auth" | "request-passkey" | "verify-passkey" | "set-password" | "success";
+type ViewMode = "warning" | "auth" | "verify-passkey" | "set-password" | "success";
 
 export default function NewsroomOwnerSetup() {
   const navigate = useNavigate();
@@ -26,12 +34,19 @@ export default function NewsroomOwnerSetup() {
 
   const [viewMode, setViewMode] = useState<ViewMode>("warning");
   const [email, setEmail] = useState("");
+
+  // Reset/setup via OTP
   const [passkey, setPasskey] = useState("");
+
+  // Normal login via password
+  const [loginPassword, setLoginPassword] = useState("");
+
+  // Password set/reset
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isNewAccount, setIsNewAccount] = useState(false);
 
   // Redirect if already logged in
   if (user) {
@@ -43,6 +58,69 @@ export default function NewsroomOwnerSetup() {
     setViewMode("auth");
   };
 
+  const ensureEmailIsOwner = async (ownerEmail: string) => {
+    const normalized = ownerEmail.trim().toLowerCase();
+
+    // Prefer admin_users for the single "owner" source of truth (created during setup)
+    const { data: adminOwner } = await supabase
+      .from("admin_users")
+      .select("email, role")
+      .eq("email", normalized)
+      .eq("role", "owner")
+      .maybeSingle();
+
+    if (adminOwner) return true;
+
+    // Fallback: allow if newsroom_members marks them as owner
+    const { data: memberOwner } = await supabase
+      .from("newsroom_members")
+      .select("email, role, is_active")
+      .eq("email", normalized)
+      .eq("role", "owner")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    return !!memberOwner;
+  };
+
+  const handleOwnerPasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email.trim() || !email.includes("@")) {
+      toast.error("Please enter a valid owner email address");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const isOwnerEmail = await ensureEmailIsOwner(email);
+      if (!isOwnerEmail) {
+        await auditLog.logFailed(email.trim(), "Non-owner attempted password login");
+        toast.error("Access denied: this email is not the owner");
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: loginPassword,
+      });
+
+      if (error || !data.user) {
+        await auditLog.logFailed(email.trim(), error?.message || "Owner password login failed");
+        toast.error(error?.message || "Invalid credentials");
+        return;
+      }
+
+      await auditLog.logSuccess(email.trim());
+      navigate("/newsroom", { replace: true });
+    } catch (err: any) {
+      await auditLog.logFailed(email.trim(), err?.message || "Owner password login error");
+      toast.error("Login failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleRequestPasskey = async () => {
     if (!email.trim() || !email.includes("@")) {
       toast.error("Please enter a valid email address");
@@ -52,33 +130,30 @@ export default function NewsroomOwnerSetup() {
     setIsLoading(true);
 
     try {
+      const isOwnerEmail = await ensureEmailIsOwner(email);
+      if (!isOwnerEmail) {
+        await auditLog.logFailed(email.trim(), "Non-owner attempted owner-init OTP request");
+        toast.error("Access denied: this email is not the owner");
+        return;
+      }
+
       // Log the OTP request attempt
       await auditLog.logOtpRequest(email.trim(), true);
 
-      // Check if user exists as owner
-      const { data: existingMember } = await supabase
-        .from("newsroom_members")
-        .select("id, role")
-        .eq("email", email.trim())
-        .eq("role", "owner")
-        .single();
-
-      // Send OTP via custom edge function (branded email)
+      // Always treat owner-init OTP as a password reset/setup flow
       const { data, error } = await supabase.functions.invoke("send-otp", {
-        body: { 
-          email: email.trim(), 
-          purpose: existingMember ? "login" : "signup" 
+        body: {
+          email: email.trim(),
+          purpose: "password_reset",
         },
       });
 
       if (error || !data?.success) {
         await auditLog.logFailed(email.trim(), error?.message || data?.error || "Failed to send OTP");
         toast.error(error?.message || data?.error || "Failed to send passkey");
-        setIsLoading(false);
         return;
       }
 
-      setIsNewAccount(!existingMember);
       toast.success("Passkey sent to your email from Newstack!");
       setViewMode("verify-passkey");
     } catch (err) {
@@ -103,7 +178,7 @@ export default function NewsroomOwnerSetup() {
         body: {
           email: email.trim(),
           otp: passkey,
-          purpose: isNewAccount ? "signup" : "login",
+          purpose: "password_reset",
         },
       });
 
@@ -113,7 +188,6 @@ export default function NewsroomOwnerSetup() {
         return;
       }
 
-      // Log successful verification
       await auditLog.logOtpVerify(email.trim(), true);
 
       toast.success("Passkey verified! Please set your password.");
@@ -217,53 +291,6 @@ export default function NewsroomOwnerSetup() {
     }
   };
 
-  const handleLoginWithPasskey = async () => {
-    if (!email.trim() || passkey.length !== 6) {
-      toast.error("Please enter email and 6-digit passkey");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Verify OTP via custom edge function
-      const { data, error } = await supabase.functions.invoke("verify-otp", {
-        body: { 
-          email: email.trim(), 
-          otp: passkey,
-          purpose: "login"
-        },
-      });
-
-      if (error || !data?.success) {
-        toast.error(data?.error || "Invalid email or passkey");
-        setIsLoading(false);
-        return;
-      }
-
-      // Verify owner role
-      const { data: member } = await supabase
-        .from("newsroom_members")
-        .select("role")
-        .eq("email", email.trim())
-        .eq("role", "owner")
-        .single();
-
-      if (!member) {
-        toast.error("This email is not registered as an owner");
-        setIsLoading(false);
-        return;
-      }
-
-      // Now sign in - the user should use password
-      toast.success("Passkey verified! Please enter your password to login.");
-      setViewMode("set-password");
-    } catch (err) {
-      toast.error("Login failed");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -309,7 +336,7 @@ export default function NewsroomOwnerSetup() {
                   <div className="flex items-start gap-3">
                     <Crown className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
                     <p className="text-sm text-muted-foreground">
-                      If you are the designated platform owner, you may proceed to authenticate with your registered email and passkey.
+                      If you are the designated platform owner, sign in with your owner email and password. Use a passkey only if you need to set/reset your password.
                     </p>
                   </div>
                 </div>
@@ -358,74 +385,87 @@ export default function NewsroomOwnerSetup() {
 
             <Card>
               <CardHeader className="text-center pb-4">
-                <CardTitle className="text-lg">Enter Your Credentials</CardTitle>
+                <CardTitle className="text-lg">Sign in</CardTitle>
                 <CardDescription>
-                  Login with your email and passkey, or request a new passkey
+                  Use your owner email + password. Use passkey only to set/reset your password.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="owner-email">Owner Email</Label>
-                  <Input
-                    id="owner-email"
-                    type="email"
-                    placeholder="owner@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="passkey">6-Digit Passkey</Label>
-                  <div className="flex justify-center">
-                    <InputOTP
-                      maxLength={6}
-                      value={passkey}
-                      onChange={setPasskey}
-                    >
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                      </InputOTPGroup>
-                    </InputOTP>
+                <form onSubmit={handleOwnerPasswordLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="owner-email">Owner Email</Label>
+                    <Input
+                      id="owner-email"
+                      type="email"
+                      placeholder="owner@company.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="username"
+                      required
+                    />
                   </div>
-                </div>
 
-                <Button 
-                  className="w-full gap-2" 
-                  onClick={handleLoginWithPasskey}
-                  disabled={isLoading || !email || passkey.length !== 6}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    <>
-                      <Key className="w-4 h-4" />
-                      Login with Passkey
-                    </>
-                  )}
-                </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="owner-password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="owner-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        autoComplete="current-password"
+                        required
+                        className="pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full gap-2"
+                    disabled={isLoading || !email || !loginPassword}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        Sign in
+                      </>
+                    )}
+                  </Button>
+                </form>
 
                 <div className="relative">
                   <Separator />
                   <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                    or
+                    Password reset / first-time setup
                   </span>
                 </div>
 
                 <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-3">
                   <p className="text-sm text-center text-muted-foreground">
-                    Don't have a passkey? Request one to your email
+                    If you forgot your password (or this is first-time setup), request a passkey to set a new password.
                   </p>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full gap-2"
                     onClick={handleRequestPasskey}
                     disabled={isLoading || !email}
@@ -444,8 +484,8 @@ export default function NewsroomOwnerSetup() {
                   </Button>
                 </div>
 
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="w-full"
                   onClick={() => setViewMode("warning")}
                 >
