@@ -823,11 +823,8 @@ export default function IndiaStates() {
   }, [refetch]);
 
   const handleStateClick = useCallback((state: typeof ALL_REGIONS[0]) => {
-    // Use URLSearchParams to properly encode the query parameters
-    const params = new URLSearchParams();
-    params.set("country", "IN");
-    params.set("state", state.name);
-    navigate(`/news?${params.toString()}`);
+    // Navigate to dedicated state page instead of /news
+    navigate(`/india/${state.id}`);
   }, [navigate]);
 
   const formatTime = (date: Date) => {

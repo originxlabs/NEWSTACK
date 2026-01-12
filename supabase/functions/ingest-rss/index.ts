@@ -1438,23 +1438,66 @@ serve(async (req) => {
     let totalRejected = 0;
     let totalClassified = 0;
 
-    // STEP 2-5: Process each feed (normalize, validate, classify, dedupe, store)
-    for (const feed of feeds) {
-      const items = await fetchRSSFeed(feed as RSSFeed);
-      totalNormalized += items.length;
+    // ===== BATCHING + CONCURRENCY CONFIG =====
+    const MAX_FEEDS_PER_RUN = 50; // Limit feeds per run to prevent timeout
+    const BATCH_SIZE = 5; // Process feeds in batches of 5 concurrently
+    const FEED_TIMEOUT_MS = 10000; // 10 second timeout per feed
 
-      if (items.length > 0) {
-        const { created, merged } = await processItems(supabase, items, feed as RSSFeed);
-        totalCreated += created;
-        totalMerged += merged;
-        totalClassified += created + merged;
+    // Limit feeds to prevent timeout
+    const feedsToProcess = feeds.slice(0, MAX_FEEDS_PER_RUN);
+    console.log(`Processing ${feedsToProcess.length} of ${feeds.length} feeds (max ${MAX_FEEDS_PER_RUN})`);
 
+    // Helper: Process a single feed with timeout
+    const processSingleFeed = async (feed: RSSFeed): Promise<{ created: number; merged: number; normalized: number }> => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
+        
+        const items = await fetchRSSFeed(feed);
+        clearTimeout(timeoutId);
+        
+        if (items.length === 0) {
+          return { created: 0, merged: 0, normalized: 0 };
+        }
+
+        const { created, merged } = await processItems(supabase, items, feed);
+        
         // Update last fetched timestamp
         await supabase
           .from("rss_feeds")
           .update({ last_fetched_at: new Date().toISOString() })
           .eq("id", feed.id);
+
+        return { created, merged, normalized: items.length };
+      } catch (error) {
+        console.error(`Error processing feed ${feed.name}:`, error);
+        return { created: 0, merged: 0, normalized: 0 };
       }
+    };
+
+    // STEP 2-5: Process feeds in batches with concurrency control
+    for (let i = 0; i < feedsToProcess.length; i += BATCH_SIZE) {
+      const batch = feedsToProcess.slice(i, i + BATCH_SIZE) as RSSFeed[];
+      console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(feedsToProcess.length / BATCH_SIZE)}`);
+      
+      // Process batch concurrently
+      const batchResults = await Promise.all(batch.map(feed => processSingleFeed(feed)));
+      
+      // Aggregate results
+      for (const result of batchResults) {
+        totalCreated += result.created;
+        totalMerged += result.merged;
+        totalNormalized += result.normalized;
+        totalClassified += result.created + result.merged;
+      }
+
+      // Update progress after each batch
+      await updateRun({
+        step_normalize_count: totalNormalized,
+        step_classify_count: totalClassified,
+        step_store_created: totalCreated,
+        step_dedupe_merged: totalMerged,
+      });
     }
 
     // Update normalize step
@@ -1539,12 +1582,23 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Ingestion error:", error);
     
-    // Update run with error
-    await updateRun({
-      status: "failed",
-      error_message: errorMessage,
-      completed_at: new Date().toISOString(),
-    });
+    // CRITICAL: Always finalize run as failed on any error
+    try {
+      await updateRun({
+        status: "failed",
+        error_message: errorMessage,
+        error_step: "processing",
+        step_normalize: "failed",
+        step_validate: "failed",
+        step_classify: "failed",
+        step_dedupe: "failed",
+        step_store: "failed",
+        step_cleanup: "failed",
+        completed_at: new Date().toISOString(),
+      });
+    } catch (updateErr) {
+      console.error("Failed to update run status:", updateErr);
+    }
 
     return new Response(
       JSON.stringify({ success: false, runId, error: errorMessage }),

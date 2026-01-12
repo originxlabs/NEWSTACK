@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { 
   Globe, ChevronRight, ChevronLeft, MapPin, Building2, 
   Layers, RefreshCw, TrendingUp, TrendingDown,
-  Minus, Wifi, WifiOff, Search, Navigation, Loader2, Radio
+  Minus, Wifi, WifiOff, Search, Navigation, Loader2, Radio, Home
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -30,6 +30,7 @@ import {
 import { LocationSearch } from "@/components/world/LocationSearch";
 import { useUserLocation } from "@/hooks/use-user-location";
 import { LiveNewsTicker } from "@/components/world/LiveNewsTicker";
+import { BreadcrumbNav, BreadcrumbItem as NavBreadcrumbItem } from "@/components/BreadcrumbNav";
 
 // Navigation levels
 type DrillLevel = "world" | "continent" | "country" | "state" | "city" | "locality";
@@ -440,7 +441,32 @@ export default function World() {
     setHasAutoDrilled(false);
   }, [userLocation]);
 
-  // Build breadcrumb items
+  // Build breadcrumb items for BreadcrumbNav component
+  const navBreadcrumbItems = useMemo((): NavBreadcrumbItem[] => {
+    const items: NavBreadcrumbItem[] = [
+      { id: "world", label: "World", path: "/world", type: "home", icon: <Globe className="w-3.5 h-3.5" /> }
+    ];
+    if (selectedContinent) {
+      items.push({ id: selectedContinent.id, label: selectedContinent.name, type: "continent" });
+    }
+    if (selectedCountry) {
+      items.push({ 
+        id: selectedCountry.id, 
+        label: selectedCountry.name, 
+        type: "country",
+        icon: <span className="text-sm">{selectedCountry.flag}</span>
+      });
+    }
+    if (selectedState) {
+      items.push({ id: selectedState.id, label: selectedState.name, type: "state" });
+    }
+    if (selectedCity) {
+      items.push({ id: selectedCity.id, label: selectedCity.name, type: "city" });
+    }
+    return items;
+  }, [selectedContinent, selectedCountry, selectedState, selectedCity]);
+
+  // Legacy breadcrumb items for internal DrillBreadcrumb
   const breadcrumbItems = useMemo(() => {
     const items: BreadcrumbItem[] = [];
     if (selectedContinent) {
@@ -703,13 +729,33 @@ export default function World() {
                 Drill down from {geoStats.totalContinents} continents → {geoStats.totalCountries} countries → {geoStats.totalStates.toLocaleString()} states → {geoStats.totalCities.toLocaleString()} cities. Real-time news from verified sources.
               </p>
 
-              {/* Breadcrumb Navigation */}
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <DrillBreadcrumb 
-                  items={breadcrumbItems} 
-                  onNavigate={handleBreadcrumbNavigate} 
-                />
-                
+              {/* Enhanced Breadcrumb Navigation */}
+              <BreadcrumbNav
+                items={navBreadcrumbItems}
+                onNavigate={(item, index) => {
+                  if (item.type === "home") {
+                    handleBreadcrumbNavigate("world");
+                  } else if (item.type === "continent") {
+                    handleBreadcrumbNavigate("continent");
+                  } else if (item.type === "country") {
+                    handleBreadcrumbNavigate("country");
+                  } else if (item.type === "state") {
+                    handleBreadcrumbNavigate("state");
+                  } else if (item.type === "city") {
+                    handleBreadcrumbNavigate("city");
+                  }
+                }}
+                onGoBack={() => {
+                  if (currentLevel === "continent") handleBreadcrumbNavigate("world");
+                  else if (currentLevel === "country") handleBreadcrumbNavigate("continent");
+                  else if (currentLevel === "state") handleBreadcrumbNavigate("country");
+                  else if (currentLevel === "city") handleBreadcrumbNavigate("state");
+                  else if (currentLevel === "locality") handleBreadcrumbNavigate("city");
+                }}
+                className="mb-2"
+              />
+              
+              <div className="flex items-center justify-end">
                 {currentLevel !== "world" && (
                   <Button
                     variant="outline"
