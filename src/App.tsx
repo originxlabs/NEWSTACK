@@ -43,6 +43,8 @@ import NewsroomIntegrations from "./pages/newsroom/NewsroomIntegrations";
 import NewsroomSettings from "./pages/newsroom/NewsroomSettings";
 import NewsroomAnalytics from "./pages/newsroom/NewsroomAnalytics";
 import NewsroomOwnerSetup from "./pages/newsroom/NewsroomOwnerSetup";
+import NewsroomAuditLogs from "./pages/newsroom/NewsroomAuditLogs";
+import { AdminRouteGuard } from "./components/newsroom/AdminRouteGuard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -149,12 +151,13 @@ function AppContent() {
           <Route path="/newsroom/owner-init" element={<NewsroomOwnerSetup />} />
           <Route path="/newsroom" element={<NewsroomLayout />}>
             <Route index element={<NewsroomDashboard />} />
-            <Route path="api-health" element={<NewsroomApiHealth />} />
-            <Route path="api-keys" element={<NewsroomApiKeys />} />
-            <Route path="webhooks" element={<NewsroomWebhooks />} />
-            <Route path="analytics" element={<NewsroomAnalytics />} />
-            <Route path="ingestion" element={<NewsroomIngestion />} />
-            <Route path="feeds" element={<NewsroomFeeds />} />
+            <Route path="api-health" element={<AdminRouteGuard pageName="API Health"><NewsroomApiHealth /></AdminRouteGuard>} />
+            <Route path="api-keys" element={<AdminRouteGuard pageName="API Keys"><NewsroomApiKeys /></AdminRouteGuard>} />
+            <Route path="webhooks" element={<AdminRouteGuard pageName="Webhooks"><NewsroomWebhooks /></AdminRouteGuard>} />
+            <Route path="analytics" element={<AdminRouteGuard pageName="Analytics"><NewsroomAnalytics /></AdminRouteGuard>} />
+            <Route path="ingestion" element={<AdminRouteGuard pageName="Ingestion"><NewsroomIngestion /></AdminRouteGuard>} />
+            <Route path="feeds" element={<AdminRouteGuard pageName="RSS Feeds"><NewsroomFeeds /></AdminRouteGuard>} />
+            <Route path="audit-logs" element={<NewsroomAuditLogs />} />
             <Route path="stories" element={<NewsroomStories />} />
             <Route path="trust" element={<NewsroomTrust />} />
             <Route path="alerts" element={<NewsroomAlerts />} />
