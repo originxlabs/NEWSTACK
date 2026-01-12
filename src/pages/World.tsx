@@ -63,8 +63,8 @@ function useRealtimeConnection() {
   return isConnected;
 }
 
-// Fetch stats for locations
-function useLocationStats(level: DrillLevel, codes: string[]) {
+// Fetch stats for locations with proper country fallback for states/cities
+function useLocationStats(level: DrillLevel, codes: string[], parentCountryCode?: string) {
   const [stats, setStats] = useState<Record<string, LocationStats>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -134,8 +134,33 @@ function useLocationStats(level: DrillLevel, codes: string[]) {
             topHeadline: countryCounts[upperCode]?.headline,
           };
         }
+      } else if (level === "state" || level === "city") {
+        // For states/cities, first count specific matches, then add country fallback
+        const countryStories = parentCountryCode 
+          ? (data || []).filter(s => s.country_code?.toUpperCase() === parentCountryCode.toUpperCase())
+          : (data || []);
+        
+        // Count stories with null city (country-level news) that should be shown for all states/cities
+        const countryLevelStories = countryStories.filter(s => !s.city);
+        const countryFallbackCount = countryLevelStories.length;
+        
+        for (const code of codes) {
+          // Find stories that specifically mention this state/city
+          const specificStories = countryStories.filter(s => 
+            s.city?.toLowerCase().includes(code.toLowerCase().replace(/-/g, ' ').replace(/_/g, ' '))
+          );
+          
+          // Total = specific matches + country-level stories (fallback)
+          const totalCount = specificStories.length + countryFallbackCount;
+          
+          statsMap[code] = {
+            storyCount: totalCount,
+            trend: totalCount > 10 ? "up" : "stable",
+            topHeadline: specificStories[0]?.headline || countryLevelStories[0]?.headline,
+          };
+        }
       } else {
-        // For states/cities/localities, use a simpler count
+        // For localities, use city-level count
         for (const code of codes) {
           const filtered = (data || []).filter(s => 
             s.city?.toLowerCase().includes(code.toLowerCase())
@@ -155,7 +180,7 @@ function useLocationStats(level: DrillLevel, codes: string[]) {
     } finally {
       setIsLoading(false);
     }
-  }, [level, codes]);
+  }, [level, codes, parentCountryCode]);
 
   useEffect(() => {
     fetchStats();
@@ -428,14 +453,24 @@ export default function World() {
     if (currentLevel === "country" && selectedCountry) {
       return selectedCountry.states.map(s => s.id);
     }
+    if (currentLevel === "state" && selectedState) {
+      return selectedState.cities.map(c => c.id);
+    }
+    if (currentLevel === "city" && selectedCity) {
+      return selectedCity.localities.map(l => l.id);
+    }
     return [];
-  }, [currentLevel, selectedContinent, selectedCountry]);
+  }, [currentLevel, selectedContinent, selectedCountry, selectedState, selectedCity]);
+
+  // Parent country code for state/city stats fallback
+  const parentCountryCode = selectedCountry?.code;
 
   const { stats, isLoading, lastUpdated, refetch } = useLocationStats(
     currentLevel === "world" ? "world" : 
     currentLevel === "continent" ? "country" : 
     currentLevel,
-    statsCodes
+    statsCodes,
+    parentCountryCode
   );
 
   // Navigation handlers
