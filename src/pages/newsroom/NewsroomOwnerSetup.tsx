@@ -59,8 +59,16 @@ export default function NewsroomOwnerSetup() {
     setViewMode("auth");
   };
 
+  // Designated owner email for first-time setup
+  const DESIGNATED_OWNER_EMAIL = "originxlabs@gmail.com";
+
   const ensureEmailIsOwner = async (ownerEmail: string) => {
     const normalized = ownerEmail.trim().toLowerCase();
+
+    // FIRST: Check if this is the designated owner email for initial setup
+    if (normalized === DESIGNATED_OWNER_EMAIL.toLowerCase()) {
+      return true;
+    }
 
     // PRIMARY: Check newsroom_members for owner role (this is the source of truth)
     const { data: memberOwner } = await supabase
