@@ -119,6 +119,8 @@ interface StateStats {
 interface OverallStats {
   totalStories: number;
   totalSources: number;
+  totalFeeds: number;
+  activeStates: number;
   topStates: { state: string; count: number }[];
   categoryBreakdown: { category: string; count: number }[];
   languageBreakdown: { language: string; count: number }[];
@@ -327,10 +329,15 @@ function useStateStats() {
         sourceCount[source.source_name] = (sourceCount[source.source_name] || 0) + 1;
       }
 
+      // Calculate active states (states with stories in the last 48h)
+      const activeStatesCount = Object.values(stateStatsMap).filter(s => s.storyCount > 0).length;
+
       // Build overall stats
       const overall: OverallStats = {
         totalStories: stories?.length || 0,
         totalSources: Object.keys(sourceCount).length,
+        totalFeeds: feeds?.length || 0,
+        activeStates: activeStatesCount,
         topStates: Object.entries(stateCount)
           .map(([state, count]) => ({ state, count }))
           .sort((a, b) => b.count - a.count)
@@ -811,10 +818,10 @@ export default function IndiaStates() {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-green-600 mb-1">
                     <Radio className="w-4 h-4" />
-                    <span className="text-xs font-medium">Active Sources</span>
+                    <span className="text-xs font-medium">Active Feeds</span>
                   </div>
-                  <p className="text-2xl font-bold">{overallStats?.totalSources || 0}</p>
-                  <p className="text-[10px] text-muted-foreground">Verified feeds</p>
+                  <p className="text-2xl font-bold">{overallStats?.totalFeeds || 0}</p>
+                  <p className="text-[10px] text-muted-foreground">{overallStats?.totalSources || 0} sources reporting</p>
                 </CardContent>
               </Card>
               
@@ -833,9 +840,9 @@ export default function IndiaStates() {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-purple-600 mb-1">
                     <MapPin className="w-4 h-4" />
-                    <span className="text-xs font-medium">Active States</span>
+                    <span className="text-xs font-medium">Active Regions</span>
                   </div>
-                  <p className="text-2xl font-bold">{Object.keys(stats).filter(k => stats[k].storyCount > 0).length}</p>
+                  <p className="text-2xl font-bold">{overallStats?.activeStates || 0}</p>
                   <p className="text-[10px] text-muted-foreground">With recent news</p>
                 </CardContent>
               </Card>
