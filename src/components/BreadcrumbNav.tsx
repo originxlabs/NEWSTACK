@@ -81,7 +81,7 @@ export function BreadcrumbNav({
 
   return (
     <div className={cn(
-      "flex items-center gap-2 sticky top-16 z-40 bg-background/95 backdrop-blur-sm py-2 -mx-4 px-4 border-b border-border/30",
+      "flex items-center gap-2 sticky top-[64px] z-50 bg-background/98 backdrop-blur-md py-3 -mx-4 px-4 border-b border-border/40 shadow-sm",
       className
     )}>
       {/* Back Button */}
