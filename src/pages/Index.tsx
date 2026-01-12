@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { 
   ArrowRight, Layers, Shield, Activity, Clock, 
-  TrendingUp, Globe, MapPin, ChevronRight
+  TrendingUp, Globe, MapPin, ChevronRight, RefreshCw
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
@@ -181,6 +181,22 @@ const Index = () => {
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="h-40 rounded-lg bg-muted animate-shimmer" />
                 ))}
+              </div>
+            ) : storyClusters.length === 0 ? (
+              <div className="text-center py-12 px-4 rounded-lg border border-dashed border-border/50 bg-muted/20">
+                <Activity className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                <h3 className="font-medium text-foreground mb-1">No stories available right now</h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                  Our news ingestion system is updating. Stories from 170+ verified sources will appear here shortly.
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </Button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
