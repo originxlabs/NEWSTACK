@@ -840,25 +840,30 @@ export default function IndiaStates() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       
+      {/* Spacer for fixed header */}
+      <div className="h-14" />
+      
+      {/* Breadcrumb Navigation */}
+      <div className="sticky top-14 z-40 bg-background/98 backdrop-blur-md border-b border-border/40">
+        <div className="container mx-auto max-w-7xl px-4">
+          <BreadcrumbNav
+            items={[
+              { id: "home", label: "Home", path: "/", type: "home" },
+              { id: "india", label: "India", type: "country", icon: <span>🇮🇳</span> },
+            ]}
+            onNavigate={() => {}}
+            onGoBack={() => navigate("/")}
+          />
+        </div>
+      </div>
+      
       {/* Real-time news indicator */}
       <RealtimeNewsIndicator 
         onRefresh={handleRefresh} 
         variant="bar"
       />
       
-      {/* Breadcrumb Navigation - Sticky below header */}
-      <div className="container mx-auto max-w-7xl px-4">
-        <BreadcrumbNav
-          items={[
-            { id: "home", label: "Home", path: "/", type: "home" },
-            { id: "india", label: "India", type: "country", icon: <span>🇮🇳</span> },
-          ]}
-          onNavigate={() => {}}
-          onGoBack={() => navigate("/")}
-        />
-      </div>
-      
-      <main className="pt-4">
+      <main>
         {/* Hero Section */}
         <section className="border-b border-border/50 bg-gradient-to-b from-orange-500/5 via-white/5 to-green-500/5">
           <div className="container mx-auto max-w-7xl px-4 py-8">

@@ -254,37 +254,42 @@ export default function CountryPage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <Header />
       
+      {/* Spacer for fixed header */}
+      <div className="h-14" />
+      
+      {/* Breadcrumb Navigation - Sticky below header */}
+      <div className="sticky top-14 z-40 bg-background/98 backdrop-blur-md border-b border-border/40">
+        <div className="container mx-auto px-4">
+          <BreadcrumbNav
+            items={breadcrumbItems}
+            onNavigate={(item, index) => {
+              if (item.type === "country") {
+                setSelectedState("all");
+                setSelectedCity("all");
+              } else if (item.type === "state") {
+                setSelectedCity("all");
+              }
+            }}
+            onGoBack={() => {
+              if (selectedCity !== "all") {
+                setSelectedCity("all");
+              } else if (selectedState !== "all") {
+                setSelectedState("all");
+              } else {
+                navigate("/world");
+              }
+            }}
+          />
+        </div>
+      </div>
+      
       {/* Real-time news indicator */}
       <RealtimeNewsIndicator 
         onRefresh={fetchStories} 
         variant="bar"
       />
       
-      {/* Breadcrumb Navigation - Sticky below header */}
-      <div className="container mx-auto px-4">
-        <BreadcrumbNav
-          items={breadcrumbItems}
-          onNavigate={(item, index) => {
-            if (item.type === "country") {
-              setSelectedState("all");
-              setSelectedCity("all");
-            } else if (item.type === "state") {
-              setSelectedCity("all");
-            }
-          }}
-          onGoBack={() => {
-            if (selectedCity !== "all") {
-              setSelectedCity("all");
-            } else if (selectedState !== "all") {
-              setSelectedState("all");
-            } else {
-              navigate("/world");
-            }
-          }}
-        />
-      </div>
-      
-      <main className="container mx-auto px-4 py-6 pt-4">
+      <main className="container mx-auto px-4 py-6">
 
         {/* Country Header */}
         <div className="mb-8">

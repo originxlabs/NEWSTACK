@@ -371,19 +371,25 @@ export default function ContinentPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
-      <RealtimeNewsIndicator onRefresh={handleRefresh} variant="bar" />
+      {/* Spacer for fixed header */}
+      <div className="h-14" />
 
-      <div className="container mx-auto max-w-7xl px-4">
-        <BreadcrumbNav
-          items={breadcrumbItems}
-          onNavigate={(item) => {
-            if (item.path) navigate(item.path);
-          }}
-          onGoBack={() => navigate("/world")}
-        />
+      {/* Breadcrumb Navigation - Sticky below header */}
+      <div className="sticky top-14 z-40 bg-background/98 backdrop-blur-md border-b border-border/40">
+        <div className="container mx-auto max-w-7xl px-4">
+          <BreadcrumbNav
+            items={breadcrumbItems}
+            onNavigate={(item) => {
+              if (item.path) navigate(item.path);
+            }}
+            onGoBack={() => navigate("/world")}
+          />
+        </div>
       </div>
 
-      <main className="pt-4">
+      <RealtimeNewsIndicator onRefresh={handleRefresh} variant="bar" />
+
+      <main>
         {/* Hero Section */}
         <section className={cn("border-b border-border/50 bg-gradient-to-b", theme.bgGradient)}>
           <div className="container mx-auto max-w-7xl px-4 py-8">

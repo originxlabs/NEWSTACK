@@ -644,40 +644,45 @@ export default function World() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       
+      {/* Spacer for fixed header */}
+      <div className="h-14" />
+      
+      {/* Breadcrumb Navigation - Sticky below header */}
+      <div className="sticky top-14 z-40 bg-background/98 backdrop-blur-md border-b border-border/40">
+        <div className="container mx-auto max-w-6xl px-4">
+          <BreadcrumbNav
+            items={navBreadcrumbItems}
+            onNavigate={(item, index) => {
+              if (item.type === "home") {
+                handleBreadcrumbNavigate("world");
+              } else if (item.type === "continent") {
+                handleBreadcrumbNavigate("continent");
+              } else if (item.type === "country") {
+                handleBreadcrumbNavigate("country");
+              } else if (item.type === "state") {
+                handleBreadcrumbNavigate("state");
+              } else if (item.type === "city") {
+                handleBreadcrumbNavigate("city");
+              }
+            }}
+            onGoBack={() => {
+              if (currentLevel === "continent") handleBreadcrumbNavigate("world");
+              else if (currentLevel === "country") handleBreadcrumbNavigate("continent");
+              else if (currentLevel === "state") handleBreadcrumbNavigate("country");
+              else if (currentLevel === "city") handleBreadcrumbNavigate("state");
+              else if (currentLevel === "locality") handleBreadcrumbNavigate("city");
+            }}
+          />
+        </div>
+      </div>
+      
       {/* Real-time news indicator */}
       <RealtimeNewsIndicator 
         onRefresh={handleRefresh} 
         variant="bar"
       />
       
-      {/* Breadcrumb Navigation - Sticky below header */}
-      <div className="container mx-auto max-w-6xl px-4">
-        <BreadcrumbNav
-          items={navBreadcrumbItems}
-          onNavigate={(item, index) => {
-            if (item.type === "home") {
-              handleBreadcrumbNavigate("world");
-            } else if (item.type === "continent") {
-              handleBreadcrumbNavigate("continent");
-            } else if (item.type === "country") {
-              handleBreadcrumbNavigate("country");
-            } else if (item.type === "state") {
-              handleBreadcrumbNavigate("state");
-            } else if (item.type === "city") {
-              handleBreadcrumbNavigate("city");
-            }
-          }}
-          onGoBack={() => {
-            if (currentLevel === "continent") handleBreadcrumbNavigate("world");
-            else if (currentLevel === "country") handleBreadcrumbNavigate("continent");
-            else if (currentLevel === "state") handleBreadcrumbNavigate("country");
-            else if (currentLevel === "city") handleBreadcrumbNavigate("state");
-            else if (currentLevel === "locality") handleBreadcrumbNavigate("city");
-          }}
-        />
-      </div>
-      
-      <main className="pt-4">
+      <main>
         {/* Page Header */}
         <section className="border-b border-border/50 bg-muted/20">
           <div className="container mx-auto max-w-6xl px-4 py-6">
