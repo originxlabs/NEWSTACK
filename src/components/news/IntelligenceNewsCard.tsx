@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronDown, Clock, ExternalLink, Layers, Shield, 
   Zap, RefreshCw, CheckCircle2, AlertTriangle, MinusCircle,
-  Headphones, Bookmark, Heart, Share2, ChevronRight, Pause, Loader2
+  Headphones, Bookmark, Heart, Share2, ChevronRight, Pause, Loader2,
+  Languages
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { TTSLimitModal } from "@/components/TTSLimitModal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface IntelligenceNewsItem {
   id: string;
@@ -90,8 +92,17 @@ export function IntelligenceNewsCard({ news, index, onClick }: IntelligenceNewsC
   const [showContext, setShowContext] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  
-  const { speak, toggle, isLoading, isPlaying, stop } = useTTS({
+
+  // Translation state (headline + short summary)
+  const [translateEnabled, setTranslateEnabled] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedHeadline, setTranslatedHeadline] = useState<string | null>(null);
+  const [translatedSummary, setTranslatedSummary] = useState<string | null>(null);
+
+  const displayHeadline = translateEnabled && translatedHeadline ? translatedHeadline : news.headline;
+  const displaySummary = translateEnabled && translatedSummary ? translatedSummary : news.summary;
+
+  const { speak, toggle, isLoading, isPlaying } = useTTS({
     language: language?.code || "en",
   });
   const { incrementUsage, canPlay, showLimitModal, closeLimitModal, usedCount, maxCount } = useTTSLimit();
@@ -101,6 +112,45 @@ export function IntelligenceNewsCard({ news, index, onClick }: IntelligenceNewsC
   const signalInfo = signalConfig[signal];
   const confidenceInfo = confidenceConfig[confidence];
   const SignalIcon = signalInfo.icon;
+
+  const shouldOfferTranslation = useMemo(() => {
+    // If user is already in English, allow translation (useful for regional sources)
+    // If user is not in English, still allow translation to English (per request)
+    return true;
+  }, []);
+
+  const handleToggleTranslation = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const nextEnabled = !translateEnabled;
+    setTranslateEnabled(nextEnabled);
+
+    // If enabling and we don't have translations yet, fetch them
+    if (nextEnabled && (!translatedHeadline || !translatedSummary) && !isTranslating) {
+      setIsTranslating(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("translate-to-english", {
+          body: {
+            headline: news.headline,
+            summary: news.summary,
+          },
+        });
+
+        if (error) throw error;
+        if (!data?.headline_en || !data?.summary_en) {
+          throw new Error("Translation failed");
+        }
+
+        setTranslatedHeadline(data.headline_en);
+        setTranslatedSummary(data.summary_en);
+      } catch (err) {
+        setTranslateEnabled(false);
+        toast.error("Could not translate right now");
+      } finally {
+        setIsTranslating(false);
+      }
+    }
+  };
 
   const handleListen = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -162,9 +212,29 @@ export function IntelligenceNewsCard({ news, index, onClick }: IntelligenceNewsC
         >
           <CardContent className="p-4 sm:p-5">
             {/* 1️⃣ Headline */}
-            <h3 className="font-display text-base sm:text-lg font-semibold leading-tight mb-2 group-hover:text-primary transition-colors line-clamp-2">
-              {news.headline}
-            </h3>
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <h3 className="font-display text-base sm:text-lg font-semibold leading-tight group-hover:text-primary transition-colors line-clamp-2 flex-1">
+                {displayHeadline}
+              </h3>
+
+              {shouldOfferTranslation && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                  onClick={handleToggleTranslation}
+                  disabled={isTranslating}
+                  title="Translate to English"
+                >
+                  {isTranslating ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Languages className="w-3 h-3" />
+                  )}
+                  {translateEnabled ? "Original" : "English"}
+                </Button>
+              )}
+            </div>
 
             {/* 2️⃣ Intelligence metadata row */}
             <div className="flex items-center flex-wrap gap-2 mb-3 text-xs">
@@ -201,7 +271,7 @@ export function IntelligenceNewsCard({ news, index, onClick }: IntelligenceNewsC
 
             {/* Summary */}
             <p className="text-sm text-muted-foreground mb-3 leading-relaxed line-clamp-2">
-              {news.summary}
+              {displaySummary}
             </p>
 
             {/* 3️⃣ "Why this matters" toggle */}

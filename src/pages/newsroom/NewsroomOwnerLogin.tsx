@@ -26,6 +26,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Separator } from "@/components/ui/separator";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNewsroomRole } from "@/hooks/use-newsroom-role";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useOwnerAuditLog } from "@/hooks/use-owner-audit-log";
@@ -52,12 +53,15 @@ export default function NewsroomOwnerLogin() {
   const [daysUntilExpiry, setDaysUntilExpiry] = useState<number | null>(null);
   const [passwordExpiredMessage, setPasswordExpiredMessage] = useState("");
 
-  // Redirect if already logged in
+  const { isOwnerOrSuperadmin, loading: roleLoading } = useNewsroomRole();
+
+  // Redirect only if already logged in AND already has owner/superadmin access
+  // (If a normal public user is logged in, they should still be able to use owner login.)
   useEffect(() => {
-    if (user) {
+    if (!roleLoading && user && isOwnerOrSuperadmin) {
       navigate("/newsroom", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, isOwnerOrSuperadmin, roleLoading]);
 
   // Designated owner email for initial setup
   const DESIGNATED_OWNER_EMAIL = "originxlabs@gmail.com";
