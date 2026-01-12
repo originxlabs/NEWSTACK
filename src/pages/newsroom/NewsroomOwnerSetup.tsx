@@ -92,52 +92,26 @@ export default function NewsroomOwnerSetup() {
     setIsLoading(true);
 
     try {
-      // Verify OTP via custom edge function
+      // Verify OTP via custom backend function
       const { data, error } = await supabase.functions.invoke("verify-otp", {
-        body: { 
-          email: email.trim(), 
+        body: {
+          email: email.trim(),
           otp: passkey,
-          purpose: isNewAccount ? "signup" : "login"
+          purpose: isNewAccount ? "signup" : "login",
         },
       });
 
       if (error || !data?.success) {
         toast.error(data?.error || "Invalid passkey. Please try again.");
-        setIsLoading(false);
         return;
       }
 
-      // If we got a session token, use it to sign in
-      if (data.session?.token_hash) {
-        // Use the magic link token to create a session
-        const { error: sessionError } = await supabase.auth.verifyOtp({
-          email: email.trim(),
-          token: data.session.token_hash,
-          type: "magiclink",
-        });
+      // We intentionally do NOT try to create an auth session here.
+      // The verify-otp function returns a *hashed* token (not directly usable by the client SDK),
+      // and we don't need a session until after the owner sets a password.
 
-        if (sessionError) {
-          // Fallback: Try to sign in with email link
-          console.log("Magic link verification failed, trying alternative method");
-        }
-      }
-
-      // Check if this is new owner setup or existing login
-      const { data: existingMember } = await supabase
-        .from("newsroom_members")
-        .select("id, role")
-        .eq("email", email.trim())
-        .eq("role", "owner")
-        .single();
-
-      if (existingMember) {
-        // Existing owner - need to sign in properly
-        toast.success("Passkey verified! Please set/confirm your password.");
-        setViewMode("set-password");
-      } else {
-        // New owner - need to set password
-        setViewMode("set-password");
-      }
+      toast.success("Passkey verified! Please set your password.");
+      setViewMode("set-password");
     } catch (err) {
       toast.error("Verification failed");
     } finally {
@@ -161,82 +135,71 @@ export default function NewsroomOwnerSetup() {
     setIsLoading(true);
 
     try {
-      // Check if owner already exists
-      const { data: existingMember } = await supabase
-        .from("newsroom_members")
-        .select("id, role, user_id")
-        .eq("email", email.trim())
-        .eq("role", "owner")
-        .single();
-
-      if (existingMember) {
-        // Existing owner - just sign in
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+      // 1) Set (or reset) the owner's password using the verified OTP record.
+      //    This works for both: existing auth user OR user created during OTP-signup.
+      const { data: pwData, error: pwError } = await supabase.functions.invoke("update-password", {
+        body: {
           email: email.trim(),
-          password,
-        });
+          newPassword: password,
+        },
+      });
 
-        if (signInError) {
-          toast.error("Invalid password. Please try again or reset your password.");
-          setIsLoading(false);
-          return;
-        }
-
-        toast.success("Welcome back, Owner!");
-        navigate("/newsroom", { replace: true });
+      if (pwError || !pwData?.success) {
+        toast.error(pwData?.error || pwError?.message || "Failed to set password");
         return;
       }
 
-      // New owner - create account
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      // 2) Sign in normally with email + password
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
-      if (signUpError) {
-        toast.error(signUpError.message);
-        setIsLoading(false);
+      if (signInError || !signInData.user) {
+        toast.error(signInError?.message || "Sign in failed");
         return;
       }
 
-      if (!signUpData.user) {
-        toast.error("Failed to create account");
-        setIsLoading(false);
-        return;
-      }
-
-      // Create owner in newsroom_members
+      // 3) Ensure the signed-in user is registered as the newsroom owner
       const { error: memberError } = await supabase
         .from("newsroom_members")
-        .insert({
-          user_id: signUpData.user.id,
-          email: email.trim(),
-          role: "owner",
-          is_active: true,
-        });
+        .upsert(
+          {
+            user_id: signInData.user.id,
+            email: email.trim(),
+            role: "owner",
+            is_active: true,
+          },
+          { onConflict: "email" }
+        );
 
       if (memberError) {
-        console.error("Member creation error:", memberError);
-        // Continue anyway if already exists
+        console.error("newsroom_members upsert error:", memberError);
+        // Continue anyway; auth is valid.
       }
 
-      // Add to admin_users
-      await supabase
+      const { error: adminError } = await supabase
         .from("admin_users")
-        .upsert({
-          email: email.trim(),
-          role: "owner",
-        }, { onConflict: "email" });
+        .upsert(
+          {
+            email: email.trim(),
+            role: "owner",
+          },
+          { onConflict: "email" }
+        );
 
-      toast.success("Owner account created successfully!");
+      if (adminError) {
+        console.error("admin_users upsert error:", adminError);
+      }
+
+      toast.success("Owner access granted. Welcome!");
       setViewMode("success");
 
       setTimeout(() => {
         navigate("/newsroom", { replace: true });
-      }, 2000);
-
+      }, 500);
     } catch (err) {
-      console.error("Setup error:", err);
+      console.error("Owner setup error:", err);
       toast.error("An error occurred");
     } finally {
       setIsLoading(false);
