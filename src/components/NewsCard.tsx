@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Headphones, Bookmark, Heart, Share2, Shield, ChevronRight, Pause, Loader2, Clock, ExternalLink, MapPin, Globe, Building2, Layers } from "lucide-react";
+import { Headphones, Bookmark, Heart, Share2, Shield, ChevronRight, Pause, Loader2, Clock, ExternalLink, MapPin, Globe, Building2, Layers, Languages } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { toast } from "sonner";
 import { TTSLimitModal } from "@/components/TTSLimitModal";
 import { SourcesPopover } from "@/components/SourcesPopover";
+import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 export interface NewsSource {
   source_name: string;
@@ -84,11 +86,44 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
   const { incrementUsage, canPlay, showLimitModal, closeLimitModal, usedCount, maxCount } = useTTSLimit();
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  
+  // Translation state
+  const [translateEnabled, setTranslateEnabled] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedHeadline, setTranslatedHeadline] = useState<string | null>(null);
+  const [translatedSummary, setTranslatedSummary] = useState<string | null>(null);
+  
+  const displayHeadline = translateEnabled && translatedHeadline ? translatedHeadline : news.headline;
+  const displaySummary = translateEnabled && translatedSummary ? translatedSummary : news.summary;
 
   const locationRelevance = news.locationRelevance || (
     news.isGlobal ? "Global" : 
     news.countryCode === country?.code ? "Country" : "Global"
   );
+  
+  const handleToggleTranslation = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextEnabled = !translateEnabled;
+    setTranslateEnabled(nextEnabled);
+
+    if (nextEnabled && (!translatedHeadline || !translatedSummary) && !isTranslating) {
+      setIsTranslating(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("translate-to-english", {
+          body: { headline: news.headline, summary: news.summary },
+        });
+        if (error) throw error;
+        if (!data?.headline_en || !data?.summary_en) throw new Error("Translation failed");
+        setTranslatedHeadline(data.headline_en);
+        setTranslatedSummary(data.summary_en);
+      } catch {
+        setTranslateEnabled(false);
+        toast.error("Could not translate right now");
+      } finally {
+        setIsTranslating(false);
+      }
+    }
+  };
 
   const handleListen = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -234,12 +269,12 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
 
                 {/* Headline */}
                 <h3 className="font-display text-base sm:text-lg font-semibold mb-2 leading-tight group-hover:text-primary transition-colors line-clamp-2">
-                  {news.headline}
+                  {displayHeadline}
                 </h3>
 
                 {/* Summary */}
                 <p className="text-sm text-muted-foreground mb-3 leading-relaxed line-clamp-2">
-                  {news.summary}
+                  {displaySummary}
                 </p>
 
                 {/* Audio progress */}
@@ -308,6 +343,27 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
                           <span className="hidden sm:inline">Listen</span>
                         </>
                       )}
+                    </Button>
+
+                    {/* Translation Toggle */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleToggleTranslation}
+                      disabled={isTranslating}
+                      className={cn(
+                        "h-8 text-xs gap-1",
+                        translateEnabled && "bg-primary/10 text-primary"
+                      )}
+                    >
+                      {isTranslating ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Languages className="w-3.5 h-3.5" />
+                      )}
+                      <span className="hidden sm:inline">
+                        {translateEnabled ? "Original" : "English"}
+                      </span>
                     </Button>
 
                     <Button
