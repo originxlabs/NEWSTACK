@@ -323,9 +323,10 @@ serve(async (req) => {
       query = query.order("first_published_at", { ascending: false });
     }
 
-    // Pagination - fetch more to allow for filtering
+    // Pagination - fetch sufficient stories for clustering
     const from = (page - 1) * pageSize;
-    query = query.range(from, from + pageSize + 10);
+    const limit = Math.max(pageSize, 500); // Fetch up to 500 for better clustering
+    query = query.range(from, from + limit - 1);
 
     const { data: stories, error: storiesError } = await query;
 
@@ -508,8 +509,9 @@ serve(async (req) => {
       });
     }
 
-    // Limit to requested page size
-    storiesWithSources = storiesWithSources.slice(0, pageSize);
+    // Limit to requested page size (unless pageSize is large for clustering)
+    const finalLimit = pageSize >= 100 ? Math.min(pageSize, 500) : pageSize;
+    storiesWithSources = storiesWithSources.slice(0, finalLimit);
 
     // Calculate stats for the response
     const totalVerifiedSources = new Set(

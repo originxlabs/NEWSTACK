@@ -169,7 +169,7 @@ export default function News() {
     language: language?.code === "en" ? "eng" : language?.code,
     topic: selectedCategory === "all" ? undefined : selectedCategory,
     region: regionFilter || undefined,
-    pageSize: 100, // Load more for clustering - no artificial limit
+    pageSize: 500, // Load all available stories for comprehensive clustering
     feedType: "recent" as const,
   }), [country?.code, language?.code, selectedCategory, regionFilter]);
 
@@ -178,6 +178,15 @@ export default function News() {
     isLoading,
     refetch,
   } = useInfiniteNews(queryParams);
+
+  // Auto-refresh every 2 minutes for live data
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetch();
+      setLastRefreshed(new Date());
+    }, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [refetch]);
 
   // Clear region filter
   const clearRegionFilter = useCallback(() => {
@@ -650,13 +659,7 @@ export default function News() {
                 </div>
 
                 {/* RIGHT COLUMN - Trust & Signals Panel (Desktop only) */}
-                <RightTrustPanel
-                  totalSources={stats.totalSources}
-                  primarySources={stats.verifiedSources}
-                  secondarySources={stats.totalSources - stats.verifiedSources}
-                  contradictionsDetected={stats.contradictions}
-                  emergingSignals={updatedStoriesCount > 0 ? [`${updatedStoriesCount} stories updated since your last visit`] : []}
-                />
+                <RightTrustPanel />
               </div>
             )}
           </div>

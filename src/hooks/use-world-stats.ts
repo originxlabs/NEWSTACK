@@ -232,7 +232,7 @@ export function useWorldStats() {
 
       return regionStats;
     },
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
-    staleTime: 2 * 60 * 1000, // Consider stale after 2 minutes
+    refetchInterval: 2 * 60 * 1000, // Refetch every 2 minutes for live data
+    staleTime: 60 * 1000, // Consider stale after 1 minute
   });
 }
