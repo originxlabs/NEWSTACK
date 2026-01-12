@@ -105,25 +105,22 @@ export default function NewsroomLogin() {
         return;
       }
 
-      // Generate OTP using Supabase Auth (for verification)
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          shouldCreateUser: true,
+      // Send OTP via custom edge function (branded email from no-reply@newstack.live)
+      const { data, error } = await supabase.functions.invoke("send-otp", {
+        body: { 
+          email: email.trim(), 
+          purpose: "signup" 
         },
       });
 
-      if (error) {
-        toast.error(error.message);
+      if (error || !data?.success) {
+        toast.error(error?.message || data?.error || "Failed to send passkey");
         setIsLoading(false);
         return;
       }
 
-      // Note: Supabase sends its own OTP email - our branded email is supplementary
-      // The actual OTP is sent by Supabase Auth, user enters that code
-
       setIsNewAccount(true);
-      toast.success("Passkey sent to your email!");
+      toast.success("Passkey sent to your email from Newstack!");
       setViewMode("verify-passkey");
     } catch (err) {
       toast.error("Failed to send passkey");
@@ -142,22 +139,23 @@ export default function NewsroomLogin() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: passkey,
-        type: "email",
+      // Verify OTP via custom edge function
+      const { data, error } = await supabase.functions.invoke("verify-otp", {
+        body: { 
+          email: email.trim(), 
+          otp: passkey,
+          purpose: isNewAccount ? "signup" : "password_reset"
+        },
       });
 
-      if (error) {
-        toast.error("Invalid passkey. Please try again.");
+      if (error || !data?.success) {
+        toast.error(data?.error || "Invalid passkey. Please try again.");
         setIsLoading(false);
         return;
       }
 
-      if (data.session) {
-        toast.success("Email verified! Set your password.");
-        setViewMode("set-password");
-      }
+      toast.success("Email verified! Set your password.");
+      setViewMode("set-password");
     } catch (err) {
       toast.error("Verification failed");
     } finally {
@@ -182,50 +180,67 @@ export default function NewsroomLogin() {
     setIsLoading(true);
 
     try {
-      // Update password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (updateError) {
-        toast.error(updateError.message);
-        setIsLoading(false);
-        return;
-      }
-
-      // Get current user
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-
-      if (!currentUser) {
-        toast.error("Authentication error");
-        setIsLoading(false);
-        return;
-      }
-
-      // Create as viewer by default (owner can promote later)
-      const { error: memberError } = await supabase
-        .from("newsroom_members")
-        .insert({
-          user_id: currentUser.id,
+      if (isNewAccount) {
+        // New user registration - create user via signup
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
-          role: "viewer", // Default role for new enterprise users
-          is_active: true,
+          password: newPassword,
         });
 
-      if (memberError) {
-        console.error("Member creation error:", memberError);
-        toast.error("Failed to create account. Contact administrator.");
-        setIsLoading(false);
-        return;
+        if (signUpError) {
+          toast.error(signUpError.message);
+          setIsLoading(false);
+          return;
+        }
+
+        if (!signUpData.user) {
+          toast.error("Failed to create account");
+          setIsLoading(false);
+          return;
+        }
+
+        // Create as viewer by default (owner can promote later)
+        const { error: memberError } = await supabase
+          .from("newsroom_members")
+          .insert({
+            user_id: signUpData.user.id,
+            email: email.trim(),
+            role: "viewer", // Default role for new enterprise users
+            is_active: true,
+          });
+
+        if (memberError) {
+          console.error("Member creation error:", memberError);
+          toast.error("Failed to create account. Contact administrator.");
+          setIsLoading(false);
+          return;
+        }
+
+        toast.success("Account created successfully!");
+        setViewMode("success");
+
+        setTimeout(() => {
+          navigate("/newsroom", { replace: true });
+        }, 2000);
+      } else {
+        // Password reset - use custom edge function
+        const { data, error } = await supabase.functions.invoke("update-password", {
+          body: { 
+            email: email.trim(), 
+            newPassword 
+          },
+        });
+
+        if (error || !data?.success) {
+          toast.error(data?.error || "Failed to update password");
+          setIsLoading(false);
+          return;
+        }
+
+        toast.success("Password updated! Please sign in.");
+        resetToMain();
+        setActiveTab("login");
       }
-
-      toast.success("Account created successfully!");
-      setViewMode("success");
-
-      setTimeout(() => {
-        navigate("/newsroom", { replace: true });
-      }, 2000);
-
     } catch (err) {
       console.error("Setup error:", err);
       toast.error("An error occurred");
@@ -234,7 +249,7 @@ export default function NewsroomLogin() {
     }
   };
 
-  // Forgot password - send OTP
+  // Forgot password - send OTP via custom edge function
   const handleForgotPassword = async () => {
     if (!email.trim()) {
       toast.error("Please enter your email first");
@@ -244,23 +259,35 @@ export default function NewsroomLogin() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          shouldCreateUser: false,
-        },
-      });
+      // Check if account exists
+      const { data: existingMember } = await supabase
+        .from("newsroom_members")
+        .select("id")
+        .eq("email", email.trim())
+        .single();
 
-      if (error) {
+      if (!existingMember) {
         toast.error("No account found with this email");
         setIsLoading(false);
         return;
       }
 
-      // Note: Supabase sends its own OTP email with the actual code
+      // Send OTP via custom edge function (branded email from no-reply@newstack.live)
+      const { data, error } = await supabase.functions.invoke("send-otp", {
+        body: { 
+          email: email.trim(), 
+          purpose: "password_reset" 
+        },
+      });
+
+      if (error || !data?.success) {
+        toast.error(error?.message || data?.error || "Failed to send reset passkey");
+        setIsLoading(false);
+        return;
+      }
 
       setIsNewAccount(false);
-      toast.success("Reset passkey sent to your email!");
+      toast.success("Reset passkey sent to your email from Newstack!");
       setViewMode("verify-passkey");
     } catch (err) {
       toast.error("Failed to send reset passkey");
