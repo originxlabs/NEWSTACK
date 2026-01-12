@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { 
   Globe, ChevronRight, ChevronLeft, MapPin, Building2, 
   Layers, RefreshCw, TrendingUp, TrendingDown,
-  Minus, Wifi, WifiOff, Search, Navigation, Loader2
+  Minus, Wifi, WifiOff, Search, Navigation, Loader2, Radio
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -28,6 +28,7 @@ import {
 } from "@/lib/geo-hierarchy";
 import { LocationSearch } from "@/components/world/LocationSearch";
 import { useUserLocation } from "@/hooks/use-user-location";
+import { LiveNewsTicker } from "@/components/world/LiveNewsTicker";
 
 // Navigation levels
 type DrillLevel = "world" | "continent" | "country" | "state" | "city" | "locality";
@@ -395,10 +396,11 @@ export default function World() {
     return items;
   }, [selectedContinent, selectedCountry, selectedState, selectedCity]);
 
-  // Get current items to display
+  // Get current items to display - show ALL continents including those with 0 countries
   const currentItems = useMemo(() => {
     if (currentLevel === "world") {
-      return GEO_HIERARCHY.filter(c => c.countries.length > 0);
+      // Show all 7 continents - Antarctica is included even with 0 countries
+      return GEO_HIERARCHY;
     }
     if (currentLevel === "continent" && selectedContinent) {
       return selectedContinent.countries;
@@ -658,9 +660,23 @@ export default function World() {
           </div>
         </section>
 
-        {/* Location Grid */}
+        {/* Main Content with Live Ticker */}
         <section className="py-8">
           <div className="container mx-auto max-w-6xl px-4">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Live Ticker Sidebar */}
+              <div className="lg:col-span-1 order-2 lg:order-1">
+                <div className="sticky top-20">
+                  <Card className="border-border/50">
+                    <CardContent className="p-4">
+                      <LiveNewsTicker maxItems={6} />
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Location Grid */}
+              <div className="lg:col-span-3 order-1 lg:order-2">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentLevel + (selectedContinent?.id || "") + (selectedCountry?.id || "")}
@@ -769,6 +785,8 @@ export default function World() {
                 )}
               </motion.div>
             </AnimatePresence>
+              </div>
+            </div>
           </div>
         </section>
 
