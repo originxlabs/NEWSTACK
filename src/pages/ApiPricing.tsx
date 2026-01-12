@@ -156,7 +156,7 @@ export default function ApiPricing() {
     };
   }, []);
 
-  const handlePlanSelect = (planId: string) => {
+  const handlePlanSelect = async (planId: string) => {
     if (planId === "sandbox") {
       if (!user) {
         setShowAuthModal(true);
@@ -166,11 +166,67 @@ export default function ApiPricing() {
     } else if (planId === "enterprise") {
       window.location.href = "mailto:sales@newstack.live?subject=NEWSTACK Enterprise API Inquiry";
     } else {
-      // Redirect to payment flow
+      // Redirect to payment flow for paid plans
       if (!user) {
         setShowAuthModal(true);
-      } else {
-        navigate("/support");
+        return;
+      }
+      
+      // Initiate Razorpay payment
+      try {
+        const { data, error } = await supabase.functions.invoke("create-api-subscription", {
+          body: {
+            planType: planId,
+            billingCycle: isAnnual ? "annual" : "monthly",
+            userId: user.id,
+            email: user.email,
+          },
+        });
+
+        if (error || !data) {
+          toast.error("Failed to create subscription order");
+          return;
+        }
+
+        if (!razorpayLoaded || !window.Razorpay) {
+          toast.error("Payment gateway loading. Please try again.");
+          return;
+        }
+
+        const options = {
+          key: data.keyId,
+          amount: data.amount,
+          currency: data.currency,
+          name: "NEWSTACK API",
+          description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan - ${isAnnual ? "Annual" : "Monthly"}`,
+          order_id: data.orderId,
+          handler: async (response: any) => {
+            const verifyResult = await supabase.functions.invoke("verify-api-subscription", {
+              body: {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                subscriptionId: data.subscriptionId,
+                userId: user.id,
+              },
+            });
+
+            if (verifyResult.error) {
+              toast.error("Payment verification failed");
+            } else {
+              toast.success("Subscription activated! Redirecting to dashboard...");
+              navigate("/enterprise/dashboard");
+            }
+          },
+          prefill: { email: user.email },
+          theme: { color: "#10b981" },
+        };
+
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+      } catch (err) {
+        console.error("Payment error:", err);
+        toast.error("Payment failed. Please try again.");
       }
     }
   };
