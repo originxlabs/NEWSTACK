@@ -292,13 +292,18 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
           
-          {/* Close button */}
+          {/* Close button - Fixed z-index and pointer events */}
           <motion.button
-            onClick={handleClose}
-            className="absolute top-4 right-4 p-2 rounded-full hover:bg-accent/50 transition-colors z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClose();
+            }}
+            className="absolute top-4 right-4 p-2.5 rounded-full hover:bg-accent/80 transition-colors bg-background/50 backdrop-blur-sm border border-border/50 shadow-sm"
             type="button"
+            style={{ zIndex: 10001, pointerEvents: 'auto' }}
             whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
+            aria-label="Close modal"
           >
             <X className="h-5 w-5" />
           </motion.button>

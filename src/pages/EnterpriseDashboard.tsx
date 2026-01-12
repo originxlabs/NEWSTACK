@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Key, Copy, Eye, EyeOff, BarChart3, Activity, Zap, Clock,
   Shield, CheckCircle2, RefreshCw, Building2, TrendingUp,
-  AlertTriangle, ExternalLink, BookOpen
+  AlertTriangle, ExternalLink, BookOpen, Webhook, CreditCard
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -13,11 +13,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { WebhookManagement } from "@/components/enterprise/WebhookManagement";
 
 interface SandboxApiKey {
   id: string;
@@ -154,7 +156,7 @@ export default function EnterpriseDashboard() {
       <Header />
       
       <main className="pt-14 pb-12">
-        <div className="container mx-auto max-w-4xl px-4 py-8">
+        <div className="container mx-auto max-w-5xl px-4 py-8">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -170,131 +172,279 @@ export default function EnterpriseDashboard() {
             </p>
           </motion.div>
 
-          {/* Sandbox API Key Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Card className="mb-6 border-primary/20">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Key className="w-5 h-5 text-primary" />
-                      Sandbox API Key
-                    </CardTitle>
-                    <CardDescription>
-                      Free sandbox access with {SANDBOX_MONTHLY_LIMIT} requests/month
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
-                    Sandbox
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {sandboxKey ? (
-                  <>
-                    {/* API Key Display */}
-                    <div className="p-4 bg-muted/50 rounded-lg border">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-muted-foreground">Your API Key</span>
-                        <Badge 
-                          variant={sandboxKey.is_active ? "default" : "destructive"}
-                          className={cn(
-                            sandboxKey.is_active && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+          {/* Tabs for different sections */}
+          <Tabs defaultValue="api-key" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="api-key" className="gap-2">
+                <Key className="w-4 h-4" />
+                API Key
+              </TabsTrigger>
+              <TabsTrigger value="webhooks" className="gap-2">
+                <Webhook className="w-4 h-4" />
+                Webhooks
+              </TabsTrigger>
+              <TabsTrigger value="billing" className="gap-2">
+                <CreditCard className="w-4 h-4" />
+                Billing
+              </TabsTrigger>
+            </TabsList>
+
+            {/* API Key Tab */}
+            <TabsContent value="api-key" className="space-y-6">
+              {/* Sandbox API Key Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Card className="border-primary/20">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Key className="w-5 h-5 text-primary" />
+                          Sandbox API Key
+                        </CardTitle>
+                        <CardDescription>
+                          Free sandbox access with {SANDBOX_MONTHLY_LIMIT} requests/month
+                        </CardDescription>
+                      </div>
+                      <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+                        Sandbox
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {sandboxKey ? (
+                      <>
+                        {/* API Key Display */}
+                        <div className="p-4 bg-muted/50 rounded-lg border">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-muted-foreground">Your API Key</span>
+                            <Badge 
+                              variant={sandboxKey.is_active ? "default" : "destructive"}
+                              className={cn(
+                                sandboxKey.is_active && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                              )}
+                            >
+                              {sandboxKey.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 text-sm font-mono bg-background px-3 py-2 rounded border truncate">
+                              {showApiKey ? sandboxKey.api_key : "nsk_test_" + "•".repeat(28)}
+                            </code>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="flex-shrink-0"
+                              onClick={() => setShowApiKey(!showApiKey)}
+                            >
+                              {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="flex-shrink-0"
+                              onClick={copyApiKey}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Usage Stats */}
+                        <div className="grid sm:grid-cols-3 gap-4">
+                          <div className="p-4 rounded-lg bg-muted/30 border">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs text-muted-foreground">Usage This Month</span>
+                              <Zap className="w-4 h-4 text-primary" />
+                            </div>
+                            <p className="text-xl font-bold">
+                              {sandboxKey.requests_used}
+                              <span className="text-sm font-normal text-muted-foreground">
+                                {" "}/ {SANDBOX_MONTHLY_LIMIT}
+                              </span>
+                            </p>
+                            <Progress value={usagePercentage} className="mt-2 h-1.5" />
+                          </div>
+
+                          <div className="p-4 rounded-lg bg-muted/30 border">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs text-muted-foreground">Rate Limit</span>
+                              <Activity className="w-4 h-4 text-blue-500" />
+                            </div>
+                            <p className="text-xl font-bold">
+                              {sandboxKey.rate_limit_per_second}
+                              <span className="text-sm font-normal text-muted-foreground"> req/s</span>
+                            </p>
+                          </div>
+
+                          <div className="p-4 rounded-lg bg-muted/30 border">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs text-muted-foreground">Last Used</span>
+                              <Clock className="w-4 h-4 text-amber-500" />
+                            </div>
+                            <p className="text-sm font-medium">
+                              {sandboxKey.last_used_at 
+                                ? formatDistanceToNow(new Date(sandboxKey.last_used_at), { addSuffix: true })
+                                : "Never"
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Usage Warning */}
+                        {usagePercentage >= 80 && (
+                          <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-medium text-amber-600 dark:text-amber-400">
+                                Approaching usage limit
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                You've used {usagePercentage.toFixed(0)}% of your monthly quota. 
+                                Consider upgrading to a paid plan for more requests.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Key className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="font-semibold mb-2">No Sandbox Key Yet</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Generate a free sandbox API key to start testing the NEWSTACK API
+                        </p>
+                        <Button onClick={generateSandboxKey} disabled={isGenerating}>
+                          {isGenerating ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Key className="w-4 h-4 mr-2" />
+                              Generate Sandbox Key
+                            </>
                           )}
-                        >
-                          {sandboxKey.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <code className="flex-1 text-sm font-mono bg-background px-3 py-2 rounded border truncate">
-                          {showApiKey ? sandboxKey.api_key : "nsk_test_" + "•".repeat(28)}
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="flex-shrink-0"
-                          onClick={() => setShowApiKey(!showApiKey)}
-                        >
-                          {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="flex-shrink-0"
-                          onClick={copyApiKey}
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Usage Stats */}
-                    <div className="grid sm:grid-cols-3 gap-4">
-                      <div className="p-4 rounded-lg bg-muted/30 border">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-muted-foreground">Usage This Month</span>
-                          <Zap className="w-4 h-4 text-primary" />
-                        </div>
-                        <p className="text-xl font-bold">
-                          {sandboxKey.requests_used}
-                          <span className="text-sm font-normal text-muted-foreground">
-                            {" "}/ {SANDBOX_MONTHLY_LIMIT}
-                          </span>
-                        </p>
-                        <Progress value={usagePercentage} className="mt-2 h-1.5" />
-                      </div>
-
-                      <div className="p-4 rounded-lg bg-muted/30 border">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-muted-foreground">Rate Limit</span>
-                          <Activity className="w-4 h-4 text-blue-500" />
-                        </div>
-                        <p className="text-xl font-bold">
-                          {sandboxKey.rate_limit_per_second}
-                          <span className="text-sm font-normal text-muted-foreground"> req/s</span>
-                        </p>
-                      </div>
-
-                      <div className="p-4 rounded-lg bg-muted/30 border">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-muted-foreground">Last Used</span>
-                          <Clock className="w-4 h-4 text-amber-500" />
-                        </div>
-                        <p className="text-sm font-medium">
-                          {sandboxKey.last_used_at 
-                            ? formatDistanceToNow(new Date(sandboxKey.last_used_at), { addSuffix: true })
-                            : "Never"
-                          }
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Usage Warning */}
-                    {usagePercentage >= 80 && (
-                      <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                        <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-medium text-amber-600 dark:text-amber-400">
-                            Approaching usage limit
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            You've used {usagePercentage.toFixed(0)}% of your monthly quota. 
-                            Consider upgrading to a paid plan for more requests.
-                          </p>
-                        </div>
                       </div>
                     )}
-                  </>
-                ) : (
-                  <div className="text-center py-8">
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Quick Actions */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="grid sm:grid-cols-2 gap-4"
+              >
+                <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => navigate("/api/docs")}>
+                  <CardContent className="pt-6 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <BookOpen className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">API Documentation</h3>
+                      <p className="text-sm text-muted-foreground">View OpenAPI specs and examples</p>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-muted-foreground ml-auto" />
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => navigate("/api")}>
+                  <CardContent className="pt-6 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                      <Activity className="w-6 h-6 text-emerald-500" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Try Live API</h3>
+                      <p className="text-sm text-muted-foreground">Test endpoints in the sandbox</p>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-muted-foreground ml-auto" />
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Plan Features */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-primary" />
+                      Sandbox Plan Features
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <span>{SANDBOX_MONTHLY_LIMIT} API requests per month</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <span>Access to News, World, and Places APIs</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <span>2 requests per second rate limit</span>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <span>Full confidence and source data</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <span>No credit card required</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <AlertTriangle className="w-4 h-4 text-amber-500" />
+                          <span>Streaming & Webhooks not included</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold">Need more?</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Upgrade to Pro or Enterprise for higher limits and more features
+                          </p>
+                        </div>
+                        <Button variant="outline" onClick={() => navigate("/api/pricing")}>
+                          <TrendingUp className="w-4 h-4 mr-2" />
+                          View Plans
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+
+            {/* Webhooks Tab */}
+            <TabsContent value="webhooks">
+              {sandboxKey ? (
+                <WebhookManagement apiKeyId={sandboxKey.id} />
+              ) : (
+                <Card className="border-dashed">
+                  <CardContent className="py-12 text-center">
                     <Key className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-semibold mb-2">No Sandbox Key Yet</h3>
+                    <h4 className="font-semibold mb-2">Generate an API Key First</h4>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Generate a free sandbox API key to start testing the NEWSTACK API
+                      You need an API key to configure webhooks.
                     </p>
                     <Button onClick={generateSandboxKey} disabled={isGenerating}>
                       {isGenerating ? (
@@ -309,108 +459,48 @@ export default function EnterpriseDashboard() {
                         </>
                       )}
                     </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
 
-          {/* Quick Actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="grid sm:grid-cols-2 gap-4 mb-6"
-          >
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => navigate("/api/docs")}>
-              <CardContent className="pt-6 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">API Documentation</h3>
-                  <p className="text-sm text-muted-foreground">View OpenAPI specs and examples</p>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground ml-auto" />
-              </CardContent>
-            </Card>
-
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => navigate("/api")}>
-              <CardContent className="pt-6 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                  <Activity className="w-6 h-6 text-emerald-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Try Live API</h3>
-                  <p className="text-sm text-muted-foreground">Test endpoints in the sandbox</p>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground ml-auto" />
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Plan Features */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-primary" />
-                  Sandbox Plan Features
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      <span>{SANDBOX_MONTHLY_LIMIT} API requests per month</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      <span>Access to News, World, and Places APIs</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      <span>2 requests per second rate limit</span>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      <span>Full confidence and source data</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      <span>No credit card required</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <AlertTriangle className="w-4 h-4 text-amber-500" />
-                      <span>Streaming & Webhooks not included</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold">Need more?</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Upgrade to Pro or Enterprise for higher limits and more features
-                      </p>
-                    </div>
-                    <Button variant="outline" onClick={() => navigate("/api#pricing")}>
+            {/* Billing Tab */}
+            <TabsContent value="billing">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-primary" />
+                    Billing & Subscription
+                  </CardTitle>
+                  <CardDescription>
+                    Manage your subscription and payment methods
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="p-6 rounded-lg bg-muted/30 border text-center">
+                    <Badge className="mb-4 bg-amber-500/10 text-amber-600 border-amber-500/30">
+                      Sandbox Plan
+                    </Badge>
+                    <h3 className="text-2xl font-bold mb-2">Free</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      You're currently on the free sandbox plan
+                    </p>
+                    <Button onClick={() => navigate("/api/pricing")}>
                       <TrendingUp className="w-4 h-4 mr-2" />
-                      View Plans
+                      Upgrade Plan
                     </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+
+                  <div className="text-center text-sm text-muted-foreground">
+                    <p>Need help with billing? Contact us at</p>
+                    <a href="mailto:billing@newstack.live" className="text-primary hover:underline">
+                      billing@newstack.live
+                    </a>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
