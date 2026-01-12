@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { WeatherAQIWidget } from "@/components/weather/WeatherAQIWidget";
 import { cn } from "@/lib/utils";
 import { NewsCard, NewsItem } from "@/components/NewsCard";
 import { IngestionPipelineViewer } from "@/components/IngestionPipelineViewer";
@@ -653,6 +654,15 @@ export default function StatePage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Weather & AQI Widget */}
+            {stateConfig?.capitalCoordinates && (
+              <WeatherAQIWidget
+                lat={stateConfig.capitalCoordinates.lat}
+                lng={stateConfig.capitalCoordinates.lng}
+                cityName={stateConfig.capital}
+                showAQI={true}
+              />
+            )}
             {/* District Drilldown */}
             {stateConfig?.districts && stateConfig.districts.length > 0 && (
               <DistrictDrilldown
