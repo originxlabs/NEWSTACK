@@ -120,6 +120,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Update password_last_set_at for owner in newsroom_members (for 30-day expiry tracking)
+    const { error: memberUpdateError } = await supabase
+      .from("newsroom_members")
+      .update({ password_last_set_at: new Date().toISOString() })
+      .eq("email", email.toLowerCase());
+
+    if (memberUpdateError) {
+      console.log("Note: Could not update password_last_set_at:", memberUpdateError.message);
+    }
+
     // Invalidate the used OTP record
     await supabase
       .from("email_otps")

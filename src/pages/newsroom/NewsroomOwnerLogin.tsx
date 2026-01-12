@@ -1,22 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Shield,
   Crown,
-  Check,
-  Loader2,
-  AlertTriangle,
-  Mail,
-  ArrowRight,
   Lock,
   Eye,
   EyeOff,
+  Loader2,
+  Mail,
+  Check,
+  AlertTriangle,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Separator } from "@/components/ui/separator";
 import { Logo } from "@/components/Logo";
@@ -24,63 +29,78 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useOwnerAuditLog } from "@/hooks/use-owner-audit-log";
+import { differenceInDays, formatDistanceToNow } from "date-fns";
 
-type ViewMode = "warning" | "auth" | "verify-passkey" | "set-password" | "success";
+type ViewMode = "login" | "password-expired" | "verify-passkey" | "set-password" | "success";
 
-export default function NewsroomOwnerSetup() {
+const PASSWORD_EXPIRY_DAYS = 30;
+
+export default function NewsroomOwnerLogin() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const auditLog = useOwnerAuditLog();
 
-  const [viewMode, setViewMode] = useState<ViewMode>("warning");
+  const [viewMode, setViewMode] = useState<ViewMode>("login");
   const [email, setEmail] = useState("");
-
-  // Reset/setup via OTP
-  const [passkey, setPasskey] = useState("");
-
-  // Normal login via password
   const [loginPassword, setLoginPassword] = useState("");
-
-  // Password set/reset
+  const [passkey, setPasskey] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [daysUntilExpiry, setDaysUntilExpiry] = useState<number | null>(null);
+  const [passwordExpiredMessage, setPasswordExpiredMessage] = useState("");
 
   // Redirect if already logged in
-  if (user) {
-    navigate("/newsroom", { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      navigate("/newsroom", { replace: true });
+    }
+  }, [user, navigate]);
 
-  const handleProceedToAuth = () => {
-    setViewMode("auth");
-  };
-
-  const ensureEmailIsOwner = async (ownerEmail: string) => {
+  const checkOwnerAndPasswordExpiry = async (ownerEmail: string) => {
     const normalized = ownerEmail.trim().toLowerCase();
 
-    // Prefer admin_users for the single "owner" source of truth (created during setup)
-    const { data: adminOwner } = await supabase
-      .from("admin_users")
-      .select("email, role")
-      .eq("email", normalized)
-      .eq("role", "owner")
-      .maybeSingle();
-
-    if (adminOwner) return true;
-
-    // Fallback: allow if newsroom_members marks them as owner
-    const { data: memberOwner } = await supabase
+    // Check if owner exists
+    const { data: member } = await supabase
       .from("newsroom_members")
-      .select("email, role, is_active")
+      .select("email, role, is_active, password_last_set_at")
       .eq("email", normalized)
       .eq("role", "owner")
       .eq("is_active", true)
       .maybeSingle();
 
-    return !!memberOwner;
+    if (!member) {
+      // Fallback: check admin_users
+      const { data: adminOwner } = await supabase
+        .from("admin_users")
+        .select("email, role")
+        .eq("email", normalized)
+        .eq("role", "owner")
+        .maybeSingle();
+
+      if (!adminOwner) {
+        return { isOwner: false, isExpired: false, daysRemaining: 0 };
+      }
+
+      // If only in admin_users (no password_last_set_at), treat as needing reset
+      return { isOwner: true, isExpired: true, daysRemaining: 0 };
+    }
+
+    // Check password expiry
+    if (!member.password_last_set_at) {
+      return { isOwner: true, isExpired: true, daysRemaining: 0 };
+    }
+
+    const passwordSetDate = new Date(member.password_last_set_at);
+    const daysSinceSet = differenceInDays(new Date(), passwordSetDate);
+    const daysRemaining = PASSWORD_EXPIRY_DAYS - daysSinceSet;
+
+    return {
+      isOwner: true,
+      isExpired: daysRemaining <= 0,
+      daysRemaining: Math.max(0, daysRemaining),
+    };
   };
 
   const handleOwnerPasswordLogin = async (e: React.FormEvent) => {
@@ -93,13 +113,23 @@ export default function NewsroomOwnerSetup() {
 
     setIsLoading(true);
     try {
-      const isOwnerEmail = await ensureEmailIsOwner(email);
-      if (!isOwnerEmail) {
-        await auditLog.logFailed(email.trim(), "Non-owner attempted password login");
+      const { isOwner, isExpired, daysRemaining } = await checkOwnerAndPasswordExpiry(email);
+
+      if (!isOwner) {
+        await auditLog.logFailed(email.trim(), "Non-owner attempted owner login");
         toast.error("Access denied: this email is not the owner");
         return;
       }
 
+      if (isExpired) {
+        setPasswordExpiredMessage(
+          "Your password has expired. You must reset it to continue."
+        );
+        setViewMode("password-expired");
+        return;
+      }
+
+      // Attempt login
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: loginPassword,
@@ -111,7 +141,14 @@ export default function NewsroomOwnerSetup() {
         return;
       }
 
+      setDaysUntilExpiry(daysRemaining);
       await auditLog.logSuccess(email.trim());
+
+      // Show warning if password expires soon (< 7 days)
+      if (daysRemaining <= 7) {
+        toast.warning(`Your password expires in ${daysRemaining} day(s). Consider resetting it.`);
+      }
+
       navigate("/newsroom", { replace: true });
     } catch (err: any) {
       await auditLog.logFailed(email.trim(), err?.message || "Owner password login error");
@@ -128,19 +165,16 @@ export default function NewsroomOwnerSetup() {
     }
 
     setIsLoading(true);
-
     try {
-      const isOwnerEmail = await ensureEmailIsOwner(email);
-      if (!isOwnerEmail) {
-        await auditLog.logFailed(email.trim(), "Non-owner attempted owner-init OTP request");
+      const { isOwner } = await checkOwnerAndPasswordExpiry(email);
+      if (!isOwner) {
+        await auditLog.logFailed(email.trim(), "Non-owner attempted OTP request");
         toast.error("Access denied: this email is not the owner");
         return;
       }
 
-      // Log the OTP request attempt
       await auditLog.logOtpRequest(email.trim(), true);
 
-      // Always treat owner-init OTP as a password reset/setup flow
       const { data, error } = await supabase.functions.invoke("send-otp", {
         body: {
           email: email.trim(),
@@ -154,7 +188,7 @@ export default function NewsroomOwnerSetup() {
         return;
       }
 
-      toast.success("Passkey sent to your email from Newstack!");
+      toast.success("Passkey sent to your email!");
       setViewMode("verify-passkey");
     } catch (err) {
       await auditLog.logFailed(email.trim(), "Failed to send passkey");
@@ -171,9 +205,7 @@ export default function NewsroomOwnerSetup() {
     }
 
     setIsLoading(true);
-
     try {
-      // Verify OTP via custom backend function
       const { data, error } = await supabase.functions.invoke("verify-otp", {
         body: {
           email: email.trim(),
@@ -189,8 +221,7 @@ export default function NewsroomOwnerSetup() {
       }
 
       await auditLog.logOtpVerify(email.trim(), true);
-
-      toast.success("Passkey verified! Please set your password.");
+      toast.success("Passkey verified! Please set your new password.");
       setViewMode("set-password");
     } catch (err) {
       await auditLog.logFailed(email.trim(), "Verification failed");
@@ -214,163 +245,61 @@ export default function NewsroomOwnerSetup() {
     }
 
     setIsLoading(true);
-
     try {
-      // 1) Set (or reset) the owner's password using the verified OTP record.
-      //    This works for both: existing auth user OR user created during OTP-signup.
-      const { data: pwData, error: pwError } = await supabase.functions.invoke("update-password", {
-        body: {
-          email: email.trim(),
-          newPassword: password,
-        },
-      });
+      const { data: pwData, error: pwError } = await supabase.functions.invoke(
+        "update-password",
+        {
+          body: {
+            email: email.trim(),
+            newPassword: password,
+          },
+        }
+      );
 
       if (pwError || !pwData?.success) {
         toast.error(pwData?.error || pwError?.message || "Failed to set password");
         return;
       }
 
-      // 2) Sign in normally with email + password
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      // Sign in
+      const { data: signInData, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
 
       if (signInError || !signInData.user) {
         toast.error(signInError?.message || "Sign in failed");
         return;
       }
 
-      // 3) Ensure the signed-in user is registered as the newsroom owner
-      const { error: memberError } = await supabase
-        .from("newsroom_members")
-        .upsert(
-          {
-            user_id: signInData.user.id,
-            email: email.trim(),
-            role: "owner",
-            is_active: true,
-          },
-          { onConflict: "email" }
-        );
-
-      if (memberError) {
-        console.error("newsroom_members upsert error:", memberError);
-        // Continue anyway; auth is valid.
-      }
-
-      const { error: adminError } = await supabase
-        .from("admin_users")
-        .upsert(
-          {
-            email: email.trim(),
-            role: "owner",
-          },
-          { onConflict: "email" }
-        );
-
-      if (adminError) {
-        console.error("admin_users upsert error:", adminError);
-      }
-
-      // Log successful owner setup
       await auditLog.logSuccess(email.trim());
-
-      toast.success("Owner setup complete! Use /newsroom/owner-login for future logins.");
+      toast.success("Password updated! Welcome back.");
       setViewMode("success");
 
       setTimeout(() => {
         navigate("/newsroom", { replace: true });
-      }, 1500);
+      }, 500);
     } catch (err) {
-      await auditLog.logFailed(email.trim(), "Owner setup error");
-      console.error("Owner setup error:", err);
+      await auditLog.logFailed(email.trim(), "Password update error");
       toast.error("An error occurred");
     } finally {
       setIsLoading(false);
     }
   };
 
+  if (user) return null;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <AnimatePresence mode="wait">
-        {/* WARNING SCREEN */}
-        {viewMode === "warning" && (
+        {/* LOGIN SCREEN */}
+        {viewMode === "login" && (
           <motion.div
-            key="warning"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-lg"
-          >
-            <Card className="border-red-500/30 bg-red-500/5">
-              <CardHeader className="text-center pb-4">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                  className="mx-auto w-20 h-20 rounded-full bg-red-500/10 border-2 border-red-500/30 flex items-center justify-center mb-4"
-                >
-                  <AlertTriangle className="w-10 h-10 text-red-500" />
-                </motion.div>
-                <CardTitle className="text-2xl text-red-600">⚠️ Restricted Access</CardTitle>
-                <CardDescription className="text-red-500/80 mt-2">
-                  This is the <strong>Owner Control Panel</strong> for NEWSTACK Newsroom
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 rounded-lg bg-background/50 border border-red-500/20 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Shield className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-muted-foreground">
-                      This panel provides <strong>full administrative access</strong> to all NEWSTACK systems including API management, user controls, and platform settings.
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Lock className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-muted-foreground">
-                      Only authorized personnel with valid <strong>owner credentials</strong> may proceed. Unauthorized access attempts are logged and monitored.
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Crown className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-muted-foreground">
-                      If you are the designated platform owner, sign in with your owner email and password. Use a passkey only if you need to set/reset your password.
-                    </p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => navigate("/")}
-                  >
-                    Exit
-                  </Button>
-                  <Button 
-                    className="flex-1 gap-2 bg-red-600 hover:bg-red-700"
-                    onClick={handleProceedToAuth}
-                  >
-                    I Understand, Proceed
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* AUTH SCREEN */}
-        {viewMode === "auth" && (
-          <motion.div
-            key="auth"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
+            key="login"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
             className="w-full max-w-md"
           >
             <div className="text-center mb-6">
@@ -378,16 +307,16 @@ export default function NewsroomOwnerSetup() {
               <div className="flex items-center justify-center gap-2">
                 <Crown className="w-4 h-4 text-amber-500" />
                 <span className="text-xs font-semibold uppercase tracking-wider text-amber-600">
-                  Owner Authentication
+                  Owner Login
                 </span>
               </div>
             </div>
 
             <Card>
               <CardHeader className="text-center pb-4">
-                <CardTitle className="text-lg">Sign in</CardTitle>
+                <CardTitle className="text-lg">Welcome Back, Owner</CardTitle>
                 <CardDescription>
-                  Use your owner email + password. Use passkey only to set/reset your password.
+                  Sign in with your owner email and password
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -456,40 +385,92 @@ export default function NewsroomOwnerSetup() {
                 <div className="relative">
                   <Separator />
                   <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                    Password reset / first-time setup
+                    Forgot password?
                   </span>
                 </div>
 
-                <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-3">
-                  <p className="text-sm text-center text-muted-foreground">
-                    If you forgot your password (or this is first-time setup), request a passkey to set a new password.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="w-full gap-2"
-                    onClick={handleRequestPasskey}
-                    disabled={isLoading || !email}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="w-4 h-4" />
-                        Send Passkey to Email
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={handleRequestPasskey}
+                  disabled={isLoading || !email}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4" />
+                      Reset Password via Passkey
+                    </>
+                  )}
+                </Button>
 
                 <Button
                   variant="ghost"
                   className="w-full"
-                  onClick={() => setViewMode("warning")}
+                  onClick={() => navigate("/")}
                 >
-                  ← Back
+                  ← Back to Home
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* PASSWORD EXPIRED SCREEN */}
+        {viewMode === "password-expired" && (
+          <motion.div
+            key="expired"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="w-full max-w-md"
+          >
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardHeader className="text-center">
+                <div className="mx-auto w-16 h-16 rounded-full bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center mb-4">
+                  <Clock className="w-8 h-8 text-amber-500" />
+                </div>
+                <CardTitle className="text-xl text-amber-600">
+                  Password Expired
+                </CardTitle>
+                <CardDescription className="text-amber-500/80">
+                  {passwordExpiredMessage}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-center text-muted-foreground">
+                  Your password must be reset every {PASSWORD_EXPIRY_DAYS} days for security.
+                  We'll send a passkey to <strong>{email}</strong> to verify your identity.
+                </p>
+
+                <Button
+                  className="w-full gap-2"
+                  onClick={handleRequestPasskey}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4" />
+                      Send Password Reset Passkey
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setViewMode("login")}
+                >
+                  ← Back to Login
                 </Button>
               </CardContent>
             </Card>
@@ -505,10 +486,6 @@ export default function NewsroomOwnerSetup() {
             exit={{ opacity: 0, x: -50 }}
             className="w-full max-w-md"
           >
-            <div className="text-center mb-6">
-              <Logo size="lg" className="justify-center mb-3" />
-            </div>
-
             <Card>
               <CardHeader className="text-center">
                 <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
@@ -521,11 +498,7 @@ export default function NewsroomOwnerSetup() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-center">
-                  <InputOTP
-                    maxLength={6}
-                    value={passkey}
-                    onChange={setPasskey}
-                  >
+                  <InputOTP maxLength={6} value={passkey} onChange={setPasskey}>
                     <InputOTPGroup>
                       <InputOTPSlot index={0} />
                       <InputOTPSlot index={1} />
@@ -537,8 +510,8 @@ export default function NewsroomOwnerSetup() {
                   </InputOTP>
                 </div>
 
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   onClick={handleVerifyPasskey}
                   disabled={isLoading || passkey.length !== 6}
                 >
@@ -561,12 +534,12 @@ export default function NewsroomOwnerSetup() {
                   Didn't receive it? Resend passkey
                 </Button>
 
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="w-full"
                   onClick={() => {
                     setPasskey("");
-                    setViewMode("auth");
+                    setViewMode("login");
                   }}
                 >
                   ← Back
@@ -576,7 +549,7 @@ export default function NewsroomOwnerSetup() {
           </motion.div>
         )}
 
-        {/* SET PASSWORD SCREEN (for new owners) */}
+        {/* SET PASSWORD SCREEN */}
         {viewMode === "set-password" && (
           <motion.div
             key="set-password"
@@ -585,30 +558,20 @@ export default function NewsroomOwnerSetup() {
             exit={{ opacity: 0, x: -50 }}
             className="w-full max-w-md"
           >
-            <div className="text-center mb-6">
-              <Logo size="lg" className="justify-center mb-3" />
-              <div className="flex items-center justify-center gap-2">
-                <Crown className="w-4 h-4 text-amber-500" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-amber-600">
-                  Final Step
-                </span>
-              </div>
-            </div>
-
-            <Card className="border-amber-500/20">
+            <Card className="border-emerald-500/20">
               <CardHeader className="text-center">
                 <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-3">
                   <Check className="w-6 h-6 text-emerald-500" />
                 </div>
-                <CardTitle className="text-lg">Email Verified!</CardTitle>
+                <CardTitle className="text-lg">Passkey Verified!</CardTitle>
                 <CardDescription>
-                  Set a password to secure your owner account
+                  Set your new password (valid for {PASSWORD_EXPIRY_DAYS} days)
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSetPassword} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="new-password">Create Password</Label>
+                    <Label htmlFor="new-password">New Password</Label>
                     <div className="relative">
                       <Input
                         id="new-password"
@@ -653,12 +616,12 @@ export default function NewsroomOwnerSetup() {
                     {isLoading ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Creating Account...
+                        Updating...
                       </>
                     ) : (
                       <>
-                        <Crown className="w-4 h-4" />
-                        Complete Owner Setup
+                        <Lock className="w-4 h-4" />
+                        Set New Password
                       </>
                     )}
                   </Button>
@@ -684,11 +647,9 @@ export default function NewsroomOwnerSetup() {
             >
               <Crown className="w-12 h-12 text-amber-500" />
             </motion.div>
-            <h1 className="text-2xl font-bold mb-2">Welcome, Owner!</h1>
+            <h1 className="text-2xl font-bold mb-2">Welcome Back!</h1>
             <p className="text-muted-foreground mb-4">
-              Your account has been created successfully.
-              <br />
-              Redirecting to the Newsroom...
+              Password updated. Redirecting to the Newsroom...
             </p>
             <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
           </motion.div>

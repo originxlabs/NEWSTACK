@@ -556,6 +556,7 @@ export type Database = {
           id: string
           invited_by: string | null
           is_active: boolean
+          password_last_set_at: string | null
           role: Database["public"]["Enums"]["newsroom_role"]
           updated_at: string
           user_id: string
@@ -566,6 +567,7 @@ export type Database = {
           id?: string
           invited_by?: string | null
           is_active?: boolean
+          password_last_set_at?: string | null
           role?: Database["public"]["Enums"]["newsroom_role"]
           updated_at?: string
           user_id: string
@@ -576,6 +578,7 @@ export type Database = {
           id?: string
           invited_by?: string | null
           is_active?: boolean
+          password_last_set_at?: string | null
           role?: Database["public"]["Enums"]["newsroom_role"]
           updated_at?: string
           user_id?: string
