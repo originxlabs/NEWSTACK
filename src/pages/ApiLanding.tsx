@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { 
   ArrowRight, Code, Shield, Globe, Lock, Clock, Server, 
   FileJson, CheckCircle2, Copy, ExternalLink, Newspaper,
   MapPin, Zap, Radio, Bell, AlertTriangle, ChevronRight,
   Terminal, BookOpen, Activity, Key, Webhook, Play, Send,
-  Loader2, CheckCircle, XCircle
+  Loader2, CheckCircle, XCircle, LogIn, Building2
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -19,6 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthModal } from "@/components/auth/AuthModal";
 
 // API Domain Configuration - Single domain, environment determined by API key
 const API_DOMAIN = "https://api.newstack.online/v1";
@@ -397,7 +400,11 @@ function ApiTester() {
 }
 
 export default function ApiLanding() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("overview");
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"try-api" | "sandbox-key" | null>(null);
 
   const scrollToSection = (id: string) => {
     setActiveSection(id);
@@ -407,8 +414,33 @@ export default function ApiLanding() {
     }
   };
 
+  const handleTryApi = () => {
+    if (!user) {
+      setPendingAction("try-api");
+      setShowAuthModal(true);
+      return;
+    }
+    scrollToSection("api-tester");
+  };
+
   const handleGetSandboxKey = () => {
-    toast.info("Contact sales@newstack.live for sandbox API access");
+    if (!user) {
+      setPendingAction("sandbox-key");
+      setShowAuthModal(true);
+      return;
+    }
+    navigate("/enterprise/dashboard");
+  };
+
+  const handleAuthClose = () => {
+    setShowAuthModal(false);
+    // If user just logged in and had a pending action, execute it
+    if (pendingAction === "try-api") {
+      setTimeout(() => scrollToSection("api-tester"), 300);
+    } else if (pendingAction === "sandbox-key") {
+      setTimeout(() => navigate("/enterprise/dashboard"), 300);
+    }
+    setPendingAction(null);
   };
 
   const handleContactSales = () => {
@@ -442,18 +474,38 @@ export default function ApiLanding() {
             </p>
             
             <div className="flex flex-wrap items-center gap-3">
-              <Button size="lg" className="gap-2" onClick={() => scrollToSection("api-tester")}>
-                <Play className="w-4 h-4" />
-                Try API Live
+              <Button size="lg" className="gap-2" onClick={handleTryApi}>
+                {user ? (
+                  <>
+                    <Play className="w-4 h-4" />
+                    Try API Live
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-4 h-4" />
+                    Sign In to Try API
+                  </>
+                )}
               </Button>
               <Button size="lg" variant="outline" className="gap-2" onClick={handleGetSandboxKey}>
-                <Key className="w-4 h-4" />
-                Get Sandbox API Key
+                {user ? (
+                  <>
+                    <Key className="w-4 h-4" />
+                    View My Sandbox Key
+                  </>
+                ) : (
+                  <>
+                    <Key className="w-4 h-4" />
+                    Get Sandbox API Key
+                  </>
+                )}
               </Button>
-              <Button size="lg" variant="secondary" className="gap-2" onClick={() => window.location.href = "/api/dashboard"}>
-                <Activity className="w-4 h-4" />
-                My Dashboard
-              </Button>
+              {user && (
+                <Button size="lg" variant="secondary" className="gap-2" onClick={() => navigate("/enterprise/dashboard")}>
+                  <Building2 className="w-4 h-4" />
+                  My Dashboard
+                </Button>
+              )}
               <Button size="lg" variant="ghost" className="gap-2" onClick={() => scrollToSection("pricing")}>
                 Pricing
                 <ChevronRight className="w-4 h-4" />
@@ -1249,6 +1301,9 @@ data: {"story_id":"def456","confidence":"High","sources":6,"state":"confirmed"}`
       </main>
 
       <Footer />
+      
+      {/* Auth Modal for login requirement */}
+      <AuthModal isOpen={showAuthModal} onClose={handleAuthClose} />
     </div>
   );
 }
