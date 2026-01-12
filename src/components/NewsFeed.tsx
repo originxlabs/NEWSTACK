@@ -88,6 +88,10 @@ function transformArticle(article: NewsArticle, feedType: FeedType): NewsItem {
     sourceCount: article.source_count,
     locationRelevance,
     sources, // Pass actual sources from story_sources table
+    // Original language fields
+    original_headline: article.original_headline,
+    original_summary: article.original_summary,
+    original_language: article.original_language,
   };
 }
 
