@@ -34,6 +34,7 @@ import ProvincePage from "./pages/ProvincePage";
 import ContinentPage from "./pages/ContinentPage";
 import ApiDocs from "./pages/ApiDocs";
 import ApiDashboard from "./pages/ApiDashboard";
+import EnterpriseDashboard from "./pages/EnterpriseDashboard";
 import NewsroomLayout from "./pages/newsroom/NewsroomLayout";
 import NewsroomLogin from "./pages/newsroom/NewsroomLogin";
 import NewsroomDashboard from "./pages/newsroom/NewsroomDashboard";
@@ -85,26 +86,25 @@ function ThemeInitializer() {
   return null;
 }
 
-// Splash screen manager component - Shows N logo animation on every navigation
+// Splash screen manager component - Shows N logo animation on EVERY navigation/refresh (no caching)
 function SplashManager() {
   const location = useLocation();
-  const [showSplash, setShowSplash] = useState(true); // Always show on initial load
+  const [showSplash, setShowSplash] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const previousPath = useRef<string>(location.pathname);
-  const isFirstRender = useRef(true);
+  const navigationKey = useRef(Date.now()); // Force unique key on each render
 
-  // Show splash on ALL route changes (navigation)
+  // Always show splash on initial render
   useEffect(() => {
-    if (isFirstRender.current) {
-      // First render - show splash for initial load
-      isFirstRender.current = false;
-      setShowSplash(true);
-      setIsInitialLoad(true);
-      return;
-    }
+    setShowSplash(true);
+    setIsInitialLoad(true);
+    navigationKey.current = Date.now();
+  }, []);
 
-    // Subsequent navigations - show splash for any path change
+  // Show splash on ALL route changes (navigation) - no caching
+  useEffect(() => {
     if (previousPath.current !== location.pathname) {
+      navigationKey.current = Date.now(); // New key to force re-render
       setShowSplash(true);
       setIsInitialLoad(false);
     }
@@ -119,6 +119,7 @@ function SplashManager() {
     <>
       {showSplash && (
         <SplashScreen 
+          key={navigationKey.current} // Force fresh instance each time
           onComplete={handleSplashComplete} 
           duration={isInitialLoad ? 2000 : 1000} 
         />
@@ -154,6 +155,7 @@ function AppContent() {
           <Route path="/api" element={<ApiLanding />} />
           <Route path="/api/docs" element={<ApiDocs />} />
           <Route path="/api/dashboard" element={<ApiDashboard />} />
+          <Route path="/enterprise/dashboard" element={<EnterpriseDashboard />} />
           {/* Enterprise Newsroom - separate from public */}
           <Route path="/newsroom/login" element={<NewsroomLogin />} />
           <Route path="/newsroom/owner-init" element={<NewsroomOwnerSetup />} />
