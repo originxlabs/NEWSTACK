@@ -80,6 +80,8 @@ interface IngestionPipelineViewerProps {
   showAutoRefreshControls?: boolean;
   defaultCollapsed?: boolean;
   className?: string;
+  countryCode?: string; // For country-specific ingestion
+  provinceId?: string; // For province-specific ingestion
 }
 
 export function IngestionPipelineViewer({
@@ -88,6 +90,8 @@ export function IngestionPipelineViewer({
   showAutoRefreshControls = true,
   defaultCollapsed = true,
   className,
+  countryCode,
+  provinceId,
 }: IngestionPipelineViewerProps) {
   const [steps, setSteps] = useState<PipelineStep[]>(
     PIPELINE_STEPS.map((s) => ({ ...s, status: "pending" as const }))
@@ -313,9 +317,13 @@ export function IngestionPipelineViewer({
         setSteps((prev) => prev.map((s) => (s.id === "classify" ? { ...s, status: "running" as const } : s)));
         updateProgress(5.5);
 
-        // Now actually call the backend function
+        // Now actually call the backend function with country context
         const { data, error } = await supabase.functions.invoke("ingest-rss", {
-          body: { trigger },
+          body: { 
+            trigger,
+            countryCode: countryCode || undefined,
+            provinceId: provinceId || undefined,
+          },
         });
 
         if (error) {

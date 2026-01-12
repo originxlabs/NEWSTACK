@@ -468,6 +468,56 @@ export type Database = {
         }
         Relationships: []
       }
+      ingestion_user_logs: {
+        Row: {
+          country_code: string | null
+          created_at: string
+          id: string
+          ingestion_run_id: string | null
+          ip_address: string | null
+          metadata: Json | null
+          province_id: string | null
+          trigger_type: string
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          ip_address?: string | null
+          metadata?: Json | null
+          province_id?: string | null
+          trigger_type?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          ip_address?: string | null
+          metadata?: Json | null
+          province_id?: string | null
+          trigger_type?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_user_logs_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       languages: {
         Row: {
           code: string

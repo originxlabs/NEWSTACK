@@ -1450,6 +1450,566 @@ export const COUNTRY_PROVINCES: Record<string, ProvinceConfig[]> = {
       population: 1586250,
       area: 3702
     }
+  ],
+
+  // Pakistan - Provinces (Sūbā)
+  PK: [
+    {
+      id: "punjab",
+      name: "Punjab",
+      capital: "Lahore",
+      capitalCoordinates: { lat: 31.5204, lng: 74.3587 },
+      flag: "🌾",
+      flagEmoji: "🌾",
+      language: "pa",
+      languages: ["pa", "ur", "en"],
+      majorCities: ["Lahore", "Faisalabad", "Rawalpindi", "Gujranwala", "Multan", "Sialkot"],
+      population: 110012442,
+      area: 205344
+    },
+    {
+      id: "sindh",
+      name: "Sindh",
+      capital: "Karachi",
+      capitalCoordinates: { lat: 24.8607, lng: 67.0011 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "sd",
+      languages: ["sd", "ur", "en"],
+      majorCities: ["Karachi", "Hyderabad", "Sukkur", "Larkana", "Nawabshah"],
+      population: 47886051,
+      area: 140914
+    },
+    {
+      id: "khyber-pakhtunkhwa",
+      name: "Khyber Pakhtunkhwa",
+      capital: "Peshawar",
+      capitalCoordinates: { lat: 34.0151, lng: 71.5249 },
+      flag: "⛰️",
+      flagEmoji: "⛰️",
+      language: "ps",
+      languages: ["ps", "ur"],
+      majorCities: ["Peshawar", "Mardan", "Abbottabad", "Swat", "Dera Ismail Khan"],
+      population: 35525047,
+      area: 101741
+    },
+    {
+      id: "balochistan",
+      name: "Balochistan",
+      capital: "Quetta",
+      capitalCoordinates: { lat: 30.1798, lng: 66.9750 },
+      flag: "🏜️",
+      flagEmoji: "🏜️",
+      language: "bal",
+      languages: ["bal", "ps", "ur"],
+      majorCities: ["Quetta", "Gwadar", "Turbat", "Khuzdar", "Hub"],
+      population: 12344408,
+      area: 347190
+    },
+    {
+      id: "islamabad",
+      name: "Islamabad Capital Territory",
+      capital: "Islamabad",
+      capitalCoordinates: { lat: 33.6844, lng: 73.0479 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "ur",
+      languages: ["ur", "en"],
+      majorCities: ["Islamabad"],
+      population: 2006572,
+      area: 906
+    }
+  ],
+
+  // Nigeria - States
+  NG: [
+    {
+      id: "lagos",
+      name: "Lagos",
+      capital: "Ikeja",
+      capitalCoordinates: { lat: 6.6018, lng: 3.3515 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "yo",
+      languages: ["yo", "en"],
+      majorCities: ["Lagos", "Ikeja", "Victoria Island", "Lekki", "Ikorodu"],
+      population: 14862111,
+      area: 3577
+    },
+    {
+      id: "abuja-fct",
+      name: "Federal Capital Territory",
+      capital: "Abuja",
+      capitalCoordinates: { lat: 9.0765, lng: 7.3986 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "en",
+      majorCities: ["Abuja", "Gwagwalada", "Kuje"],
+      population: 3564126,
+      area: 7315
+    },
+    {
+      id: "kano",
+      name: "Kano",
+      capital: "Kano",
+      capitalCoordinates: { lat: 12.0022, lng: 8.5920 },
+      flag: "🕌",
+      flagEmoji: "🕌",
+      language: "ha",
+      languages: ["ha", "en"],
+      majorCities: ["Kano", "Wudil", "Rano"],
+      population: 13076892,
+      area: 20131
+    },
+    {
+      id: "rivers",
+      name: "Rivers",
+      capital: "Port Harcourt",
+      capitalCoordinates: { lat: 4.8156, lng: 7.0498 },
+      flag: "🛢️",
+      flagEmoji: "🛢️",
+      language: "en",
+      majorCities: ["Port Harcourt", "Obio-Akpor", "Bonny"],
+      population: 7303924,
+      area: 11077
+    },
+    {
+      id: "oyo",
+      name: "Oyo",
+      capital: "Ibadan",
+      capitalCoordinates: { lat: 7.3775, lng: 3.9470 },
+      flag: "🌿",
+      flagEmoji: "🌿",
+      language: "yo",
+      languages: ["yo", "en"],
+      majorCities: ["Ibadan", "Ogbomoso", "Oyo"],
+      population: 7840864,
+      area: 28454
+    },
+    {
+      id: "kaduna",
+      name: "Kaduna",
+      capital: "Kaduna",
+      capitalCoordinates: { lat: 10.5222, lng: 7.4383 },
+      flag: "🏭",
+      flagEmoji: "🏭",
+      language: "ha",
+      languages: ["ha", "en"],
+      majorCities: ["Kaduna", "Zaria", "Kafanchan"],
+      population: 8252366,
+      area: 46053
+    }
+  ],
+
+  // Egypt - Governorates (Muhafazat)
+  EG: [
+    {
+      id: "cairo",
+      name: "Cairo",
+      capital: "Cairo",
+      capitalCoordinates: { lat: 30.0444, lng: 31.2357 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "ar",
+      majorCities: ["Cairo", "Helwan", "Nasr City", "Maadi", "Zamalek"],
+      population: 10025657,
+      area: 3085
+    },
+    {
+      id: "giza",
+      name: "Giza",
+      capital: "Giza",
+      capitalCoordinates: { lat: 30.0131, lng: 31.2089 },
+      flag: "🔺",
+      flagEmoji: "🔺",
+      language: "ar",
+      majorCities: ["Giza", "6th of October City", "Sheikh Zayed City"],
+      population: 8632021,
+      area: 85153
+    },
+    {
+      id: "alexandria",
+      name: "Alexandria",
+      capital: "Alexandria",
+      capitalCoordinates: { lat: 31.2001, lng: 29.9187 },
+      flag: "⚓",
+      flagEmoji: "⚓",
+      language: "ar",
+      majorCities: ["Alexandria", "Borg El Arab"],
+      population: 5200000,
+      area: 2879
+    },
+    {
+      id: "luxor",
+      name: "Luxor",
+      capital: "Luxor",
+      capitalCoordinates: { lat: 25.6872, lng: 32.6396 },
+      flag: "🏺",
+      flagEmoji: "🏺",
+      language: "ar",
+      majorCities: ["Luxor", "Karnak"],
+      population: 1300000,
+      area: 2960
+    },
+    {
+      id: "red-sea",
+      name: "Red Sea",
+      capital: "Hurghada",
+      capitalCoordinates: { lat: 27.2579, lng: 33.8116 },
+      flag: "🏖️",
+      flagEmoji: "🏖️",
+      language: "ar",
+      majorCities: ["Hurghada", "Sharm El Sheikh", "Marsa Alam"],
+      population: 359888,
+      area: 203685
+    },
+    {
+      id: "aswan",
+      name: "Aswan",
+      capital: "Aswan",
+      capitalCoordinates: { lat: 24.0889, lng: 32.8998 },
+      flag: "🌊",
+      flagEmoji: "🌊",
+      language: "ar",
+      majorCities: ["Aswan", "Abu Simbel"],
+      population: 1568000,
+      area: 679
+    }
+  ],
+
+  // Bangladesh - Divisions (Bibhag)
+  BD: [
+    {
+      id: "dhaka-division",
+      name: "Dhaka",
+      capital: "Dhaka",
+      capitalCoordinates: { lat: 23.8103, lng: 90.4125 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "bn",
+      majorCities: ["Dhaka", "Narayanganj", "Gazipur", "Tangail"],
+      population: 39000000,
+      area: 20593
+    },
+    {
+      id: "chittagong",
+      name: "Chittagong",
+      capital: "Chittagong",
+      capitalCoordinates: { lat: 22.3569, lng: 91.7832 },
+      flag: "⚓",
+      flagEmoji: "⚓",
+      language: "bn",
+      majorCities: ["Chittagong", "Cox's Bazar", "Comilla"],
+      population: 34000000,
+      area: 33909
+    },
+    {
+      id: "rajshahi",
+      name: "Rajshahi",
+      capital: "Rajshahi",
+      capitalCoordinates: { lat: 24.3636, lng: 88.6241 },
+      flag: "🌾",
+      flagEmoji: "🌾",
+      language: "bn",
+      majorCities: ["Rajshahi", "Bogra", "Pabna"],
+      population: 21000000,
+      area: 18197
+    },
+    {
+      id: "khulna",
+      name: "Khulna",
+      capital: "Khulna",
+      capitalCoordinates: { lat: 22.8456, lng: 89.5403 },
+      flag: "🌳",
+      flagEmoji: "🌳",
+      language: "bn",
+      majorCities: ["Khulna", "Jessore", "Satkhira"],
+      population: 18000000,
+      area: 22285
+    },
+    {
+      id: "sylhet",
+      name: "Sylhet",
+      capital: "Sylhet",
+      capitalCoordinates: { lat: 24.8949, lng: 91.8687 },
+      flag: "🍵",
+      flagEmoji: "🍵",
+      language: "bn",
+      majorCities: ["Sylhet", "Moulvibazar", "Habiganj"],
+      population: 11000000,
+      area: 12635
+    }
+  ],
+
+  // Thailand - Provinces (Changwat)
+  TH: [
+    {
+      id: "bangkok",
+      name: "Bangkok",
+      capital: "Bangkok",
+      capitalCoordinates: { lat: 13.7563, lng: 100.5018 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "th",
+      majorCities: ["Bangkok", "Sukhumvit", "Silom", "Siam"],
+      population: 10539000,
+      area: 1568
+    },
+    {
+      id: "chiang-mai",
+      name: "Chiang Mai",
+      capital: "Chiang Mai",
+      capitalCoordinates: { lat: 18.7883, lng: 98.9853 },
+      flag: "🏔️",
+      flagEmoji: "🏔️",
+      language: "th",
+      majorCities: ["Chiang Mai", "Mae Hong Son"],
+      population: 1780000,
+      area: 20107
+    },
+    {
+      id: "phuket",
+      name: "Phuket",
+      capital: "Phuket",
+      capitalCoordinates: { lat: 7.8804, lng: 98.3923 },
+      flag: "🏖️",
+      flagEmoji: "🏖️",
+      language: "th",
+      majorCities: ["Phuket", "Patong", "Kata"],
+      population: 417000,
+      area: 576
+    },
+    {
+      id: "chonburi",
+      name: "Chonburi",
+      capital: "Chonburi",
+      capitalCoordinates: { lat: 13.3611, lng: 100.9847 },
+      flag: "🏭",
+      flagEmoji: "🏭",
+      language: "th",
+      majorCities: ["Chonburi", "Pattaya", "Si Racha"],
+      population: 1559000,
+      area: 4363
+    }
+  ],
+
+  // Vietnam - Regions/Provinces
+  VN: [
+    {
+      id: "hanoi",
+      name: "Hanoi",
+      capital: "Hanoi",
+      capitalCoordinates: { lat: 21.0278, lng: 105.8342 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "vi",
+      majorCities: ["Hanoi", "Long Bien", "Dong Da"],
+      population: 8054000,
+      area: 3359
+    },
+    {
+      id: "ho-chi-minh",
+      name: "Ho Chi Minh City",
+      capital: "Ho Chi Minh City",
+      capitalCoordinates: { lat: 10.8231, lng: 106.6297 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "vi",
+      majorCities: ["Ho Chi Minh City", "District 1", "Thu Duc"],
+      population: 8993000,
+      area: 2095
+    },
+    {
+      id: "da-nang",
+      name: "Da Nang",
+      capital: "Da Nang",
+      capitalCoordinates: { lat: 16.0544, lng: 108.2022 },
+      flag: "🏖️",
+      flagEmoji: "🏖️",
+      language: "vi",
+      majorCities: ["Da Nang", "Hoi An"],
+      population: 1134000,
+      area: 1285
+    }
+  ],
+
+  // Malaysia - States (Negeri)
+  MY: [
+    {
+      id: "kuala-lumpur",
+      name: "Kuala Lumpur",
+      capital: "Kuala Lumpur",
+      capitalCoordinates: { lat: 3.1390, lng: 101.6869 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "ms",
+      languages: ["ms", "en", "zh", "ta"],
+      majorCities: ["Kuala Lumpur", "KLCC", "Bukit Bintang"],
+      population: 1980000,
+      area: 243
+    },
+    {
+      id: "selangor",
+      name: "Selangor",
+      capital: "Shah Alam",
+      capitalCoordinates: { lat: 3.0733, lng: 101.5185 },
+      flag: "🌴",
+      flagEmoji: "🌴",
+      language: "ms",
+      majorCities: ["Shah Alam", "Petaling Jaya", "Klang", "Subang Jaya"],
+      population: 6540000,
+      area: 8104
+    },
+    {
+      id: "penang",
+      name: "Penang",
+      capital: "George Town",
+      capitalCoordinates: { lat: 5.4141, lng: 100.3288 },
+      flag: "🏝️",
+      flagEmoji: "🏝️",
+      language: "ms",
+      languages: ["ms", "en", "zh"],
+      majorCities: ["George Town", "Butterworth", "Bayan Lepas"],
+      population: 1780000,
+      area: 1048
+    },
+    {
+      id: "johor",
+      name: "Johor",
+      capital: "Johor Bahru",
+      capitalCoordinates: { lat: 1.4927, lng: 103.7414 },
+      flag: "👑",
+      flagEmoji: "👑",
+      language: "ms",
+      majorCities: ["Johor Bahru", "Iskandar Puteri", "Kulai"],
+      population: 3790000,
+      area: 19210
+    }
+  ],
+
+  // Philippines - Regions
+  PH: [
+    {
+      id: "ncr",
+      name: "Metro Manila (NCR)",
+      capital: "Manila",
+      capitalCoordinates: { lat: 14.5995, lng: 120.9842 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "tl",
+      languages: ["tl", "en"],
+      majorCities: ["Manila", "Quezon City", "Makati", "Taguig", "Pasig"],
+      population: 13484000,
+      area: 620
+    },
+    {
+      id: "cebu",
+      name: "Cebu",
+      capital: "Cebu City",
+      capitalCoordinates: { lat: 10.3157, lng: 123.8854 },
+      flag: "🏝️",
+      flagEmoji: "🏝️",
+      language: "ceb",
+      languages: ["ceb", "tl", "en"],
+      majorCities: ["Cebu City", "Mandaue", "Lapu-Lapu"],
+      population: 5000000,
+      area: 5088
+    },
+    {
+      id: "davao",
+      name: "Davao Region",
+      capital: "Davao City",
+      capitalCoordinates: { lat: 7.1907, lng: 125.4553 },
+      flag: "🦅",
+      flagEmoji: "🦅",
+      language: "ceb",
+      languages: ["ceb", "tl", "en"],
+      majorCities: ["Davao City", "Tagum", "Panabo"],
+      population: 5230000,
+      area: 20357
+    }
+  ],
+
+  // Saudi Arabia - Regions (Mintaqah)
+  SA: [
+    {
+      id: "riyadh-region",
+      name: "Riyadh Region",
+      capital: "Riyadh",
+      capitalCoordinates: { lat: 24.7136, lng: 46.6753 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "ar",
+      majorCities: ["Riyadh", "Kharj", "Diriyah"],
+      population: 8216284,
+      area: 412000
+    },
+    {
+      id: "makkah-region",
+      name: "Makkah Region",
+      capital: "Mecca",
+      capitalCoordinates: { lat: 21.3891, lng: 39.8579 },
+      flag: "🕌",
+      flagEmoji: "🕌",
+      language: "ar",
+      majorCities: ["Mecca", "Jeddah", "Taif"],
+      population: 8557766,
+      area: 153128
+    },
+    {
+      id: "eastern-region",
+      name: "Eastern Region",
+      capital: "Dammam",
+      capitalCoordinates: { lat: 26.4207, lng: 50.0888 },
+      flag: "🛢️",
+      flagEmoji: "🛢️",
+      language: "ar",
+      majorCities: ["Dammam", "Dhahran", "Al Khobar", "Jubail"],
+      population: 4900325,
+      area: 672522
+    }
+  ],
+
+  // UAE - Emirates
+  AE: [
+    {
+      id: "dubai",
+      name: "Dubai",
+      capital: "Dubai",
+      capitalCoordinates: { lat: 25.2048, lng: 55.2708 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "ar",
+      languages: ["ar", "en"],
+      majorCities: ["Dubai", "Jumeirah", "Deira", "Downtown"],
+      population: 3400800,
+      area: 4114
+    },
+    {
+      id: "abu-dhabi",
+      name: "Abu Dhabi",
+      capital: "Abu Dhabi",
+      capitalCoordinates: { lat: 24.4539, lng: 54.3773 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "ar",
+      languages: ["ar", "en"],
+      majorCities: ["Abu Dhabi", "Al Ain", "Yas Island"],
+      population: 2900000,
+      area: 67340
+    },
+    {
+      id: "sharjah",
+      name: "Sharjah",
+      capital: "Sharjah",
+      capitalCoordinates: { lat: 25.3463, lng: 55.4209 },
+      flag: "📚",
+      flagEmoji: "📚",
+      language: "ar",
+      majorCities: ["Sharjah", "Khor Fakkan"],
+      population: 1800000,
+      area: 2590
+    }
   ]
 };
 

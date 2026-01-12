@@ -52,6 +52,7 @@ import NewsroomOwnerSetup from "./pages/newsroom/NewsroomOwnerSetup";
 import NewsroomOwnerLogin from "./pages/newsroom/NewsroomOwnerLogin";
 import NewsroomAuditLogs from "./pages/newsroom/NewsroomAuditLogs";
 import NewsroomIngestionStatus from "./pages/newsroom/NewsroomIngestionStatus";
+import NewsroomIngestionLogs from "./pages/newsroom/NewsroomIngestionLogs";
 import { AdminRouteGuard } from "./components/newsroom/AdminRouteGuard";
 
 const queryClient = new QueryClient({
@@ -174,6 +175,7 @@ function AppContent() {
             <Route path="feeds" element={<AdminRouteGuard pageName="RSS Feeds"><NewsroomFeeds /></AdminRouteGuard>} />
             <Route path="sources" element={<Sources />} />
             <Route path="audit-logs" element={<NewsroomAuditLogs />} />
+            <Route path="ingestion-logs" element={<NewsroomIngestionLogs />} />
             <Route path="stories" element={<NewsroomStories />} />
             <Route path="trust" element={<NewsroomTrust />} />
             <Route path="alerts" element={<NewsroomAlerts />} />

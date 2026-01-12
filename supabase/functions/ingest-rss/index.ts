@@ -1373,6 +1373,29 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  // Extract user info and IP from request for logging
+  const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+                    req.headers.get("x-real-ip") ||
+                    req.headers.get("cf-connecting-ip") ||
+                    "unknown";
+  const userAgent = req.headers.get("user-agent") || "unknown";
+  
+  // Parse body for country/province context if provided
+  let countryCode: string | null = null;
+  let provinceId: string | null = null;
+  let userId: string | null = null;
+  let userEmail: string | null = null;
+  
+  try {
+    const body = await req.json().catch(() => ({}));
+    countryCode = body.countryCode || null;
+    provinceId = body.provinceId || null;
+    userId = body.userId || null;
+    userEmail = body.userEmail || null;
+  } catch {
+    // Body parsing failed, continue without context
+  }
+
   // Create ingestion run record for tracking
   const { data: runRecord, error: runError } = await supabase
     .from("ingestion_runs")
@@ -1384,6 +1407,31 @@ serve(async (req) => {
     .single();
 
   const runId = runRecord?.id;
+
+  // Log user details for this ingestion run
+  if (runId) {
+    try {
+      await supabase.from("ingestion_user_logs").insert({
+        ingestion_run_id: runId,
+        user_id: userId,
+        user_email: userEmail,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        trigger_type: isInternalCron ? "cron" : "manual",
+        country_code: countryCode,
+        province_id: provinceId,
+        metadata: {
+          authorization_method: isInternalCron ? "internal_cron" : 
+                               isLocalCron ? "local_cron" : 
+                               isSupabaseInvoke ? "supabase_invoke" : 
+                               isFrontendCall ? "frontend" : "other",
+          timestamp: new Date().toISOString(),
+        }
+      });
+    } catch (logError) {
+      console.error("Failed to log user details:", logError);
+    }
+  }
 
   // Helper to update run status
   const updateRun = async (updates: Record<string, unknown>) => {
