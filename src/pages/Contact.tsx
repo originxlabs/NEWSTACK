@@ -196,7 +196,7 @@ const Contact = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Building2 className="w-5 h-5 text-primary" />
-                    CROPXON INNOVATIONS PVT. LTD.
+                    Cropxon Innovations Private Limited
                   </CardTitle>
                   <CardDescription>
                     Parent Company
@@ -208,12 +208,47 @@ const Contact = () => {
                     <div>
                       <p className="font-medium">Registered Office</p>
                       <p className="text-sm text-muted-foreground">
-                        Kolkata, West Bengal<br />
-                        India - 700001
+                        Odisha, India
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
+                  
+                  {/* Official Company Details */}
+                  <div className="border-t border-border/50 pt-4 mt-4">
+                    <p className="font-medium text-sm mb-3">Official Company Details</p>
+                    <div className="grid grid-cols-1 gap-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">CIN</span>
+                        <span className="font-mono">U62010OD2025PTC051089</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">GSTIN</span>
+                        <span className="font-mono">21AANCC1954F1ZW</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">PAN</span>
+                        <span className="font-mono">AANCC1954F</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Udyam Registration</span>
+                        <span className="font-mono text-[10px]">UDYAM-OD-03-0076858</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">DPIIT Recognition</span>
+                        <span className="font-mono">DIPP230789</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Incorporation Date</span>
+                        <span>16 October 2025</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Company Type</span>
+                        <span>Private Limited</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 pt-2">
                     <Mail className="w-5 h-5 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="font-medium">General Inquiries</p>

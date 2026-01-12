@@ -17,7 +17,6 @@ const footerLinks = {
   ],
   Company: [
     { name: "Contact", href: "/contact" },
-    { name: "Support", href: "/support" },
     { name: "Newsroom", href: "/newsroom" },
   ],
   Legal: [
