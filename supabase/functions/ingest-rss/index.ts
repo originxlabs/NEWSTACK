@@ -1225,10 +1225,13 @@ async function processItems(
             headline: cleanTitle,
             normalized_headline: normalizedHeadline,
             summary: finalDescription,
-            // Store original language content if feed is non-English
-            original_headline: feed.language && feed.language !== 'en' ? item.title : null,
-            original_summary: feed.language && feed.language !== 'en' ? item.description : null,
-            original_language: feed.language && feed.language !== 'en' ? feed.language : null,
+            // Store original language content - use feed.language as canonical source
+            // Even if language is 'en', store it so we know it was explicitly English
+            original_headline: feed.language && feed.language !== 'en' && feed.language !== 'eng' ? item.title : null,
+            original_summary: feed.language && feed.language !== 'en' && feed.language !== 'eng' ? item.description : null,
+            // CRITICAL: Always store original_language from feed if available
+            // This fixes the issue where most stories had null original_language
+            original_language: feed.language || 'en',
             category: classification.primary_category,
             country_code: feed.country_code,
             city: classification.city,
