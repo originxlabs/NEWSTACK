@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart,
   Bar,
@@ -18,10 +18,17 @@ import {
   CheckCircle2,
   XCircle,
   Zap,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format, subHours, differenceInMinutes } from "date-fns";
@@ -50,12 +57,17 @@ interface HourlyData {
 
 interface IngestionTimelineChartProps {
   className?: string;
+  defaultExpanded?: boolean;
 }
 
-export function IngestionTimelineChart({ className }: IngestionTimelineChartProps) {
+export function IngestionTimelineChart({ 
+  className,
+  defaultExpanded = false,
+}: IngestionTimelineChartProps) {
   const [runs, setRuns] = useState<IngestionRun[]>([]);
   const [hourlyData, setHourlyData] = useState<HourlyData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [stats, setStats] = useState({
     totalRuns: 0,
     successRate: 0,
@@ -239,120 +251,140 @@ export function IngestionTimelineChart({ className }: IngestionTimelineChartProp
 
   return (
     <Card className={cn("overflow-hidden", className)}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-primary" />
-            <CardTitle className="text-sm font-medium">
-              24-Hour Ingestion Activity
-            </CardTitle>
-          </div>
+      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-2">
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <Activity className="w-4 h-4 text-primary" />
+                <CardTitle className="text-sm font-medium">
+                  24-Hour Ingestion Activity
+                </CardTitle>
+                {isExpanded ? (
+                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                )}
+              </button>
+            </CollapsibleTrigger>
 
-          <div className="flex items-center gap-2">
-            {/* Stats badges */}
-            <Badge variant="outline" className="text-[10px] gap-1">
-              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-              {stats.successRate}% success
-            </Badge>
-            <Badge variant="outline" className="text-[10px] gap-1">
-              <Clock className="w-3 h-3" />
-              ~{stats.avgDuration}s avg
-            </Badge>
-            <Badge
-              variant="outline"
-              className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600"
-            >
-              +{stats.totalStories} stories
-            </Badge>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={fetchRuns}
-              disabled={isLoading}
-              className="h-7 w-7 p-0"
-            >
-              <RefreshCw
-                className={cn("w-3.5 h-3.5", isLoading && "animate-spin")}
-              />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="pt-0">
-        {isLoading && runs.length === 0 ? (
-          <div className="flex items-center justify-center py-8">
-            <RefreshCw className="w-5 h-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : hourlyData.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No ingestion data in last 24 hours</p>
-          </div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="h-[200px]"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={hourlyData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            <div className="flex items-center gap-2">
+              {/* Stats badges - always visible */}
+              <Badge variant="outline" className="text-[10px] gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                {stats.successRate}% success
+              </Badge>
+              <Badge variant="outline" className="text-[10px] gap-1">
+                <Clock className="w-3 h-3" />
+                ~{stats.avgDuration}s avg
+              </Badge>
+              <Badge
+                variant="outline"
+                className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600"
               >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="hsl(var(--border))"
+                +{stats.totalStories} stories
+              </Badge>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchRuns}
+                disabled={isLoading}
+                className="h-7 w-7 p-0"
+              >
+                <RefreshCw
+                  className={cn("w-3.5 h-3.5", isLoading && "animate-spin")}
                 />
-                <XAxis
-                  dataKey="hourLabel"
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  tickLine={false}
-                  axisLine={false}
-                  interval={3}
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  tickLine={false}
-                  axisLine={false}
-                  allowDecimals={false}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  wrapperStyle={{ fontSize: 10 }}
-                  iconSize={8}
-                  verticalAlign="top"
-                  height={24}
-                />
-                <Bar
-                  dataKey="completed"
-                  name="Completed"
-                  fill="hsl(var(--chart-2))"
-                  radius={[2, 2, 0, 0]}
-                  stackId="status"
-                />
-                <Bar
-                  dataKey="failed"
-                  name="Failed"
-                  fill="hsl(var(--destructive))"
-                  radius={[2, 2, 0, 0]}
-                  stackId="status"
-                />
-                <Bar
-                  dataKey="running"
-                  name="Running"
-                  fill="hsl(var(--chart-1))"
-                  radius={[2, 2, 0, 0]}
-                  stackId="status"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </motion.div>
-        )}
-      </CardContent>
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CollapsibleContent>
+          <AnimatePresence>
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <CardContent className="pt-0">
+                {isLoading && runs.length === 0 ? (
+                  <div className="flex items-center justify-center py-8">
+                    <RefreshCw className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : hourlyData.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No ingestion data in last 24 hours</p>
+                  </div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="h-[200px]"
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={hourlyData}
+                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="hsl(var(--border))"
+                        />
+                        <XAxis
+                          dataKey="hourLabel"
+                          tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                          tickLine={false}
+                          axisLine={false}
+                          interval={3}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                          tickLine={false}
+                          axisLine={false}
+                          allowDecimals={false}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend
+                          wrapperStyle={{ fontSize: 10 }}
+                          iconSize={8}
+                          verticalAlign="top"
+                          height={24}
+                        />
+                        <Bar
+                          dataKey="completed"
+                          name="Completed"
+                          fill="hsl(var(--chart-2))"
+                          radius={[2, 2, 0, 0]}
+                          stackId="status"
+                        />
+                        <Bar
+                          dataKey="failed"
+                          name="Failed"
+                          fill="hsl(var(--destructive))"
+                          radius={[2, 2, 0, 0]}
+                          stackId="status"
+                        />
+                        <Bar
+                          dataKey="running"
+                          name="Running"
+                          fill="hsl(var(--chart-1))"
+                          radius={[2, 2, 0, 0]}
+                          stackId="status"
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                )}
+              </CardContent>
+            </motion.div>
+          </AnimatePresence>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }

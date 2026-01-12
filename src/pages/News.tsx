@@ -4,22 +4,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Loader2, Radio, RefreshCw, 
   Layers, Zap, Shield, 
-  Grid3X3, List, Bell, ChevronDown, X, Globe, Wifi, WifiOff, Rss, MapPin
+  Grid3X3, List, Bell, ChevronDown, X, Globe, Wifi, WifiOff, Rss, MapPin,
+  Headphones, Filter, LayoutGrid
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInfiniteNews, NewsArticle } from "@/hooks/use-news";
 import { useRealtimeStories } from "@/hooks/use-realtime-stories";
 import { usePreferences } from "@/contexts/PreferencesContext";
+import { useUserLocation } from "@/hooks/use-user-location";
 import { StoryIntelligencePanel, StoryIntelligenceItem } from "@/components/news/StoryIntelligencePanel";
 import { LeftContextPanel } from "@/components/news/LeftContextPanel";
 import { RightTrustPanel } from "@/components/news/RightTrustPanel";
 import { IntelligenceNewsCard, IntelligenceNewsItem } from "@/components/news/IntelligenceNewsCard";
+import { NewsGridCard, NewsGridItem } from "@/components/news/NewsGridCard";
 import { ClusterCard } from "@/components/news/ClusterCard";
 import { TimeBlockSection } from "@/components/news/TimeBlockSection";
+import { AudioPlaylistPlayer } from "@/components/AudioPlaylistPlayer";
 import { NewsPageSkeleton } from "@/components/ui/skeleton-loaders";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLastViewed } from "@/hooks/use-last-viewed";
@@ -49,13 +54,22 @@ const REGION_NAMES: Record<string, string> = {
 };
 
 type SignalType = "all" | "breaking" | "developing" | "stabilized";
-type ViewMode = "stream" | "clusters";
+type ViewMode = "stream" | "clusters" | "grid";
+type TierFilter = "all" | "local" | "state" | "country" | "global";
 
 const signalFilters: { id: SignalType; name: string; icon: React.ReactNode }[] = [
   { id: "all", name: "All", icon: <Radio className="w-3 h-3" /> },
   { id: "breaking", name: "Breaking", icon: <Zap className="w-3 h-3" /> },
   { id: "developing", name: "Developing", icon: <RefreshCw className="w-3 h-3" /> },
   { id: "stabilized", name: "Verified", icon: <Shield className="w-3 h-3" /> },
+];
+
+const tierFilters: { id: TierFilter; name: string; icon: React.ReactNode }[] = [
+  { id: "all", name: "All News", icon: <Globe className="w-3 h-3" /> },
+  { id: "local", name: "Local", icon: <MapPin className="w-3 h-3" /> },
+  { id: "state", name: "State", icon: <MapPin className="w-3 h-3" /> },
+  { id: "country", name: "National", icon: <Globe className="w-3 h-3" /> },
+  { id: "global", name: "World", icon: <Globe className="w-3 h-3" /> },
 ];
 
 const categories = [
@@ -156,6 +170,7 @@ export default function News() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { country, language } = usePreferences();
+  const userLocation = useUserLocation();
   const isMobile = useIsMobile();
   const { markAsViewed, checkForUpdates, getLastSessionTime } = useLastViewed();
   
@@ -180,15 +195,17 @@ export default function News() {
   }, [regionFilter, countryFilter, stateFilter, cityFilter, localityFilter]);
   
   const [signalFilter, setSignalFilter] = useState<SignalType>("all");
+  const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [timeFilter, setTimeFilter] = useState("latest");
-  const [viewMode, setViewMode] = useState<ViewMode>("stream");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [multiSourceOnly, setMultiSourceOnly] = useState(false);
   const [selectedStory, setSelectedStory] = useState<StoryIntelligenceItem | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [loadedBlocks, setLoadedBlocks] = useState(1); // Time-based pagination
+  const [loadedBlocks, setLoadedBlocks] = useState(1);
+  const [showPlaylist, setShowPlaylist] = useState(false);
   
   const lastSession = getLastSessionTime();
 
