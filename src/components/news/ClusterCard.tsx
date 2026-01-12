@@ -178,12 +178,12 @@ export function ClusterCard({ cluster, onClick, showUpdateBadge }: ClusterCardPr
 
               {/* Headline */}
               <h3 className="font-display text-sm sm:text-base font-semibold leading-snug text-foreground mb-1.5 group-hover:text-primary transition-colors line-clamp-2">
-                {cluster.headline}
+                {displayHeadline}
               </h3>
 
               {/* Summary */}
               <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                {cluster.summary}
+                {displaySummary}
               </p>
             </div>
           </div>
@@ -203,23 +203,44 @@ export function ClusterCard({ cluster, onClick, showUpdateBadge }: ClusterCardPr
               </div>
             </div>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs gap-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSources(!showSources);
-              }}
-            >
-              {showSources ? "Less" : "Sources"}
-              <ChevronDown
+            <div className="flex items-center gap-1">
+              {/* Translation Toggle */}
+              <Button
+                variant="ghost"
+                size="sm"
                 className={cn(
-                  "w-3 h-3 transition-transform",
-                  showSources && "rotate-180"
+                  "h-7 text-xs gap-1",
+                  translateEnabled && "bg-primary/10 text-primary"
                 )}
-              />
-            </Button>
+                onClick={handleToggleTranslation}
+                disabled={isTranslating}
+              >
+                {isTranslating ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Languages className="w-3 h-3" />
+                )}
+                {translateEnabled ? "Original" : "English"}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSources(!showSources);
+                }}
+              >
+                {showSources ? "Less" : "Sources"}
+                <ChevronDown
+                  className={cn(
+                    "w-3 h-3 transition-transform",
+                    showSources && "rotate-180"
+                  )}
+                />
+              </Button>
+            </div>
           </div>
 
           {/* Expanded sources */}

@@ -27,42 +27,52 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useTTS } from "@/hooks/use-tts";
-// Indian states with their codes and regional languages
+// All 28 States of India
 const INDIAN_STATES = [
-  { id: "andhra-pradesh", name: "Andhra Pradesh", code: "AP", languages: ["te", "en"], capital: "Amaravati" },
-  { id: "arunachal-pradesh", name: "Arunachal Pradesh", code: "AR", languages: ["en"], capital: "Itanagar" },
-  { id: "assam", name: "Assam", code: "AS", languages: ["as", "en", "bn"], capital: "Dispur" },
-  { id: "bihar", name: "Bihar", code: "BR", languages: ["hi", "en"], capital: "Patna" },
-  { id: "chhattisgarh", name: "Chhattisgarh", code: "CG", languages: ["hi", "en"], capital: "Raipur" },
-  { id: "goa", name: "Goa", code: "GA", languages: ["en", "mr"], capital: "Panaji" },
-  { id: "gujarat", name: "Gujarat", code: "GJ", languages: ["gu", "en", "hi"], capital: "Gandhinagar" },
-  { id: "haryana", name: "Haryana", code: "HR", languages: ["hi", "en"], capital: "Chandigarh" },
-  { id: "himachal-pradesh", name: "Himachal Pradesh", code: "HP", languages: ["hi", "en"], capital: "Shimla" },
-  { id: "jharkhand", name: "Jharkhand", code: "JH", languages: ["hi", "en"], capital: "Ranchi" },
-  { id: "karnataka", name: "Karnataka", code: "KA", languages: ["kn", "en"], capital: "Bengaluru" },
-  { id: "kerala", name: "Kerala", code: "KL", languages: ["ml", "en"], capital: "Thiruvananthapuram" },
-  { id: "madhya-pradesh", name: "Madhya Pradesh", code: "MP", languages: ["hi", "en"], capital: "Bhopal" },
-  { id: "maharashtra", name: "Maharashtra", code: "MH", languages: ["mr", "en", "hi"], capital: "Mumbai" },
-  { id: "manipur", name: "Manipur", code: "MN", languages: ["en"], capital: "Imphal" },
-  { id: "meghalaya", name: "Meghalaya", code: "ML", languages: ["en"], capital: "Shillong" },
-  { id: "mizoram", name: "Mizoram", code: "MZ", languages: ["en"], capital: "Aizawl" },
-  { id: "nagaland", name: "Nagaland", code: "NL", languages: ["en"], capital: "Kohima" },
-  { id: "odisha", name: "Odisha", code: "OD", languages: ["or", "en"], capital: "Bhubaneswar" },
-  { id: "punjab", name: "Punjab", code: "PB", languages: ["pa", "en", "hi"], capital: "Chandigarh" },
-  { id: "rajasthan", name: "Rajasthan", code: "RJ", languages: ["hi", "en"], capital: "Jaipur" },
-  { id: "sikkim", name: "Sikkim", code: "SK", languages: ["en"], capital: "Gangtok" },
-  { id: "tamil-nadu", name: "Tamil Nadu", code: "TN", languages: ["ta", "en"], capital: "Chennai" },
-  { id: "telangana", name: "Telangana", code: "TS", languages: ["te", "en"], capital: "Hyderabad" },
-  { id: "tripura", name: "Tripura", code: "TR", languages: ["bn", "en"], capital: "Agartala" },
-  { id: "uttar-pradesh", name: "Uttar Pradesh", code: "UP", languages: ["hi", "en"], capital: "Lucknow" },
-  { id: "uttarakhand", name: "Uttarakhand", code: "UK", languages: ["hi", "en"], capital: "Dehradun" },
-  { id: "west-bengal", name: "West Bengal", code: "WB", languages: ["bn", "en", "hi"], capital: "Kolkata" },
-  { id: "delhi", name: "Delhi", code: "DL", languages: ["hi", "en"], capital: "New Delhi" },
-  { id: "jammu-kashmir", name: "Jammu & Kashmir", code: "JK", languages: ["en", "hi"], capital: "Srinagar" },
-  { id: "ladakh", name: "Ladakh", code: "LA", languages: ["en"], capital: "Leh" },
-  { id: "puducherry", name: "Puducherry", code: "PY", languages: ["ta", "en"], capital: "Puducherry" },
-  { id: "chandigarh", name: "Chandigarh", code: "CH", languages: ["hi", "en", "pa"], capital: "Chandigarh" },
+  { id: "andhra-pradesh", name: "Andhra Pradesh", code: "AP", languages: ["te", "en"], capital: "Amaravati", type: "state" },
+  { id: "arunachal-pradesh", name: "Arunachal Pradesh", code: "AR", languages: ["en"], capital: "Itanagar", type: "state" },
+  { id: "assam", name: "Assam", code: "AS", languages: ["as", "en", "bn"], capital: "Dispur", type: "state" },
+  { id: "bihar", name: "Bihar", code: "BR", languages: ["hi", "en"], capital: "Patna", type: "state" },
+  { id: "chhattisgarh", name: "Chhattisgarh", code: "CG", languages: ["hi", "en"], capital: "Raipur", type: "state" },
+  { id: "goa", name: "Goa", code: "GA", languages: ["en", "mr", "kn"], capital: "Panaji", type: "state" },
+  { id: "gujarat", name: "Gujarat", code: "GJ", languages: ["gu", "en", "hi"], capital: "Gandhinagar", type: "state" },
+  { id: "haryana", name: "Haryana", code: "HR", languages: ["hi", "en"], capital: "Chandigarh", type: "state" },
+  { id: "himachal-pradesh", name: "Himachal Pradesh", code: "HP", languages: ["hi", "en"], capital: "Shimla", type: "state" },
+  { id: "jharkhand", name: "Jharkhand", code: "JH", languages: ["hi", "en"], capital: "Ranchi", type: "state" },
+  { id: "karnataka", name: "Karnataka", code: "KA", languages: ["kn", "en"], capital: "Bengaluru", type: "state" },
+  { id: "kerala", name: "Kerala", code: "KL", languages: ["ml", "en"], capital: "Thiruvananthapuram", type: "state" },
+  { id: "madhya-pradesh", name: "Madhya Pradesh", code: "MP", languages: ["hi", "en"], capital: "Bhopal", type: "state" },
+  { id: "maharashtra", name: "Maharashtra", code: "MH", languages: ["mr", "en", "hi"], capital: "Mumbai", type: "state" },
+  { id: "manipur", name: "Manipur", code: "MN", languages: ["en", "mni"], capital: "Imphal", type: "state" },
+  { id: "meghalaya", name: "Meghalaya", code: "ML", languages: ["en", "kha"], capital: "Shillong", type: "state" },
+  { id: "mizoram", name: "Mizoram", code: "MZ", languages: ["en", "miz"], capital: "Aizawl", type: "state" },
+  { id: "nagaland", name: "Nagaland", code: "NL", languages: ["en"], capital: "Kohima", type: "state" },
+  { id: "odisha", name: "Odisha", code: "OD", languages: ["or", "en"], capital: "Bhubaneswar", type: "state" },
+  { id: "punjab", name: "Punjab", code: "PB", languages: ["pa", "en", "hi"], capital: "Chandigarh", type: "state" },
+  { id: "rajasthan", name: "Rajasthan", code: "RJ", languages: ["hi", "en"], capital: "Jaipur", type: "state" },
+  { id: "sikkim", name: "Sikkim", code: "SK", languages: ["en", "ne"], capital: "Gangtok", type: "state" },
+  { id: "tamil-nadu", name: "Tamil Nadu", code: "TN", languages: ["ta", "en"], capital: "Chennai", type: "state" },
+  { id: "telangana", name: "Telangana", code: "TS", languages: ["te", "en"], capital: "Hyderabad", type: "state" },
+  { id: "tripura", name: "Tripura", code: "TR", languages: ["bn", "en", "kok"], capital: "Agartala", type: "state" },
+  { id: "uttar-pradesh", name: "Uttar Pradesh", code: "UP", languages: ["hi", "en"], capital: "Lucknow", type: "state" },
+  { id: "uttarakhand", name: "Uttarakhand", code: "UK", languages: ["hi", "en"], capital: "Dehradun", type: "state" },
+  { id: "west-bengal", name: "West Bengal", code: "WB", languages: ["bn", "en", "hi"], capital: "Kolkata", type: "state" },
 ];
+
+// All 8 Union Territories of India
+const UNION_TERRITORIES = [
+  { id: "andaman-nicobar", name: "Andaman & Nicobar Islands", code: "AN", languages: ["en", "hi", "bn"], capital: "Port Blair", type: "ut" },
+  { id: "chandigarh", name: "Chandigarh", code: "CH", languages: ["hi", "en", "pa"], capital: "Chandigarh", type: "ut" },
+  { id: "dadra-nagar-haveli-daman-diu", name: "Dadra & Nagar Haveli and Daman & Diu", code: "DN", languages: ["gu", "hi", "en"], capital: "Daman", type: "ut" },
+  { id: "delhi", name: "Delhi", code: "DL", languages: ["hi", "en"], capital: "New Delhi", type: "ut" },
+  { id: "jammu-kashmir", name: "Jammu & Kashmir", code: "JK", languages: ["ur", "hi", "en"], capital: "Srinagar", type: "ut" },
+  { id: "ladakh", name: "Ladakh", code: "LA", languages: ["en", "hi", "bod"], capital: "Leh", type: "ut" },
+  { id: "lakshadweep", name: "Lakshadweep", code: "LD", languages: ["ml", "en"], capital: "Kavaratti", type: "ut" },
+  { id: "puducherry", name: "Puducherry", code: "PY", languages: ["ta", "en", "ml", "te"], capital: "Puducherry", type: "ut" },
+];
+
+// Combined list of all states and union territories
+const ALL_REGIONS = [...INDIAN_STATES, ...UNION_TERRITORIES];
 
 // Language name mapping
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -201,7 +211,7 @@ function useStateStats() {
           matchedStateId = CITY_TO_STATE[cityLower];
         } else {
           // Try matching against state names
-          for (const state of INDIAN_STATES) {
+          for (const state of ALL_REGIONS) {
             const stateName = state.name.toLowerCase();
             const capitalName = state.capital.toLowerCase();
             
@@ -242,7 +252,7 @@ function useStateStats() {
             }
           }
           
-          const stateName = INDIAN_STATES.find(s => s.id === matchedStateId)?.name || matchedStateId;
+          const stateName = ALL_REGIONS.find(s => s.id === matchedStateId)?.name || matchedStateId;
           stateCount[stateName] = (stateCount[stateName] || 0) + 1;
         }
         
@@ -269,7 +279,7 @@ function useStateStats() {
       for (const feed of feeds || []) {
         if (feed.category === 'local') {
           // Try to match feed to state by name
-          for (const state of INDIAN_STATES) {
+          for (const state of ALL_REGIONS) {
             const stateName = state.name.toLowerCase();
             const feedName = feed.name.toLowerCase();
             if (feedName.includes(stateName) || 
@@ -281,7 +291,7 @@ function useStateStats() {
         }
       }
       
-      for (const state of INDIAN_STATES) {
+      for (const state of ALL_REGIONS) {
         if (stateStatsMap[state.id]) {
           stateStatsMap[state.id].languageBreakdown = state.languages.map(lang => ({
             language: lang,
@@ -379,7 +389,7 @@ function StateCard({
   stats, 
   onClick 
 }: { 
-  state: typeof INDIAN_STATES[0];
+  state: typeof ALL_REGIONS[0];
   stats?: StateStats;
   onClick: () => void;
 }) {
@@ -684,7 +694,7 @@ export default function IndiaStates() {
 
   // Filter states
   const filteredStates = useMemo(() => {
-    let filtered = INDIAN_STATES;
+    let filtered = ALL_REGIONS;
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -696,16 +706,22 @@ export default function IndiaStates() {
     }
     
     if (selectedRegion !== "all") {
-      // Filter by region (simplified - could be expanded)
-      const regions: Record<string, string[]> = {
-        north: ["delhi", "haryana", "punjab", "rajasthan", "uttar-pradesh", "uttarakhand", "himachal-pradesh", "jammu-kashmir", "ladakh", "chandigarh"],
-        south: ["andhra-pradesh", "karnataka", "kerala", "tamil-nadu", "telangana", "puducherry"],
-        east: ["bihar", "jharkhand", "odisha", "west-bengal", "sikkim"],
-        west: ["gujarat", "maharashtra", "goa"],
-        central: ["madhya-pradesh", "chhattisgarh"],
-        northeast: ["assam", "arunachal-pradesh", "manipur", "meghalaya", "mizoram", "nagaland", "tripura"],
-      };
-      filtered = filtered.filter(state => regions[selectedRegion]?.includes(state.id));
+      // Filter by region or type
+      if (selectedRegion === "states") {
+        filtered = filtered.filter(r => r.type === "state");
+      } else if (selectedRegion === "ut") {
+        filtered = filtered.filter(r => r.type === "ut");
+      } else {
+        const regions: Record<string, string[]> = {
+          north: ["delhi", "haryana", "punjab", "rajasthan", "uttar-pradesh", "uttarakhand", "himachal-pradesh", "jammu-kashmir", "ladakh", "chandigarh"],
+          south: ["andhra-pradesh", "karnataka", "kerala", "tamil-nadu", "telangana", "puducherry", "lakshadweep"],
+          east: ["bihar", "jharkhand", "odisha", "west-bengal", "sikkim", "andaman-nicobar"],
+          west: ["gujarat", "maharashtra", "goa", "dadra-nagar-haveli-daman-diu"],
+          central: ["madhya-pradesh", "chhattisgarh"],
+          northeast: ["assam", "arunachal-pradesh", "manipur", "meghalaya", "mizoram", "nagaland", "tripura"],
+        };
+        filtered = filtered.filter(state => regions[selectedRegion]?.includes(state.id));
+      }
     }
     
     // Sort by story count
@@ -718,7 +734,7 @@ export default function IndiaStates() {
     setIsRefreshing(false);
   }, [refetch]);
 
-  const handleStateClick = useCallback((state: typeof INDIAN_STATES[0]) => {
+  const handleStateClick = useCallback((state: typeof ALL_REGIONS[0]) => {
     // Use URLSearchParams to properly encode the query parameters
     const params = new URLSearchParams();
     params.set("country", "IN");
@@ -745,10 +761,10 @@ export default function IndiaStates() {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-3xl">🇮🇳</span>
-                  <h1 className="text-2xl sm:text-3xl font-bold">India State Dashboard</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold">India Dashboard</h1>
                 </div>
                 <p className="text-muted-foreground text-sm">
-                  Real-time news intelligence across {INDIAN_STATES.length} states and union territories
+                  Real-time news intelligence across {INDIAN_STATES.length} states and {UNION_TERRITORIES.length} union territories
                 </p>
               </div>
               
