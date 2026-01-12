@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Loader2, Radio, RefreshCw, 
   Layers, Zap, Shield, 
-  Grid3X3, List, Bell, ChevronDown, X, Globe, Wifi, WifiOff, Rss
+  Grid3X3, List, Bell, ChevronDown, X, Globe, Wifi, WifiOff, Rss, MapPin
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -27,6 +27,7 @@ import { clusterStories, groupByTimeBlocks, StoryCluster, RawStory } from "@/lib
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ActiveFeedsPanel } from "@/components/ActiveFeedsPanel";
+import { RegionQuickNav, LocationBreadcrumb } from "@/components/RegionQuickNav";
 
 import { 
   GEO_HIERARCHY, 
@@ -485,6 +486,11 @@ export default function News() {
                   <span className="font-medium">{stats.multiSource}</span>
                   <span className="text-muted-foreground">verified (3+ sources)</span>
                 </div>
+              </div>
+
+              {/* Quick Region Navigation */}
+              <div className="mt-4 pt-3 border-t border-border/30">
+                <RegionQuickNav compact />
               </div>
             </motion.div>
           </div>

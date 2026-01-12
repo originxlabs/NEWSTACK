@@ -130,26 +130,42 @@ export function IngestionPipelineViewer({
       // Step 5: Validate text
       await simulateStepProgress("validate", 400);
 
+      // Step 6: Classify - set to running before API call
+      setSteps((prev) =>
+        prev.map((s) => (s.id === "classify" ? { ...s, status: "running" as const } : s))
+      );
+
       // Now actually call the edge function
-      const { data, error } = await supabase.functions.invoke("ingest-rss");
+      const { data, error } = await supabase.functions.invoke("ingest-rss", {
+        body: {},
+      });
 
       if (error) {
-        throw error;
+        console.error("Ingestion API error:", error);
+        // Mark classify as error since that's where we're at
+        setSteps((prev) =>
+          prev.map((s) => (s.id === "classify" ? { ...s, status: "error" as const } : s))
+        );
+        throw new Error(error.message || "Ingestion failed");
       }
 
       // Continue with remaining steps based on response
-      // Step 6: Classify
-      await simulateStepProgress("classify", 600);
+      // Step 6: Classify - complete
+      setSteps((prev) =>
+        prev.map((s) =>
+          s.id === "classify" ? { ...s, status: "completed" as const, duration: 600 } : s
+        )
+      );
       setStats((prev) => ({
         ...prev,
-        feedsProcessed: data?.stats?.feedsProcessed || 0,
+        feedsProcessed: data?.stats?.feedsProcessed || data?.feedsProcessed || 0,
       }));
 
       // Step 7: Deduplicate
       await simulateStepProgress("dedupe", 500);
       setStats((prev) => ({
         ...prev,
-        storiesMerged: data?.stats?.storiesMerged || 0,
+        storiesMerged: data?.stats?.storiesMerged || data?.storiesMerged || 0,
       }));
 
       // Step 8: Cluster into stories
@@ -162,7 +178,7 @@ export function IngestionPipelineViewer({
       await simulateStepProgress("persist", 500);
       setStats((prev) => ({
         ...prev,
-        storiesCreated: data?.stats?.storiesCreated || 0,
+        storiesCreated: data?.stats?.storiesCreated || data?.storiesCreated || 0,
       }));
 
       // Step 11: Complete
@@ -172,9 +188,12 @@ export function IngestionPipelineViewer({
       setStats((prev) => ({ ...prev, totalDuration }));
       setCurrentRunId(data?.runId || null);
 
+      const feedsProcessed = data?.stats?.feedsProcessed || data?.feedsProcessed || 0;
+      const storiesCreated = data?.stats?.storiesCreated || data?.storiesCreated || 0;
+
       toast.success("Ingestion complete!", {
         id: "ingestion-pipeline",
-        description: `${data?.stats?.feedsProcessed || 0} feeds → ${data?.stats?.storiesCreated || 0} new stories`,
+        description: `${feedsProcessed} feeds → ${storiesCreated} new stories`,
       });
 
       onIngestionComplete?.();
@@ -188,7 +207,7 @@ export function IngestionPipelineViewer({
 
       toast.error("Ingestion failed", {
         id: "ingestion-pipeline",
-        description: err instanceof Error ? err.message : "Unknown error",
+        description: err instanceof Error ? err.message : "Unknown error - check console for details",
       });
     } finally {
       setIsRunning(false);

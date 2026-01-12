@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 import { useTTS } from "@/hooks/use-tts";
 import { toast } from "sonner";
 import { IngestionPipelineViewer } from "@/components/IngestionPipelineViewer";
+import { StateFlagBadge } from "@/components/StateFlagBadge";
+import { getStateConfig, getStateFlag } from "@/lib/india-states-config";
 // State color mapping based on region
 const STATE_COLORS: Record<string, string> = {
   // North
@@ -515,12 +517,11 @@ function StateCard({
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold",
-                STATE_COLORS[state.id] || "bg-gray-400"
-              )}>
-                {state.code}
-              </span>
+              <StateFlagBadge 
+                stateId={state.id} 
+                size="md" 
+                showEmoji={true} 
+              />
               <div>
                 <h3 className="font-semibold text-sm">{state.name}</h3>
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -740,16 +741,15 @@ function TopStatesLeaderboard({
             onClick={() => onStateClick?.(stateId)}
             className="w-full flex items-center gap-3 p-1.5 rounded-lg hover:bg-muted/50 transition-colors text-left"
           >
-            <span className={cn(
-              "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 text-white",
-              stateColor
-            )}>
-              {idx + 1}
-            </span>
+            <StateFlagBadge 
+              stateId={stateId} 
+              size="sm" 
+              showEmoji={true}
+              className="flex-shrink-0"
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between text-xs mb-0.5">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className={cn("w-2 h-2 rounded-full flex-shrink-0", stateColor)} />
                   <span className="font-medium truncate">{item.state}</span>
                   {item.type === 'ut' && (
                     <Badge variant="outline" className="text-[8px] h-4 px-1 border-purple-500/30 text-purple-600">
