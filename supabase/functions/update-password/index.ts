@@ -38,12 +38,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify that there's a recently verified OTP for password reset
+    // Verify that there's a recently verified OTP (for password_reset, login, or signup)
+    // This allows setting password after verifying any OTP type
     const { data: otpRecord, error: fetchError } = await supabase
       .from("email_otps")
       .select("*")
       .eq("email", email.toLowerCase())
-      .eq("purpose", "password_reset")
+      .in("purpose", ["password_reset", "login", "signup"])
       .not("verified_at", "is", null)
       .gt("verified_at", new Date(Date.now() - 15 * 60 * 1000).toISOString()) // Within last 15 minutes
       .order("verified_at", { ascending: false })
@@ -51,20 +52,46 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (fetchError || !otpRecord) {
+      console.log("OTP lookup failed:", fetchError?.message, "for email:", email.toLowerCase());
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "No verified password reset request found. Please verify your OTP first." 
+          error: "No verified OTP found. Please verify your passkey first." 
         }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Find the user
+    console.log("Found verified OTP:", otpRecord.id, "purpose:", otpRecord.purpose);
+
+    // Find the user - if they don't exist and this is a signup flow, create them
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const foundUser = existingUsers?.users?.find(
+    let foundUser = existingUsers?.users?.find(
       (u) => u.email?.toLowerCase() === email.toLowerCase()
     );
+
+    // If user doesn't exist and this was a signup OTP, create the user
+    if (!foundUser && otpRecord.purpose === "signup") {
+      console.log("Creating new user for signup flow:", email.toLowerCase());
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email: email.toLowerCase(),
+        password: newPassword,
+        email_confirm: true,
+      });
+
+      if (createError) {
+        console.error("Error creating user:", createError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Failed to create account. Please try again." 
+          }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      foundUser = newUser?.user;
+    }
 
     if (!foundUser) {
       return new Response(
