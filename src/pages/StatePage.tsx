@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   MapPin, TrendingUp, Globe2, Newspaper, Radio, 
@@ -31,14 +31,13 @@ import { ActiveFeedsPanel } from "@/components/ActiveFeedsPanel";
 import { DistrictDrilldown } from "@/components/DistrictDrilldown";
 import { CityDrilldown } from "@/components/CityDrilldown";
 import { StateFlagBadge } from "@/components/StateFlagBadge";
-import { BreadcrumbNav, BreadcrumbItem } from "@/components/BreadcrumbNav";
+import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
 import { 
   getStateConfig, 
-  getLanguageConfig, 
   LANGUAGE_CONFIG,
-  type StateConfig 
 } from "@/lib/india-states-config";
+import { inferDistrictFromText, normalizeLanguageCode } from "@/lib/story-geo";
 
 interface Story {
   id: string;
@@ -177,104 +176,115 @@ export default function StatePage() {
     fetchFeeds();
   }, [fetchStories, fetchFeeds]);
 
+  // Create a derived dataset with:
+  // - normalized original_language (e.g. "ta-IN" -> "ta")
+  // - inferred district when DB district is missing
+  const enrichedStories = useMemo(() => {
+    return stories.map((s) => {
+      const normalizedLang = normalizeLanguageCode(s.original_language) || null;
+      const inferredDistrict = stateConfig?.districts?.length
+        ? inferDistrictFromText(s, stateConfig.districts)
+        : null;
+
+      return {
+        ...s,
+        original_language: normalizedLang,
+        district: s.district || inferredDistrict,
+      };
+    });
+  }, [stories, stateConfig?.districts]);
+
   // Filter and sort stories - regional language first
   const filteredStories = useMemo(() => {
-    let result = [...stories];
+    let result = [...enrichedStories];
 
     // Filter by city
     if (selectedCity !== "all") {
-      result = result.filter(s => 
-        s.city?.toLowerCase().includes(selectedCity.toLowerCase())
-      );
+      result = result.filter((s) => s.city?.toLowerCase().includes(selectedCity.toLowerCase()));
     }
 
-    // Filter by district
+    // Filter by district (inferred + stored)
     if (selectedDistrict !== "all") {
-      result = result.filter(s => 
-        s.district?.toLowerCase().includes(selectedDistrict.toLowerCase())
-      );
+      result = result.filter((s) => s.district?.toLowerCase().includes(selectedDistrict.toLowerCase()));
     }
 
-    // Filter by language
+    // Filter by language (normalized)
     if (selectedLanguage !== "all") {
       if (selectedLanguage === "regional") {
-        // Only stories with original language content
-        result = result.filter(s => s.original_language && s.original_language !== "en");
+        // Only stories with non-English original language content
+        result = result.filter((s) => s.original_language && s.original_language !== "en");
+      } else if (selectedLanguage === "en") {
+        // Treat null/undefined as English
+        result = result.filter((s) => !s.original_language || s.original_language === "en");
       } else {
-        result = result.filter(s => 
-          s.original_language === selectedLanguage || 
-          (selectedLanguage === "en" && !s.original_language)
-        );
+        result = result.filter((s) => s.original_language === selectedLanguage);
       }
     }
 
     // Filter by category
     if (selectedCategory !== "all") {
-      result = result.filter(s => 
-        s.category?.toLowerCase() === selectedCategory.toLowerCase()
-      );
+      result = result.filter((s) => s.category?.toLowerCase() === selectedCategory.toLowerCase());
     }
 
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(s =>
-        s.headline.toLowerCase().includes(query) ||
-        s.summary?.toLowerCase().includes(query) ||
-        s.original_headline?.toLowerCase().includes(query)
+      result = result.filter(
+        (s) =>
+          s.headline.toLowerCase().includes(query) ||
+          s.summary?.toLowerCase().includes(query) ||
+          s.original_headline?.toLowerCase().includes(query)
       );
     }
 
     // Sort: Regional language stories first, then by date
     result.sort((a, b) => {
-      // Prioritize regional language content
       const aHasRegional = a.original_language && a.original_language !== "en";
       const bHasRegional = b.original_language && b.original_language !== "en";
-      
+
       if (aHasRegional && !bHasRegional) return -1;
       if (!aHasRegional && bHasRegional) return 1;
-      
-      // Then sort by date
+
       return new Date(b.first_published_at).getTime() - new Date(a.first_published_at).getTime();
     });
 
     return result;
-  }, [stories, selectedCity, selectedDistrict, selectedLanguage, selectedCategory, searchQuery]);
+  }, [enrichedStories, selectedCity, selectedDistrict, selectedLanguage, selectedCategory, searchQuery]);
 
   // Get unique values for filters
   const uniqueCities = useMemo(() => {
     const cities = new Set<string>();
-    stories.forEach(s => {
+    enrichedStories.forEach((s) => {
       if (s.city) cities.add(s.city);
     });
     return Array.from(cities).sort();
-  }, [stories]);
+  }, [enrichedStories]);
 
   const uniqueDistricts = useMemo(() => {
     const districts = new Set<string>();
-    stories.forEach(s => {
+    enrichedStories.forEach((s) => {
       if (s.district) districts.add(s.district);
     });
     return Array.from(districts).sort();
-  }, [stories]);
+  }, [enrichedStories]);
 
   const uniqueCategories = useMemo(() => {
     const categories = new Set<string>();
-    stories.forEach(s => {
+    enrichedStories.forEach((s) => {
       if (s.category) categories.add(s.category);
     });
     return Array.from(categories).sort();
-  }, [stories]);
+  }, [enrichedStories]);
 
-  // Language stats
+  // Language stats (normalized)
   const languageStats = useMemo(() => {
     const stats: Record<string, number> = { en: 0 };
-    stories.forEach(s => {
+    enrichedStories.forEach((s) => {
       const lang = s.original_language || "en";
       stats[lang] = (stats[lang] || 0) + 1;
     });
     return stats;
-  }, [stories]);
+  }, [enrichedStories]);
 
   // Transform story to NewsItem
   const transformStory = (story: Story): NewsItem => {
@@ -566,7 +576,7 @@ export default function StatePage() {
                 stateCode={stateConfig.code}
                 stateColor={stateConfig.color}
                 districts={stateConfig.districts}
-                stories={stories}
+                stories={enrichedStories}
                 onDistrictSelect={setSelectedDistrict}
                 selectedDistrict={selectedDistrict}
               />

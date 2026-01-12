@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Rss,
@@ -24,18 +24,26 @@ import {
   Volume2,
   VolumeX,
   AlertTriangle,
-  RefreshCw,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { audioFeedback } from "@/lib/audio-feedback";
+
+type RunTrigger = "manual" | "auto";
+
+type FetchedStory = {
+  id: string;
+  headline: string;
+  first_published_at: string;
+  created_at: string;
+};
 
 export type PipelineStep = {
   id: string;
@@ -94,6 +102,9 @@ export function IngestionPipelineViewer({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [lastStatus, setLastStatus] = useState<"success" | "error" | null>(null);
+  const [lastTrigger, setLastTrigger] = useState<RunTrigger>("manual");
+  const [lastRunNote, setLastRunNote] = useState<string | null>(null);
+  const [lastFetched, setLastFetched] = useState<FetchedStory[]>([]);
   const [stats, setStats] = useState({
     feedsProcessed: 0,
     storiesCreated: 0,
@@ -191,173 +202,247 @@ export function IngestionPipelineViewer({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const eligibleFeedsPreflight = useCallback(async () => {
+    // Client-side preflight: avoid calling the backend function if nothing is eligible.
+    const { data: feeds, error } = await supabase
+      .from("rss_feeds")
+      .select("id,last_fetched_at,fetch_interval_minutes")
+      .eq("is_active", true);
+
+    if (error) throw error;
+
+    const now = Date.now();
+    const eligible = (feeds || []).filter((f) => {
+      const intervalMin = f.fetch_interval_minutes ?? 15;
+      if (!f.last_fetched_at) return true;
+      const last = new Date(f.last_fetched_at).getTime();
+      return now - last >= intervalMin * 60 * 1000;
+    });
+
+    return {
+      eligibleCount: eligible.length,
+      totalCount: (feeds || []).length,
+    };
+  }, []);
+
+  const fetchNewStoriesSince = useCallback(async (sinceIso: string) => {
+    const { data, error } = await supabase
+      .from("stories")
+      .select("id,headline,first_published_at,created_at")
+      .gte("created_at", sinceIso)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+    setLastFetched((data || []) as FetchedStory[]);
+  }, []);
+
   // Run the ingestion with visual pipeline
-  const runIngestion = useCallback(async () => {
-    if (isRunning) return;
+  const runIngestion = useCallback(
+    async (trigger: RunTrigger = "manual") => {
+      if (isRunning) return;
 
-    // Check rate limiting
-    const { blocked, remainingMs, reason } = checkRateLimit();
-    if (blocked) {
-      const waitTime = Math.ceil(remainingMs / 60000);
-      toast.error(`Please wait ${waitTime} minute${waitTime > 1 ? 's' : ''} before trying again`, {
-        description: reason === "success" 
-          ? "Pipeline completed successfully. Rate limit applies to prevent overload."
-          : "Pipeline failed recently. Please wait before retrying.",
-      });
-      return;
-    }
+      setLastTrigger(trigger);
+      setLastRunNote(null);
+      setLastFetched([]);
 
-    setIsRunning(true);
-    setIsExpanded(true); // Auto-expand when running
-    resetPipeline();
-    const startTime = Date.now();
+      // Check rate limiting
+      const { blocked, remainingMs, reason } = checkRateLimit();
+      if (blocked) {
+        const waitTime = Math.ceil(remainingMs / 60000);
+        toast.error(`Please wait ${waitTime} minute${waitTime > 1 ? "s" : ""} before trying again`, {
+          description:
+            reason === "success"
+              ? "Pipeline completed successfully. Rate limit applies to prevent overload."
+              : "Pipeline failed recently. Please wait before retrying.",
+        });
+        return;
+      }
 
-    toast.loading("Starting ingestion pipeline...", { id: "ingestion-pipeline" });
+      setIsRunning(true);
+      setIsExpanded(true); // Auto-expand when running
+      resetPipeline();
+      const startTime = Date.now();
+      const startedAtIso = new Date().toISOString();
 
-    try {
-      // Step 1: Fetch RSS Feeds
-      await simulateStepProgress("fetch", 500, 0);
+      toast.loading("Starting ingestion pipeline...", { id: "ingestion-pipeline" });
 
-      // Step 2: Extract fields
-      await simulateStepProgress("extract", 400, 1);
+      try {
+        // Preflight: if no feeds are eligible, skip the backend call entirely.
+        const preflight = await eligibleFeedsPreflight();
+        if (preflight.totalCount > 0 && preflight.eligibleCount === 0) {
+          const { count: existingCount } = await supabase
+            .from("stories")
+            .select("id", { count: "exact", head: true })
+            .gte("first_published_at", new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString());
 
-      // Step 3: Strip CDATA
-      await simulateStepProgress("strip", 300, 2);
+          const note = existingCount && existingCount > 0
+            ? "All RSS feeds are up to date."
+            : "No news available right now.";
 
-      // Step 4: Decode entities
-      await simulateStepProgress("decode", 300, 3);
+          setLastStatus("success");
+          setLastRunNote(note);
+          localStorage.setItem(RATE_LIMIT_KEY, Date.now().toString());
 
-      // Step 5: Validate text
-      await simulateStepProgress("validate", 400, 4);
+          toast.success(note, {
+            id: "ingestion-pipeline",
+            description: "Will auto-check again in ~15 minutes.",
+          });
 
-      // Step 6: Classify - set to running before API call
-      setSteps((prev) =>
-        prev.map((s) => (s.id === "classify" ? { ...s, status: "running" as const } : s))
-      );
-      updateProgress(5.5);
+          audioFeedback.playSuccess();
+          onIngestionComplete?.();
+          return;
+        }
 
-      // Now actually call the edge function
-      const { data, error } = await supabase.functions.invoke("ingest-rss", {
-        body: {},
-      });
+        // Step 1: Fetch RSS Feeds
+        await simulateStepProgress("fetch", 500, 0);
 
-      if (error) {
-        console.error("Ingestion API error:", error);
-        // Mark classify as error since that's where we're at
+        // Step 2: Extract fields
+        await simulateStepProgress("extract", 400, 1);
+
+        // Step 3: Strip CDATA
+        await simulateStepProgress("strip", 300, 2);
+
+        // Step 4: Decode entities
+        await simulateStepProgress("decode", 300, 3);
+
+        // Step 5: Validate text
+        await simulateStepProgress("validate", 400, 4);
+
+        // Step 6: Classify - set to running before API call
+        setSteps((prev) => prev.map((s) => (s.id === "classify" ? { ...s, status: "running" as const } : s)));
+        updateProgress(5.5);
+
+        // Now actually call the backend function
+        const { data, error } = await supabase.functions.invoke("ingest-rss", {
+          body: { trigger },
+        });
+
+        if (error) {
+          console.error("Ingestion API error:", error);
+          setSteps((prev) => prev.map((s) => (s.id === "classify" ? { ...s, status: "error" as const } : s)));
+          throw new Error(error.message || "Ingestion failed");
+        }
+
+        // Continue with remaining steps based on response
+        // Step 6: Classify - complete
         setSteps((prev) =>
-          prev.map((s) => (s.id === "classify" ? { ...s, status: "error" as const } : s))
+          prev.map((s) => (s.id === "classify" ? { ...s, status: "completed" as const, duration: 600 } : s))
         );
-        throw new Error(error.message || "Ingestion failed");
+        updateProgress(6);
+        setStats((prev) => ({
+          ...prev,
+          feedsProcessed: data?.stats?.feedsProcessed || data?.feedsProcessed || 0,
+        }));
+
+        // Step 7: Deduplicate
+        await simulateStepProgress("dedupe", 500, 6);
+        setStats((prev) => ({
+          ...prev,
+          storiesMerged: data?.stats?.storiesMerged || data?.storiesMerged || 0,
+        }));
+
+        // Step 8: Cluster into stories
+        await simulateStepProgress("cluster", 400, 7);
+
+        // Step 9: Score confidence
+        await simulateStepProgress("score", 300, 8);
+
+        // Step 10: Persist to database
+        await simulateStepProgress("persist", 500, 9);
+        setStats((prev) => ({
+          ...prev,
+          storiesCreated: data?.stats?.storiesCreated || data?.storiesCreated || 0,
+        }));
+
+        // Step 11: Complete
+        await simulateStepProgress("complete", 200, 10);
+
+        const totalDuration = Date.now() - startTime;
+        setStats((prev) => ({ ...prev, totalDuration }));
+        setCurrentRunId(data?.runId || null);
+
+        const feedsProcessed = data?.stats?.feedsProcessed || data?.feedsProcessed || 0;
+        const storiesCreated = data?.stats?.storiesCreated || data?.storiesCreated || 0;
+        const storiesMerged = data?.stats?.storiesMerged || data?.storiesMerged || 0;
+
+        // Fetch the actual stories that were inserted/updated during this run (best-effort)
+        await fetchNewStoriesSince(startedAtIso);
+
+        const noNewNews = feedsProcessed > 0 && storiesCreated === 0 && storiesMerged === 0;
+        const note = noNewNews ? "No new news right now." : null;
+        setLastRunNote(note);
+
+        toast.success(noNewNews ? "No new news right now" : "Ingestion complete!", {
+          id: "ingestion-pipeline",
+          description: noNewNews
+            ? "Will auto-check again in ~15 minutes."
+            : `${feedsProcessed} feeds → ${storiesCreated} new stories`,
+        });
+
+        audioFeedback.playSuccess();
+
+        // Save success timestamp for rate limiting
+        localStorage.setItem(RATE_LIMIT_KEY, Date.now().toString());
+        setLastStatus("success");
+
+        onIngestionComplete?.();
+      } catch (err) {
+        console.error("Ingestion error:", err);
+
+        setSteps((prev) => prev.map((s) => (s.status === "running" ? { ...s, status: "error" as const } : s)));
+
+        audioFeedback.playError();
+
+        localStorage.setItem(RATE_LIMIT_FAILURE_KEY, Date.now().toString());
+        setLastStatus("error");
+
+        const errorMsg = err instanceof Error ? err.message : "Unknown error occurred";
+        let friendlyMessage = "Failed to fetch news. ";
+
+        if (errorMsg.includes("timeout") || errorMsg.includes("network")) {
+          friendlyMessage += "Network issue detected. Check your connection and try again in 5 minutes.";
+        } else if (errorMsg.includes("rate") || errorMsg.includes("limit")) {
+          friendlyMessage += "Too many requests. Please wait 5 minutes before trying again.";
+        } else if (errorMsg.includes("connection closed")) {
+          friendlyMessage += "Connection was interrupted. The operation may have completed on the server.";
+        } else {
+          friendlyMessage += "An unexpected error occurred. Please try again in 5 minutes.";
+        }
+
+        setErrorMessage(friendlyMessage);
+
+        toast.error("Ingestion failed", {
+          id: "ingestion-pipeline",
+          description: friendlyMessage,
+        });
+      } finally {
+        setIsRunning(false);
       }
-
-      // Continue with remaining steps based on response
-      // Step 6: Classify - complete
-      setSteps((prev) =>
-        prev.map((s) =>
-          s.id === "classify" ? { ...s, status: "completed" as const, duration: 600 } : s
-        )
-      );
-      updateProgress(6);
-      setStats((prev) => ({
-        ...prev,
-        feedsProcessed: data?.stats?.feedsProcessed || data?.feedsProcessed || 0,
-      }));
-
-      // Step 7: Deduplicate
-      await simulateStepProgress("dedupe", 500, 6);
-      setStats((prev) => ({
-        ...prev,
-        storiesMerged: data?.stats?.storiesMerged || data?.storiesMerged || 0,
-      }));
-
-      // Step 8: Cluster into stories
-      await simulateStepProgress("cluster", 400, 7);
-
-      // Step 9: Score confidence
-      await simulateStepProgress("score", 300, 8);
-
-      // Step 10: Persist to database
-      await simulateStepProgress("persist", 500, 9);
-      setStats((prev) => ({
-        ...prev,
-        storiesCreated: data?.stats?.storiesCreated || data?.storiesCreated || 0,
-      }));
-
-      // Step 11: Complete
-      await simulateStepProgress("complete", 200, 10);
-
-      const totalDuration = Date.now() - startTime;
-      setStats((prev) => ({ ...prev, totalDuration }));
-      setCurrentRunId(data?.runId || null);
-
-      const feedsProcessed = data?.stats?.feedsProcessed || data?.feedsProcessed || 0;
-      const storiesCreated = data?.stats?.storiesCreated || data?.storiesCreated || 0;
-
-      toast.success("Ingestion complete!", {
-        id: "ingestion-pipeline",
-        description: `${feedsProcessed} feeds → ${storiesCreated} new stories`,
-      });
-
-      // Play success sound
-      audioFeedback.playSuccess();
-      
-      // Save success timestamp for rate limiting
-      localStorage.setItem(RATE_LIMIT_KEY, Date.now().toString());
-      setLastStatus("success");
-
-      onIngestionComplete?.();
-    } catch (err) {
-      console.error("Ingestion error:", err);
-
-      // Mark current running step as error
-      setSteps((prev) =>
-        prev.map((s) => (s.status === "running" ? { ...s, status: "error" as const } : s))
-      );
-
-      // Play error sound
-      audioFeedback.playError();
-      
-      // Save failure timestamp for rate limiting
-      localStorage.setItem(RATE_LIMIT_FAILURE_KEY, Date.now().toString());
-      setLastStatus("error");
-
-      // Set user-friendly error message
-      const errorMsg = err instanceof Error ? err.message : "Unknown error occurred";
-      let friendlyMessage = "Failed to fetch news. ";
-      
-      if (errorMsg.includes("timeout") || errorMsg.includes("network")) {
-        friendlyMessage += "Network issue detected. Check your connection and try again in 5 minutes.";
-      } else if (errorMsg.includes("rate") || errorMsg.includes("limit")) {
-        friendlyMessage += "Too many requests. Please wait 5 minutes before trying again.";
-      } else if (errorMsg.includes("connection closed")) {
-        friendlyMessage += "Connection was interrupted. The operation may have completed on the server.";
-      } else {
-        friendlyMessage += "An unexpected error occurred. Please try again in 5 minutes.";
-      }
-      
-      setErrorMessage(friendlyMessage);
-
-      toast.error("Ingestion failed", {
-        id: "ingestion-pipeline",
-        description: friendlyMessage,
-      });
-    } finally {
-      setIsRunning(false);
-    }
-  }, [isRunning, resetPipeline, simulateStepProgress, onIngestionComplete, checkRateLimit, updateProgress]);
+    },
+    [
+      isRunning,
+      checkRateLimit,
+      resetPipeline,
+      simulateStepProgress,
+      updateProgress,
+      onIngestionComplete,
+      eligibleFeedsPreflight,
+      fetchNewStoriesSince,
+    ]
+  );
 
   // Auto-refresh polling with countdown
   useEffect(() => {
     if (!autoRefreshEnabled || autoRefreshInterval <= 0) return;
 
-    // Reset countdown when auto-refresh starts or after an ingestion
     setNextRefreshIn(autoRefreshInterval / 1000);
 
     const countdownInterval = setInterval(() => {
       setNextRefreshIn((prev) => {
         if (prev <= 1) {
           if (!isRunning && cooldownRemaining === 0) {
-            runIngestion();
+            runIngestion("auto");
           }
           return autoRefreshInterval / 1000;
         }
@@ -488,7 +573,7 @@ export function IngestionPipelineViewer({
               
               <Button
                 size="sm"
-                onClick={runIngestion}
+                onClick={() => runIngestion("manual")}
                 disabled={isRunning || cooldownRemaining > 0}
                 className="gap-1.5 h-8"
               >
@@ -499,7 +584,11 @@ export function IngestionPipelineViewer({
                 ) : (
                   <Play className="w-3.5 h-3.5" />
                 )}
-                {isRunning ? `${progressPercent}%` : cooldownRemaining > 0 ? formatCooldown(cooldownRemaining) : "Fetch News"}
+                {isRunning
+                  ? `${progressPercent}%`
+                  : cooldownRemaining > 0
+                    ? formatCooldown(cooldownRemaining)
+                    : "Fetch News"}
               </Button>
             </div>
           </div>
@@ -551,97 +640,191 @@ export function IngestionPipelineViewer({
 
         <CollapsibleContent>
           <CardContent className="pt-0">
-            {/* Pipeline visualization - horizontal scrollable */}
-            <div className="overflow-x-auto pb-2 -mx-4 px-4">
-              <div className="flex items-center gap-0 min-w-max py-4">
-                {steps.map((step, index) => (
-                  <div key={step.id} className="flex items-center">
-                    {/* Step box */}
-                    <motion.div
-                      initial={{ scale: 0.9, opacity: 0.5 }}
-                      animate={{
-                        scale: step.status === "running" ? 1.05 : 1,
-                        opacity: step.status === "pending" ? 0.6 : 1,
-                      }}
-                      transition={{ duration: 0.3 }}
-                      className={cn(
-                        "flex flex-col items-center justify-center",
-                        "w-16 sm:w-20 h-16 sm:h-20 rounded-xl border-2 transition-all duration-300",
-                        "shadow-sm hover:shadow-md cursor-default",
-                        getStepColor(step.status)
-                      )}
-                    >
-                      <div className="mb-1">
-                        {step.status === "running" ? (
-                          <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                        ) : step.status === "error" ? (
-                          <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                        ) : (
-                          step.icon
+            <TooltipProvider>
+              {/* Pipeline visualization - horizontal scrollable */}
+              <div className="overflow-x-auto pb-2 -mx-4 px-4">
+                <div className="flex items-center gap-0 min-w-max py-4">
+                  {steps.map((step, index) => {
+                    const tooltipTitle = `${step.name}`;
+                    const tooltipStatus = step.status.charAt(0).toUpperCase() + step.status.slice(1);
+                    const tooltipDuration = step.duration ? `${(step.duration / 1000).toFixed(1)}s` : null;
+                    const tooltipCount = step.count ? `${step.count}` : null;
+
+                    return (
+                      <div key={step.id} className="flex items-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <motion.div
+                              initial={{ scale: 0.9, opacity: 0.5 }}
+                              animate={{
+                                scale: step.status === "running" ? 1.05 : 1,
+                                opacity: step.status === "pending" ? 0.6 : 1,
+                              }}
+                              transition={{ duration: 0.3 }}
+                              className={cn(
+                                "flex flex-col items-center justify-center",
+                                "w-16 sm:w-20 h-16 sm:h-20 rounded-xl border-2 transition-all duration-300",
+                                "shadow-sm hover:shadow-md cursor-default",
+                                getStepColor(step.status)
+                              )}
+                            >
+                              <div className="mb-1">
+                                {step.status === "running" ? (
+                                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                                ) : step.status === "error" ? (
+                                  <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                                ) : (
+                                  step.icon
+                                )}
+                              </div>
+                              <span className="text-[9px] sm:text-[10px] font-medium text-center leading-tight px-1">
+                                {step.name}
+                              </span>
+                              {step.count !== undefined && step.count > 0 && (
+                                <span className="text-[8px] opacity-75">({step.count})</span>
+                              )}
+                            </motion.div>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-[260px]">
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium">{tooltipTitle}</p>
+                              <p className="text-[11px] text-muted-foreground">Status: {tooltipStatus}</p>
+                              {tooltipDuration && (
+                                <p className="text-[11px] text-muted-foreground">Duration: {tooltipDuration}</p>
+                              )}
+                              {tooltipCount && (
+                                <p className="text-[11px] text-muted-foreground">Count: {tooltipCount}</p>
+                              )}
+                              {step.id === "fetch" && lastRunNote && (
+                                <p className="text-[11px] text-muted-foreground">{lastRunNote}</p>
+                              )}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        {/* Connector arrow */}
+                        {index < steps.length - 1 && (
+                          <div className="flex items-center mx-0.5 sm:mx-1">
+                            <div
+                              className={cn(
+                                "w-4 sm:w-6 h-0.5 transition-colors duration-300",
+                                getConnectorColor(step.status)
+                              )}
+                            />
+                            <div
+                              className={cn(
+                                "w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] transition-colors duration-300",
+                                step.status === "completed"
+                                  ? "border-l-emerald-500"
+                                  : step.status === "running"
+                                    ? "border-l-blue-500"
+                                    : step.status === "error"
+                                      ? "border-l-red-500"
+                                      : "border-l-border"
+                              )}
+                            />
+                          </div>
                         )}
                       </div>
-                      <span className="text-[9px] sm:text-[10px] font-medium text-center leading-tight px-1">
-                        {step.name}
-                      </span>
-                      {step.count !== undefined && step.count > 0 && (
-                        <span className="text-[8px] opacity-75">({step.count})</span>
-                      )}
-                    </motion.div>
-
-                    {/* Connector arrow */}
-                    {index < steps.length - 1 && (
-                      <div className="flex items-center mx-0.5 sm:mx-1">
-                        <div
-                          className={cn(
-                            "w-4 sm:w-6 h-0.5 transition-colors duration-300",
-                            getConnectorColor(step.status)
-                          )}
-                        />
-                        <div
-                          className={cn(
-                            "w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] transition-colors duration-300",
-                            step.status === "completed"
-                              ? "border-l-emerald-500"
-                              : step.status === "running"
-                              ? "border-l-blue-500"
-                              : step.status === "error"
-                              ? "border-l-red-500"
-                              : "border-l-border"
-                          )}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* Stats row */}
-            <AnimatePresence>
-              {(stats.feedsProcessed > 0 || stats.storiesCreated > 0 || stats.storiesMerged > 0) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-border/50"
-                >
-                  <Badge variant="outline" className="gap-1.5 text-xs bg-blue-500/10 text-blue-600 border-blue-500/20">
-                    <Rss className="w-3 h-3" />
-                    {stats.feedsProcessed} feeds
-                  </Badge>
-                  <Badge variant="outline" className="gap-1.5 text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                    <FileText className="w-3 h-3" />
-                    +{stats.storiesCreated} new
-                  </Badge>
-                  {stats.storiesMerged > 0 && (
-                    <Badge variant="outline" className="gap-1.5 text-xs bg-purple-500/10 text-purple-600 border-purple-500/20">
-                      <GitMerge className="w-3 h-3" />
-                      {stats.storiesMerged} merged
+              {/* Run note (covers "no new news" / "up to date") */}
+              <AnimatePresence>
+                {lastRunNote && lastStatus === "success" && !isRunning && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-2 p-3 rounded-lg border border-border/50 bg-muted/30"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-[10px]">
+                            {lastTrigger === "manual" ? "Manual" : "Auto"}
+                          </Badge>
+                          <p className="text-xs font-medium">{lastRunNote}</p>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">Next check in ~15 minutes.</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Stats row */}
+              <AnimatePresence>
+                {(stats.feedsProcessed > 0 || stats.storiesCreated > 0 || stats.storiesMerged > 0) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-border/50"
+                  >
+                    <Badge variant="outline" className="gap-1.5 text-xs">
+                      <Rss className="w-3 h-3" />
+                      {stats.feedsProcessed} feeds
                     </Badge>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    <Badge variant="outline" className="gap-1.5 text-xs">
+                      <FileText className="w-3 h-3" />
+                      +{stats.storiesCreated} new
+                    </Badge>
+                    {stats.storiesMerged > 0 && (
+                      <Badge variant="outline" className="gap-1.5 text-xs">
+                        <GitMerge className="w-3 h-3" />
+                        {stats.storiesMerged} merged
+                      </Badge>
+                    )}
+                    <Badge variant="secondary" className="text-[10px]">
+                      {lastTrigger === "manual" ? "Manual" : "Auto"}
+                    </Badge>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Newly fetched stories list */}
+              <AnimatePresence>
+                {lastFetched.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium">Just fetched</p>
+                      <Badge variant="outline" className="text-[10px]">
+                        {lastTrigger === "manual" ? "Manual" : "Auto"}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 space-y-2">
+                      {lastFetched.map((s) => {
+                        const published = new Date(s.first_published_at);
+                        return (
+                          <div
+                            key={s.id}
+                            className="rounded-lg border border-border/50 bg-background/40 px-3 py-2"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-xs font-medium leading-snug">{s.headline}</p>
+                              <Badge variant="secondary" className="text-[10px]">
+                                {lastTrigger === "manual" ? "Manual" : "Auto"}
+                              </Badge>
+                            </div>
+                            <p className="mt-1 text-[11px] text-muted-foreground">
+                              Published: {published.toLocaleString()}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </TooltipProvider>
           </CardContent>
         </CollapsibleContent>
       </Card>
