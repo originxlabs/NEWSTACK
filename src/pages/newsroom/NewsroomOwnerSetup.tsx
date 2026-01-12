@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -15,13 +15,14 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-// Passkey emails are sent by Supabase Auth
+import { useOwnerAuditLog } from "@/hooks/use-owner-audit-log";
 
 type ViewMode = "warning" | "auth" | "request-passkey" | "verify-passkey" | "set-password" | "success";
 
 export default function NewsroomOwnerSetup() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const auditLog = useOwnerAuditLog();
 
   const [viewMode, setViewMode] = useState<ViewMode>("warning");
   const [email, setEmail] = useState("");
@@ -51,6 +52,9 @@ export default function NewsroomOwnerSetup() {
     setIsLoading(true);
 
     try {
+      // Log the OTP request attempt
+      await auditLog.logOtpRequest(email.trim(), true);
+
       // Check if user exists as owner
       const { data: existingMember } = await supabase
         .from("newsroom_members")
@@ -68,6 +72,7 @@ export default function NewsroomOwnerSetup() {
       });
 
       if (error || !data?.success) {
+        await auditLog.logFailed(email.trim(), error?.message || data?.error || "Failed to send OTP");
         toast.error(error?.message || data?.error || "Failed to send passkey");
         setIsLoading(false);
         return;
@@ -77,6 +82,7 @@ export default function NewsroomOwnerSetup() {
       toast.success("Passkey sent to your email from Newstack!");
       setViewMode("verify-passkey");
     } catch (err) {
+      await auditLog.logFailed(email.trim(), "Failed to send passkey");
       toast.error("Failed to send passkey");
     } finally {
       setIsLoading(false);
@@ -102,17 +108,18 @@ export default function NewsroomOwnerSetup() {
       });
 
       if (error || !data?.success) {
+        await auditLog.logOtpVerify(email.trim(), false, data?.error || "Invalid passkey");
         toast.error(data?.error || "Invalid passkey. Please try again.");
         return;
       }
 
-      // We intentionally do NOT try to create an auth session here.
-      // The verify-otp function returns a *hashed* token (not directly usable by the client SDK),
-      // and we don't need a session until after the owner sets a password.
+      // Log successful verification
+      await auditLog.logOtpVerify(email.trim(), true);
 
       toast.success("Passkey verified! Please set your password.");
       setViewMode("set-password");
     } catch (err) {
+      await auditLog.logFailed(email.trim(), "Verification failed");
       toast.error("Verification failed");
     } finally {
       setIsLoading(false);
@@ -192,6 +199,9 @@ export default function NewsroomOwnerSetup() {
         console.error("admin_users upsert error:", adminError);
       }
 
+      // Log successful owner setup
+      await auditLog.logSuccess(email.trim());
+
       toast.success("Owner access granted. Welcome!");
       setViewMode("success");
 
@@ -199,6 +209,7 @@ export default function NewsroomOwnerSetup() {
         navigate("/newsroom", { replace: true });
       }, 500);
     } catch (err) {
+      await auditLog.logFailed(email.trim(), "Owner setup error");
       console.error("Owner setup error:", err);
       toast.error("An error occurred");
     } finally {

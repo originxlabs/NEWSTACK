@@ -582,6 +582,42 @@ export type Database = {
         }
         Relationships: []
       }
+      owner_access_logs: {
+        Row: {
+          created_at: string
+          email: string
+          error_message: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          success: boolean | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          success?: boolean | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          success?: boolean | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       page_views: {
         Row: {
           country: string | null

@@ -27,6 +27,7 @@ const navItems: NavItem[] = [
   { icon: BarChart3, label: "Analytics", href: "/newsroom/analytics", restricted: true },
   { icon: Rss, label: "Ingestion", href: "/newsroom/ingestion", restricted: true },
   { icon: Rss, label: "RSS Feeds", href: "/newsroom/feeds", restricted: true },
+  { icon: Shield, label: "Audit Logs", href: "/newsroom/audit-logs", restricted: true },
   { icon: FileText, label: "Stories", href: "/newsroom/stories" },
   { icon: Shield, label: "Trust Console", href: "/newsroom/trust" },
   { icon: Bell, label: "Alerts", href: "/newsroom/alerts" },
