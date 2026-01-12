@@ -18,7 +18,6 @@ import Listen from "./pages/Listen";
 import World from "./pages/World";
 import Places from "./pages/Places";
 import Topics from "./pages/Topics";
-import Support from "./pages/Support";
 import Features from "./pages/Features";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -153,7 +152,6 @@ function AppContent() {
           <Route path="/topics" element={<Topics />} />
           <Route path="/features" element={<Features />} />
           <Route path="/compare" element={<Features />} />
-          <Route path="/support" element={<Support />} />
           <Route path="/api" element={<ApiLanding />} />
           <Route path="/api/docs" element={<ApiDocs />} />
           <Route path="/api/pricing" element={<ApiPricing />} />

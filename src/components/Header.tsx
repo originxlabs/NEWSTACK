@@ -16,7 +16,6 @@ const navLinks = [
   { name: "World", href: "/world" },
   { name: "Places", href: "/places" },
   { name: "Developers", href: "/api" },
-  { name: "Contact", href: "/support" },
 ];
 
 export function Header() {
