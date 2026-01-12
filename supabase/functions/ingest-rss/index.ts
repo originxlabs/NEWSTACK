@@ -1289,14 +1289,16 @@ serve(async (req) => {
 
   // Verify authorization for scheduled/manual calls
   const authHeader = req.headers.get("Authorization");
+  const apiKeyHeader = req.headers.get("apikey");
   const cronSecret = Deno.env.get("CRON_INGEST_SECRET");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  
+  const supabaseAnonKeyRaw = Deno.env.get("SUPABASE_ANON_KEY");
+
   const url = new URL(req.url);
   const secretParam = url.searchParams.get("secret");
 
   // Normalize secrets (URLSearchParams decodes '+' as space)
   const trimmedCronSecret = cronSecret?.trim();
+  const trimmedAnonKey = supabaseAnonKeyRaw?.trim();
   const trimmedSecretParam = secretParam?.trim();
   const normalizedSecretParam = trimmedSecretParam?.replace(/\s/g, "+");
 
@@ -1307,11 +1309,13 @@ serve(async (req) => {
   // 2. Bearer token with cron secret
   const isValidBearerToken = trimmedCronSecret && authHeader === `Bearer ${trimmedCronSecret}`;
   // 3. Internal Supabase cron (uses anon key in Authorization header)
-  const isInternalCron = authHeader?.includes(supabaseAnonKey || "ANON_KEY_PLACEHOLDER");
+  const isInternalCron = !!trimmedAnonKey && (authHeader?.includes(trimmedAnonKey) ?? false);
   // 4. Direct call without auth (for testing in config.toml cron - verify_jwt is false)
   const isLocalCron = !authHeader && !secretParam;
   // 5. Frontend call with Bearer anon key (standard format)
-  const isFrontendCall = authHeader === `Bearer ${supabaseAnonKey}`;
+  const isFrontendCall = !!trimmedAnonKey && authHeader === `Bearer ${trimmedAnonKey}`;
+  // 6. Frontend call using standard "apikey" header
+  const isFrontendApiKeyCall = !!trimmedAnonKey && apiKeyHeader === trimmedAnonKey;
 
   console.log("Auth check:", {
     hasCronSecret: !!cronSecret,
@@ -1322,12 +1326,22 @@ serve(async (req) => {
     internalCron: isInternalCron,
     localCron: isLocalCron,
     frontendCall: isFrontendCall,
-    anonKeyPresent: !!supabaseAnonKey,
+    frontendApiKeyCall: isFrontendApiKeyCall,
+    anonKeyPresent: !!trimmedAnonKey,
+    hasAuthorizationHeader: !!authHeader,
+    hasApiKeyHeader: !!apiKeyHeader,
   });
 
   // For external calls (cron-job.org), require the secret
-  // For internal Supabase cron or frontend calls, allow through
-  if (!isValidSecretParam && !isValidBearerToken && !isInternalCron && !isLocalCron && !isFrontendCall) {
+  // For internal cron or frontend calls, allow through
+  if (
+    !isValidSecretParam &&
+    !isValidBearerToken &&
+    !isInternalCron &&
+    !isLocalCron &&
+    !isFrontendCall &&
+    !isFrontendApiKeyCall
+  ) {
     console.log("Unauthorized access attempt - no valid auth method found");
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
