@@ -29,6 +29,30 @@ import { cn } from "@/lib/utils";
 import { useTTS } from "@/hooks/use-tts";
 import { toast } from "sonner";
 import { IngestionPipelineViewer } from "@/components/IngestionPipelineViewer";
+// State color mapping based on region
+const STATE_COLORS: Record<string, string> = {
+  // North
+  "delhi": "bg-orange-500", "uttar-pradesh": "bg-orange-400", "uttarakhand": "bg-orange-300",
+  "haryana": "bg-amber-500", "punjab": "bg-amber-400", "himachal-pradesh": "bg-amber-300",
+  "jammu-kashmir": "bg-rose-400", "ladakh": "bg-rose-300", "chandigarh": "bg-amber-600",
+  // East
+  "west-bengal": "bg-yellow-500", "bihar": "bg-yellow-400", "jharkhand": "bg-yellow-300",
+  "odisha": "bg-cyan-500", "sikkim": "bg-yellow-600",
+  // Northeast
+  "assam": "bg-emerald-500", "arunachal-pradesh": "bg-emerald-400", "manipur": "bg-emerald-300",
+  "meghalaya": "bg-teal-500", "mizoram": "bg-teal-400", "nagaland": "bg-teal-300",
+  "tripura": "bg-green-500",
+  // Central
+  "madhya-pradesh": "bg-violet-500", "chhattisgarh": "bg-violet-400",
+  // West
+  "rajasthan": "bg-pink-500", "gujarat": "bg-indigo-500", "maharashtra": "bg-pink-400",
+  "goa": "bg-red-400", "dadra-nagar-haveli-daman-diu": "bg-indigo-400",
+  // South
+  "karnataka": "bg-red-500", "kerala": "bg-teal-600", "tamil-nadu": "bg-green-600",
+  "andhra-pradesh": "bg-purple-500", "telangana": "bg-purple-400", "puducherry": "bg-green-500",
+  "lakshadweep": "bg-teal-500", "andaman-nicobar": "bg-blue-500",
+};
+
 // All 28 States of India
 const INDIAN_STATES = [
   { id: "andhra-pradesh", name: "Andhra Pradesh", code: "AP", languages: ["te", "en"], capital: "Amaravati", type: "state" },
@@ -485,20 +509,26 @@ function StateCard({
     >
       <Card className={cn(
         "h-full transition-all hover:shadow-lg hover:border-primary/30",
-        hasStories && "border-l-4 border-l-primary"
+        hasStories && "border-l-4",
+        hasStories && (STATE_COLORS[state.id] ? STATE_COLORS[state.id].replace('bg-', 'border-l-') : "border-l-primary")
       )}>
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-2">
-            <div>
-              <h3 className="font-semibold text-sm">{state.name}</h3>
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <Building2 className="w-3 h-3" />
-                {state.capital}
-              </p>
+            <div className="flex items-center gap-2">
+              <span className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold",
+                STATE_COLORS[state.id] || "bg-gray-400"
+              )}>
+                {state.code}
+              </span>
+              <div>
+                <h3 className="font-semibold text-sm">{state.name}</h3>
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Building2 className="w-3 h-3" />
+                  {state.capital}
+                </p>
+              </div>
             </div>
-            <Badge variant="outline" className="text-[10px]">
-              {state.code}
-            </Badge>
           </div>
           
           {/* Local News Indicator */}
@@ -675,16 +705,24 @@ function CategoryChart({ data }: { data: { category: string; count: number }[] }
   );
 }
 
-// Top States Leaderboard (with all regions - scrollable)
+// Top States Leaderboard (with all regions - scrollable, color coded)
 function TopStatesLeaderboard({ 
   data, 
-  showAll = false 
+  showAll = false,
+  onStateClick,
 }: { 
   data: { state: string; count: number; type?: 'state' | 'ut' }[]; 
   showAll?: boolean;
+  onStateClick?: (stateId: string) => void;
 }) {
   const maxCount = data[0]?.count || 1;
   const displayData = showAll ? data : data.slice(0, 10);
+  
+  // Get state id from name
+  const getStateId = (stateName: string) => {
+    const region = ALL_REGIONS.find(r => r.name.toLowerCase() === stateName.toLowerCase());
+    return region?.id || stateName.toLowerCase().replace(/\s+/g, '-');
+  };
   
   return (
     <div className={cn(
@@ -693,20 +731,25 @@ function TopStatesLeaderboard({
     )}>
       {displayData.map((item, idx) => {
         const percentage = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+        const stateId = getStateId(item.state);
+        const stateColor = STATE_COLORS[stateId] || "bg-gray-400";
+        
         return (
-          <div key={item.state} className="flex items-center gap-3">
+          <button
+            key={item.state}
+            onClick={() => onStateClick?.(stateId)}
+            className="w-full flex items-center gap-3 p-1.5 rounded-lg hover:bg-muted/50 transition-colors text-left"
+          >
             <span className={cn(
-              "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
-              idx === 0 ? "bg-yellow-500 text-yellow-950" :
-              idx === 1 ? "bg-gray-300 text-gray-700" :
-              idx === 2 ? "bg-amber-600 text-amber-100" :
-              "bg-muted text-muted-foreground"
+              "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 text-white",
+              stateColor
             )}>
               {idx + 1}
             </span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between text-xs mb-0.5">
                 <div className="flex items-center gap-1.5 min-w-0">
+                  <span className={cn("w-2 h-2 rounded-full flex-shrink-0", stateColor)} />
                   <span className="font-medium truncate">{item.state}</span>
                   {item.type === 'ut' && (
                     <Badge variant="outline" className="text-[8px] h-4 px-1 border-purple-500/30 text-purple-600">
@@ -718,7 +761,7 @@ function TopStatesLeaderboard({
               </div>
               <Progress value={percentage} className="h-1" />
             </div>
-          </div>
+          </button>
         );
       })}
       {displayData.length === 0 && (
@@ -932,7 +975,11 @@ export default function IndiaStates() {
                   </CardHeader>
                   <CardContent>
                     {overallStats?.allRegionsCoverage && overallStats.allRegionsCoverage.length > 0 ? (
-                      <TopStatesLeaderboard data={overallStats.allRegionsCoverage} showAll={true} />
+                      <TopStatesLeaderboard 
+                        data={overallStats.allRegionsCoverage} 
+                        showAll={true}
+                        onStateClick={(stateId) => navigate(`/india/${stateId}`)}
+                      />
                     ) : (
                       <p className="text-xs text-muted-foreground">No data available</p>
                     )}

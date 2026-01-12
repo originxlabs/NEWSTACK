@@ -304,6 +304,27 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
                         </Badge>
                       );
                     })()}
+                    {/* Language badge when original language is available */}
+                    {hasOriginalLanguage && (
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "text-[10px] gap-1 cursor-pointer transition-colors",
+                          showOriginal 
+                            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
+                            : "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowOriginal(!showOriginal);
+                        }}
+                      >
+                        <Languages className="w-3 h-3" />
+                        {showOriginal 
+                          ? getLanguageName(news.original_language) 
+                          : "English"}
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {news.sourceCount && news.sourceCount >= 3 && (

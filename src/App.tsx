@@ -28,6 +28,7 @@ import StoryDetail from "./pages/StoryDetail";
 import ApiLanding from "./pages/ApiLanding";
 import Sources from "./pages/Sources";
 import IndiaStates from "./pages/IndiaStates";
+import StatePage from "./pages/StatePage";
 import ApiDocs from "./pages/ApiDocs";
 import ApiDashboard from "./pages/ApiDashboard";
 import NewsroomLayout from "./pages/newsroom/NewsroomLayout";
@@ -143,6 +144,7 @@ function AppContent() {
           <Route path="/listen" element={<Listen />} />
           <Route path="/world" element={<World />} />
           <Route path="/india" element={<IndiaStates />} />
+          <Route path="/india/:stateId" element={<StatePage />} />
           <Route path="/places" element={<Places />} />
           <Route path="/topics" element={<Topics />} />
           <Route path="/features" element={<Features />} />
