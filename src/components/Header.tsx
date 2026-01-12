@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Radio } from "lucide-react";
+import { Menu, X, Radio, Code2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link, useLocation } from "react-router-dom";
@@ -15,6 +15,7 @@ const navLinks = [
   { name: "India", href: "/india" },
   { name: "World", href: "/world" },
   { name: "Places", href: "/places" },
+  { name: "Developers", href: "/api" },
   { name: "Contact", href: "/support" },
 ];
 
@@ -40,14 +41,19 @@ export function Header() {
         <div className="bg-background/80 backdrop-blur-xl border-b border-border/40">
           <div className="container mx-auto max-w-6xl px-4">
             <div className="flex items-center justify-between h-14">
-              {/* Logo - Reverted to original NEWSTACK */}
+              {/* Logo - NEWSTACK BY CROPXON */}
               <Link to="/" className="flex items-center gap-2">
                 <div className="flex items-center justify-center text-foreground">
                   <NLogoSquare size={28} />
                 </div>
-                <span className="font-display font-bold text-lg tracking-tight">
-                  NEW<span className="text-primary">STACK</span>
-                </span>
+                <div className="flex flex-col">
+                  <span className="font-display font-bold text-lg tracking-tight leading-none">
+                    NEW<span className="text-primary">STACK</span>
+                  </span>
+                  <span className="text-[8px] text-muted-foreground tracking-widest uppercase leading-none">
+                    by Cropxon
+                  </span>
+                </div>
               </Link>
 
               {/* Desktop Navigation */}
@@ -60,8 +66,9 @@ export function Header() {
                       isActive(link.href)
                         ? "text-foreground font-medium"
                         : "text-muted-foreground hover:text-foreground"
-                    }`}
+                    } ${link.name === "Developers" ? "flex items-center gap-1.5" : ""}`}
                   >
+                    {link.name === "Developers" && <Code2 className="w-3.5 h-3.5" />}
                     {link.name}
                     {isActive(link.href) && (
                       <motion.div
@@ -92,11 +99,12 @@ export function Header() {
                   ) : (
                     <Button 
                       size="sm" 
-                      variant="outline"
-                      className="h-8 text-xs"
+                      variant="default"
+                      className="h-8 text-xs gap-1.5"
                       onClick={() => setShowAuthModal(true)}
                     >
-                      Sign in
+                      <Code2 className="w-3.5 h-3.5" />
+                      Enterprise Sign In
                     </Button>
                   )}
                 </div>
@@ -128,13 +136,14 @@ export function Header() {
                     <Link
                       key={link.name}
                       to={link.href}
-                      className={`px-3 py-2.5 text-sm transition-colors rounded-md ${
+                      className={`px-3 py-2.5 text-sm transition-colors rounded-md flex items-center gap-2 ${
                         isActive(link.href)
                           ? "text-foreground bg-muted/50 font-medium"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
+                      {link.name === "Developers" && <Code2 className="w-4 h-4" />}
                       {link.name}
                     </Link>
                   ))}
@@ -142,14 +151,15 @@ export function Header() {
                   {!user && (
                     <div className="flex gap-2 mt-3 pt-3 border-t border-border/40">
                       <Button
-                        className="flex-1 h-9"
+                        className="flex-1 h-9 gap-2"
                         size="sm"
                         onClick={() => {
                           setIsOpen(false);
                           setShowAuthModal(true);
                         }}
                       >
-                        Get Started
+                        <Code2 className="w-4 h-4" />
+                        Enterprise Sign In
                       </Button>
                     </div>
                   )}

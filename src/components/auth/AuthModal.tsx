@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, Phone, ArrowRight, Loader2, Eye, EyeOff, KeyRound } from "lucide-react";
+import { X, Mail, Phone, ArrowRight, Loader2, Eye, EyeOff, KeyRound, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [companyName, setCompanyName] = useState("");
 
   const resetForm = () => {
     setEmail("");
@@ -46,6 +47,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setPhone("");
     setOtp("");
     setResetEmail("");
+    setCompanyName("");
     setMode("choice");
     setLoading(false);
   };
@@ -108,21 +110,25 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Welcome to NEWSTACK!");
+      toast.success("Welcome to NEWSTACK Enterprise!");
       handleClose();
     }
   };
 
   const handleSignUp = async () => {
-    if (!email || !password) return;
+    if (!email || !password || !companyName) {
+      toast.error("Please fill in all fields including Company Name");
+      return;
+    }
     setLoading(true);
+    // Note: Company name stored in profile after signup
     const { error } = await signUp(email, password);
     setLoading(false);
     
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Account created! You are now signed in.");
+      toast.success("Enterprise account created! You are now signed in.");
       handleClose();
     }
   };
@@ -136,7 +142,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Welcome back!");
+      toast.success("Welcome back to NEWSTACK Enterprise!");
       handleClose();
     }
   };
@@ -242,24 +248,28 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <div className="flex justify-center mb-4">
               <Logo size="lg" showText={false} />
             </div>
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Building2 className="w-5 h-5 text-primary" />
+              <span className="text-xs uppercase tracking-widest text-primary font-semibold">Enterprise</span>
+            </div>
             <h2 className="font-display text-2xl font-bold">
-              {mode === "choice" && "Join NEWSTACK"}
+              {mode === "choice" && "Enterprise Access"}
               {mode === "email" && "Sign in with Email"}
               {mode === "phone" && "Sign in with Phone"}
               {mode === "otp" && "Enter OTP"}
-              {mode === "signup" && "Create Account"}
+              {mode === "signup" && "Create Enterprise Account"}
               {mode === "login" && "Welcome Back"}
               {mode === "forgot" && "Reset Password"}
               {mode === "reset_otp" && "Enter Reset Code"}
               {mode === "new_password" && "Set New Password"}
             </h2>
             <p className="text-muted-foreground mt-2">
-              {mode === "choice" && "Free access to AI-powered world intelligence"}
+              {mode === "choice" && "NEWSTACK Intelligence API for enterprises"}
               {mode === "email" && "We'll send you a magic link"}
               {mode === "phone" && "We'll send you an OTP"}
               {mode === "otp" && "Enter the code sent to your phone"}
-              {mode === "signup" && "Create your NEWSTACK account"}
-              {mode === "login" && "Sign in to your account"}
+              {mode === "signup" && "Create your enterprise account"}
+              {mode === "login" && "Sign in to your enterprise account"}
               {mode === "forgot" && "We'll send you a reset code via email"}
               {mode === "reset_otp" && `Enter the 6-digit code sent to ${resetEmail}`}
               {mode === "new_password" && "Choose a strong password"}
@@ -349,11 +359,11 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             {mode === "email" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Work Email</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="you@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="h-12"
@@ -448,12 +458,28 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
             {(mode === "signup" || mode === "login") && (
               <>
+                {mode === "signup" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Company Name <span className="text-destructive">*</span></Label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="company"
+                        type="text"
+                        placeholder="Acme Corporation"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="h-12 pl-10"
+                      />
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Work Email</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="you@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="h-12"
@@ -494,13 +520,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <Button
                   className="w-full h-12"
                   onClick={mode === "signup" ? handleSignUp : handleSignIn}
-                  disabled={loading || !email || !password}
+                  disabled={loading || !email || !password || (mode === "signup" && !companyName)}
                 >
                   {loading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <>
-                      {mode === "signup" ? "Create Account" : "Sign In"}
+                      {mode === "signup" ? "Create Enterprise Account" : "Sign In"}
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </>
                   )}
@@ -525,7 +551,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   <Input
                     id="reset-email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="you@company.com"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
                     className="h-12"
