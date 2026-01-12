@@ -35,6 +35,8 @@ import { StateFlagBadge } from "@/components/StateFlagBadge";
 import { getStateConfig, getStateFlag } from "@/lib/india-states-config";
 import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
 import { BreadcrumbNav } from "@/components/BreadcrumbNav";
+import { WeatherAQIWidget } from "@/components/weather/WeatherAQIWidget";
+import { getCountryMetadata } from "@/lib/world-countries-config";
 // State color mapping based on region
 const STATE_COLORS: Record<string, string> = {
   // North
@@ -987,6 +989,18 @@ export default function IndiaStates() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Sidebar - Analytics */}
               <div className="lg:col-span-1 space-y-4">
+                {/* Weather & AQI for New Delhi */}
+                {(() => {
+                  const indiaMetadata = getCountryMetadata("IN");
+                  return indiaMetadata?.capitalCoordinates && (
+                    <WeatherAQIWidget
+                      lat={indiaMetadata.capitalCoordinates.lat}
+                      lng={indiaMetadata.capitalCoordinates.lng}
+                      cityName={indiaMetadata.capital}
+                    />
+                  );
+                })()}
+                
                 {/* All Regions Coverage - Scrollable */}
                 <Card>
                   <CardHeader className="pb-2">

@@ -893,6 +893,399 @@ export const COUNTRY_PROVINCES: Record<string, ProvinceConfig[]> = {
     }
   ],
 
+  // Argentina - Provincias (Provinces)
+  AR: [
+    {
+      id: "buenos-aires",
+      name: "Buenos Aires Province",
+      capital: "La Plata",
+      capitalCoordinates: { lat: -34.9214, lng: -57.9545 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "es",
+      majorCities: ["La Plata", "Mar del Plata", "Bahía Blanca", "Tandil", "Quilmes"],
+      population: 17541141,
+      area: 307571
+    },
+    {
+      id: "caba",
+      name: "Buenos Aires City (CABA)",
+      capital: "Buenos Aires",
+      capitalCoordinates: { lat: -34.6037, lng: -58.3816 },
+      flag: "🌆",
+      flagEmoji: "🌆",
+      language: "es",
+      majorCities: ["Buenos Aires", "Palermo", "Recoleta", "San Telmo"],
+      population: 3075646,
+      area: 203
+    },
+    {
+      id: "cordoba",
+      name: "Córdoba",
+      capital: "Córdoba",
+      capitalCoordinates: { lat: -31.4201, lng: -64.1888 },
+      flag: "🏔️",
+      flagEmoji: "🏔️",
+      language: "es",
+      majorCities: ["Córdoba", "Villa Carlos Paz", "Río Cuarto", "Villa María"],
+      population: 3760450,
+      area: 165321
+    },
+    {
+      id: "santa-fe",
+      name: "Santa Fe",
+      capital: "Santa Fe",
+      capitalCoordinates: { lat: -31.6333, lng: -60.7000 },
+      flag: "🌾",
+      flagEmoji: "🌾",
+      language: "es",
+      majorCities: ["Rosario", "Santa Fe", "Rafaela", "Venado Tuerto"],
+      population: 3536418,
+      area: 133007
+    },
+    {
+      id: "mendoza",
+      name: "Mendoza",
+      capital: "Mendoza",
+      capitalCoordinates: { lat: -32.8908, lng: -68.8272 },
+      flag: "🍇",
+      flagEmoji: "🍇",
+      language: "es",
+      majorCities: ["Mendoza", "San Rafael", "Godoy Cruz", "Las Heras"],
+      population: 1990338,
+      area: 148827
+    },
+    {
+      id: "tucuman",
+      name: "Tucumán",
+      capital: "San Miguel de Tucumán",
+      capitalCoordinates: { lat: -26.8083, lng: -65.2176 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "es",
+      majorCities: ["San Miguel de Tucumán", "Yerba Buena", "Tafí Viejo"],
+      population: 1687305,
+      area: 22524
+    }
+  ],
+
+  // Poland - Województwa (Voivodeships)
+  PL: [
+    {
+      id: "mazowieckie",
+      name: "Masovian (Mazowieckie)",
+      capital: "Warsaw",
+      capitalCoordinates: { lat: 52.2297, lng: 21.0122 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "pl",
+      majorCities: ["Warsaw", "Radom", "Płock", "Siedlce", "Pruszków"],
+      population: 5428031,
+      area: 35558
+    },
+    {
+      id: "malopolskie",
+      name: "Lesser Poland (Małopolskie)",
+      capital: "Kraków",
+      capitalCoordinates: { lat: 50.0647, lng: 19.9450 },
+      flag: "🦅",
+      flagEmoji: "🦅",
+      language: "pl",
+      majorCities: ["Kraków", "Tarnów", "Nowy Sącz", "Oświęcim"],
+      population: 3410901,
+      area: 15183
+    },
+    {
+      id: "slaskie",
+      name: "Silesian (Śląskie)",
+      capital: "Katowice",
+      capitalCoordinates: { lat: 50.2649, lng: 19.0238 },
+      flag: "⛏️",
+      flagEmoji: "⛏️",
+      language: "pl",
+      majorCities: ["Katowice", "Częstochowa", "Sosnowiec", "Gliwice", "Zabrze"],
+      population: 4517635,
+      area: 12333
+    },
+    {
+      id: "wielkopolskie",
+      name: "Greater Poland (Wielkopolskie)",
+      capital: "Poznań",
+      capitalCoordinates: { lat: 52.4064, lng: 16.9252 },
+      flag: "🦌",
+      flagEmoji: "🦌",
+      language: "pl",
+      majorCities: ["Poznań", "Kalisz", "Konin", "Piła", "Ostrów Wielkopolski"],
+      population: 3498733,
+      area: 29826
+    },
+    {
+      id: "pomorskie",
+      name: "Pomeranian (Pomorskie)",
+      capital: "Gdańsk",
+      capitalCoordinates: { lat: 54.3520, lng: 18.6466 },
+      flag: "⚓",
+      flagEmoji: "⚓",
+      language: "pl",
+      majorCities: ["Gdańsk", "Gdynia", "Sopot", "Słupsk", "Tczew"],
+      population: 2346671,
+      area: 18310
+    },
+    {
+      id: "dolnoslaskie",
+      name: "Lower Silesian (Dolnośląskie)",
+      capital: "Wrocław",
+      capitalCoordinates: { lat: 51.1079, lng: 17.0385 },
+      flag: "🏰",
+      flagEmoji: "🏰",
+      language: "pl",
+      majorCities: ["Wrocław", "Wałbrzych", "Legnica", "Jelenia Góra"],
+      population: 2901225,
+      area: 19947
+    }
+  ],
+
+  // Ukraine - Oblasts (Regions)
+  UA: [
+    {
+      id: "kyiv-city",
+      name: "Kyiv City",
+      capital: "Kyiv",
+      capitalCoordinates: { lat: 50.4501, lng: 30.5234 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "uk",
+      majorCities: ["Kyiv"],
+      population: 2962180,
+      area: 839
+    },
+    {
+      id: "kyiv-oblast",
+      name: "Kyiv Oblast",
+      capital: "Kyiv",
+      capitalCoordinates: { lat: 50.4501, lng: 30.5234 },
+      flag: "🌻",
+      flagEmoji: "🌻",
+      language: "uk",
+      majorCities: ["Bila Tserkva", "Brovary", "Boryspil", "Irpin", "Bucha"],
+      population: 1781044,
+      area: 28131
+    },
+    {
+      id: "lviv",
+      name: "Lviv Oblast",
+      capital: "Lviv",
+      capitalCoordinates: { lat: 49.8397, lng: 24.0297 },
+      flag: "🦁",
+      flagEmoji: "🦁",
+      language: "uk",
+      majorCities: ["Lviv", "Drohobych", "Stryi", "Chervonohrad"],
+      population: 2512084,
+      area: 21833
+    },
+    {
+      id: "odesa",
+      name: "Odesa Oblast",
+      capital: "Odesa",
+      capitalCoordinates: { lat: 46.4825, lng: 30.7233 },
+      flag: "⚓",
+      flagEmoji: "⚓",
+      language: "uk",
+      majorCities: ["Odesa", "Izmail", "Chornomorsk", "Bilhorod-Dnistrovskyi"],
+      population: 2377230,
+      area: 33310
+    },
+    {
+      id: "kharkiv",
+      name: "Kharkiv Oblast",
+      capital: "Kharkiv",
+      capitalCoordinates: { lat: 49.9935, lng: 36.2304 },
+      flag: "🏭",
+      flagEmoji: "🏭",
+      language: "uk",
+      majorCities: ["Kharkiv", "Izium", "Lozova", "Chuhuiv"],
+      population: 2658461,
+      area: 31415
+    },
+    {
+      id: "dnipropetrovsk",
+      name: "Dnipropetrovsk Oblast",
+      capital: "Dnipro",
+      capitalCoordinates: { lat: 48.4647, lng: 35.0462 },
+      flag: "🏗️",
+      flagEmoji: "🏗️",
+      language: "uk",
+      majorCities: ["Dnipro", "Kryvyi Rih", "Kamianske", "Nikopol"],
+      population: 3176648,
+      area: 31914
+    }
+  ],
+
+  // Cambodia - Provinces (Khaet)
+  KH: [
+    {
+      id: "phnom-penh",
+      name: "Phnom Penh",
+      capital: "Phnom Penh",
+      capitalCoordinates: { lat: 11.5564, lng: 104.9282 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "km",
+      majorCities: ["Phnom Penh"],
+      population: 2129371,
+      area: 679
+    },
+    {
+      id: "siem-reap",
+      name: "Siem Reap",
+      capital: "Siem Reap",
+      capitalCoordinates: { lat: 13.3633, lng: 103.8564 },
+      flag: "🛕",
+      flagEmoji: "🛕",
+      language: "km",
+      majorCities: ["Siem Reap"],
+      population: 1014234,
+      area: 10299
+    }
+  ],
+
+  // Myanmar - States and Regions
+  MM: [
+    {
+      id: "yangon",
+      name: "Yangon Region",
+      capital: "Yangon",
+      capitalCoordinates: { lat: 16.8661, lng: 96.1951 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "my",
+      majorCities: ["Yangon", "Thanlyin", "Insein"],
+      population: 7360703,
+      area: 10170
+    },
+    {
+      id: "mandalay",
+      name: "Mandalay Region",
+      capital: "Mandalay",
+      capitalCoordinates: { lat: 21.9588, lng: 96.0891 },
+      flag: "🏯",
+      flagEmoji: "🏯",
+      language: "my",
+      majorCities: ["Mandalay", "Amarapura", "Meiktila"],
+      population: 6165723,
+      area: 37024
+    }
+  ],
+
+  // Laos - Provinces (Khoueng)
+  LA: [
+    {
+      id: "vientiane-capital",
+      name: "Vientiane Capital",
+      capital: "Vientiane",
+      capitalCoordinates: { lat: 17.9757, lng: 102.6331 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "lo",
+      majorCities: ["Vientiane"],
+      population: 997900,
+      area: 3920
+    },
+    {
+      id: "luang-prabang",
+      name: "Luang Prabang",
+      capital: "Luang Prabang",
+      capitalCoordinates: { lat: 19.8866, lng: 102.1347 },
+      flag: "🛕",
+      flagEmoji: "🛕",
+      language: "lo",
+      majorCities: ["Luang Prabang"],
+      population: 475573,
+      area: 16875
+    }
+  ],
+
+  // Nepal - Provinces
+  NP: [
+    {
+      id: "bagmati",
+      name: "Bagmati Province",
+      capital: "Hetauda",
+      capitalCoordinates: { lat: 27.4231, lng: 85.0322 },
+      flag: "🏔️",
+      flagEmoji: "🏔️",
+      language: "ne",
+      majorCities: ["Kathmandu", "Lalitpur", "Bhaktapur", "Hetauda"],
+      population: 6084042,
+      area: 20300
+    },
+    {
+      id: "gandaki",
+      name: "Gandaki Province",
+      capital: "Pokhara",
+      capitalCoordinates: { lat: 28.2096, lng: 83.9856 },
+      flag: "⛰️",
+      flagEmoji: "⛰️",
+      language: "ne",
+      majorCities: ["Pokhara", "Gorkha", "Damauli"],
+      population: 2479745,
+      area: 21773
+    },
+    {
+      id: "lumbini",
+      name: "Lumbini Province",
+      capital: "Deukhuri",
+      capitalCoordinates: { lat: 27.9008, lng: 82.4502 },
+      flag: "🛕",
+      flagEmoji: "🛕",
+      language: "ne",
+      majorCities: ["Butwal", "Siddharthanagar", "Nepalgunj"],
+      population: 5124225,
+      area: 22288
+    }
+  ],
+
+  // Sri Lanka - Provinces
+  LK: [
+    {
+      id: "western",
+      name: "Western Province",
+      capital: "Colombo",
+      capitalCoordinates: { lat: 6.9271, lng: 79.8612 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "si",
+      languages: ["si", "ta", "en"],
+      majorCities: ["Colombo", "Sri Jayawardenepura Kotte", "Moratuwa", "Negombo"],
+      population: 5851130,
+      area: 3684
+    },
+    {
+      id: "central",
+      name: "Central Province",
+      capital: "Kandy",
+      capitalCoordinates: { lat: 7.2906, lng: 80.6337 },
+      flag: "🏔️",
+      flagEmoji: "🏔️",
+      language: "si",
+      majorCities: ["Kandy", "Nuwara Eliya", "Matale"],
+      population: 2571557,
+      area: 5674
+    },
+    {
+      id: "southern",
+      name: "Southern Province",
+      capital: "Galle",
+      capitalCoordinates: { lat: 6.0535, lng: 80.2210 },
+      flag: "🏖️",
+      flagEmoji: "🏖️",
+      language: "si",
+      majorCities: ["Galle", "Matara", "Hambantota"],
+      population: 2477285,
+      area: 5544
+    }
+  ],
+
   // Mexico - Estados (States)
   MX: [
     {
@@ -2055,6 +2448,19 @@ export const ADMINISTRATIVE_TERMS: Record<string, { singular: string; plural: st
   // Countries with İller (Provinces)
   TR: { singular: "İl", plural: "İller" },
   
+  // Countries with Voivodeships
+  PL: { singular: "Voivodeship", plural: "Voivodeships" },
+  
+  // Countries with Oblasts
+  UA: { singular: "Oblast", plural: "Oblasts" },
+  
+  // Southeast Asian countries
+  KH: { singular: "Province", plural: "Provinces" },
+  MM: { singular: "Region/State", plural: "Regions & States" },
+  LA: { singular: "Province", plural: "Provinces" },
+  NP: { singular: "Province", plural: "Provinces" },
+  LK: { singular: "Province", plural: "Provinces" },
+  
   // Default fallback
   DEFAULT: { singular: "Region", plural: "Regions" }
 };
@@ -2609,6 +3015,90 @@ export const COUNTRY_METADATA: Record<string, CountryMetadata> = {
     currencySymbol: "﷼",
     callingCode: "+974",
     drivingSide: "right"
+  },
+  AR: {
+    code: "AR",
+    name: "Argentina",
+    flag: "🇦🇷",
+    capital: "Buenos Aires",
+    capitalCoordinates: { lat: -34.6037, lng: -58.3816 },
+    continent: "South America",
+    continentCode: "SA",
+    population: 45195774,
+    currency: "ARS",
+    currencySymbol: "$",
+    callingCode: "+54",
+    drivingSide: "right"
+  },
+  KH: {
+    code: "KH",
+    name: "Cambodia",
+    flag: "🇰🇭",
+    capital: "Phnom Penh",
+    capitalCoordinates: { lat: 11.5564, lng: 104.9282 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 16718965,
+    currency: "KHR",
+    currencySymbol: "៛",
+    callingCode: "+855",
+    drivingSide: "right"
+  },
+  MM: {
+    code: "MM",
+    name: "Myanmar",
+    flag: "🇲🇲",
+    capital: "Naypyidaw",
+    capitalCoordinates: { lat: 19.7633, lng: 96.0785 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 54409800,
+    currency: "MMK",
+    currencySymbol: "K",
+    callingCode: "+95",
+    drivingSide: "right"
+  },
+  LA: {
+    code: "LA",
+    name: "Laos",
+    flag: "🇱🇦",
+    capital: "Vientiane",
+    capitalCoordinates: { lat: 17.9757, lng: 102.6331 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 7275560,
+    currency: "LAK",
+    currencySymbol: "₭",
+    callingCode: "+856",
+    drivingSide: "right"
+  },
+  NP: {
+    code: "NP",
+    name: "Nepal",
+    flag: "🇳🇵",
+    capital: "Kathmandu",
+    capitalCoordinates: { lat: 27.7172, lng: 85.3240 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 29136808,
+    currency: "NPR",
+    currencySymbol: "₨",
+    callingCode: "+977",
+    drivingSide: "left"
+  },
+  LK: {
+    code: "LK",
+    name: "Sri Lanka",
+    flag: "🇱🇰",
+    capital: "Sri Jayawardenepura Kotte",
+    capitalCoordinates: { lat: 6.9271, lng: 79.8612 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 21413249,
+    currency: "LKR",
+    currencySymbol: "Rs",
+    callingCode: "+94",
+    drivingSide: "left"
   }
 };
 
@@ -2941,6 +3431,32 @@ export const COUNTRY_LOCAL_RSS: Record<string, { name: string; url: string; lang
   UA: [
     { name: "Kyiv Independent", url: "https://kyivindependent.com/feed/", language: "en" },
     { name: "Ukrayinska Pravda", url: "https://www.pravda.com.ua/rss/", language: "uk" },
+  ],
+  AR: [
+    { name: "Clarín", url: "https://www.clarin.com/rss/lo-ultimo/", language: "es" },
+    { name: "La Nación", url: "https://www.lanacion.com.ar/arc/outboundfeeds/rss/", language: "es" },
+    { name: "Infobae Argentina", url: "https://www.infobae.com/feeds/rss/", language: "es" },
+  ],
+  KH: [
+    { name: "Khmer Times", url: "https://www.khmertimeskh.com/feed/", language: "en" },
+    { name: "The Phnom Penh Post", url: "https://www.phnompenhpost.com/rss/", language: "en" },
+  ],
+  MM: [
+    { name: "The Irrawaddy", url: "https://www.irrawaddy.com/feed", language: "en" },
+    { name: "Myanmar Now", url: "https://myanmar-now.org/feed/", language: "en" },
+  ],
+  LA: [
+    { name: "Vientiane Times", url: "https://www.vientianetimes.org.la/rss/", language: "en" },
+  ],
+  NP: [
+    { name: "The Kathmandu Post", url: "https://kathmandupost.com/rss", language: "en" },
+    { name: "The Himalayan Times", url: "https://thehimalayantimes.com/feed/", language: "en" },
+    { name: "Republica", url: "https://myrepublica.nagariknetwork.com/feed", language: "en" },
+  ],
+  LK: [
+    { name: "Daily Mirror Sri Lanka", url: "https://www.dailymirror.lk/RSS_Feed/rss", language: "en" },
+    { name: "The Island", url: "https://island.lk/feed/", language: "en" },
+    { name: "Ada Derana", url: "https://www.adaderana.lk/rss/", language: "en" },
   ],
 };
 
