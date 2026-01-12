@@ -6,7 +6,8 @@ import {
   Languages, Building2, ChevronRight, RefreshCw,
   Search, Filter, BarChart3, ArrowLeft, Clock,
   Users, Zap, ChevronDown, Volume2, Globe, Layers,
-  CheckCircle2, AlertCircle, Loader2, ExternalLink, Home
+  CheckCircle2, AlertCircle, Loader2, ExternalLink, Home,
+  Sparkles
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -33,6 +34,7 @@ import { CityDrilldown } from "@/components/CityDrilldown";
 import { StateFlagBadge } from "@/components/StateFlagBadge";
 import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
+import { AutoRefreshTimer } from "@/components/AutoRefreshTimer";
 import { 
   getStateConfig, 
   LANGUAGE_CONFIG,
@@ -40,6 +42,7 @@ import {
 import { inferDistrictFromText, normalizeLanguageCode, type InferredDistrictResult } from "@/lib/story-geo";
 import { IngestionRunHistory } from "@/components/IngestionRunHistory";
 import { IngestionTimelineChart } from "@/components/IngestionTimelineChart";
+import { usePersonalizedFeed } from "@/hooks/use-personalized-feed";
 
 interface Story {
   id: string;
@@ -85,7 +88,9 @@ export default function StatePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-
+  const [feedType, setFeedType] = useState<"all" | "foryou">("all");
+  
+  const { trackRead, personalizeStories, topCategories, topStates } = usePersonalizedFeed();
   // Get state config from centralized config
   const stateConfig = stateId ? getStateConfig(stateId) : undefined;
   const stateName = stateConfig?.name || stateId?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "State";
@@ -258,6 +263,14 @@ export default function StatePage() {
     return result;
   }, [enrichedStories, selectedCity, selectedDistrict, selectedLanguage, selectedCategory, searchQuery]);
 
+  // Apply personalization if "For You" feed is selected
+  const displayStories = useMemo(() => {
+    if (feedType === "foryou") {
+      return personalizeStories(filteredStories);
+    }
+    return filteredStories;
+  }, [filteredStories, feedType, personalizeStories]);
+
   // Get unique values for filters
   const uniqueCities = useMemo(() => {
     const cities = new Set<string>();
@@ -403,11 +416,11 @@ export default function StatePage() {
             </Card>
             <Card className="p-4">
               <div className="text-2xl font-bold text-emerald-600">
-                {languageStats[primaryRegionalLang] || 0}
+                {Object.entries(languageStats).filter(([lang]) => lang !== "en").reduce((sum, [, count]) => sum + count, 0)}
               </div>
               <div className="text-xs text-muted-foreground flex items-center gap-1">
                 <span className={cn("w-2 h-2 rounded-full", langConfig?.color || "bg-primary")} />
-                {langConfig?.native || "Regional"} Stories
+                Regional Language Stories
               </div>
             </Card>
             <Card className="p-4">
@@ -418,6 +431,39 @@ export default function StatePage() {
               <div className="text-2xl font-bold text-amber-600">{uniqueCities.length}</div>
               <div className="text-xs text-muted-foreground">Cities Covered</div>
             </Card>
+          </div>
+
+          {/* Auto-refresh timer */}
+          <div className="flex items-center justify-between mb-4">
+            <AutoRefreshTimer
+              intervalMinutes={5}
+              onRefresh={async () => {
+                await fetchStories();
+              }}
+              className="flex-1"
+            />
+            
+            {/* Feed type toggle */}
+            <div className="flex items-center gap-2 ml-4">
+              <Button
+                variant={feedType === "all" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setFeedType("all")}
+                className="gap-1.5 h-7 text-xs"
+              >
+                <Globe className="w-3 h-3" />
+                All News
+              </Button>
+              <Button
+                variant={feedType === "foryou" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setFeedType("foryou")}
+                className="gap-1.5 h-7 text-xs"
+              >
+                <Sparkles className="w-3 h-3" />
+                For You
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -537,14 +583,16 @@ export default function StatePage() {
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-            ) : filteredStories.length === 0 ? (
+            ) : displayStories.length === 0 ? (
               <Card className="p-12 text-center">
                 <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No stories found</h3>
                 <p className="text-muted-foreground mb-4">
                   {searchQuery 
                     ? `No results for "${searchQuery}"`
-                    : `No recent news from ${stateName}`}
+                    : feedType === "foryou" 
+                      ? "Read some stories to get personalized recommendations"
+                      : `No recent news from ${stateName}`}
                 </p>
                 <Button onClick={fetchStories}>
                   <RefreshCw className="w-4 h-4 mr-2" />
@@ -553,12 +601,26 @@ export default function StatePage() {
               </Card>
             ) : (
               <div className="space-y-4">
+                {/* For You explanation */}
+                {feedType === "foryou" && topCategories.length > 0 && (
+                  <div className="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-medium text-primary">Personalized for you</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Based on your reading history: {topCategories.slice(0, 3).join(", ")}
+                      {topStates.length > 0 && ` • ${topStates.slice(0, 2).join(", ")}`}
+                    </p>
+                  </div>
+                )}
+
                 {/* Regional language stories section */}
-                {filteredStories.some(s => s.original_language && s.original_language !== "en") && (
+                {displayStories.some(s => s.original_language && s.original_language !== "en") && feedType === "all" && (
                   <div className="mb-6">
                     <div className="flex items-center gap-2 mb-4">
                       <Badge className={cn(langConfig?.color, "text-white")}>
-                        {langConfig?.native} News
+                        {langConfig?.native || "Regional"} News
                       </Badge>
                       <span className="text-sm text-muted-foreground">
                         Regional language stories shown first
@@ -567,12 +629,22 @@ export default function StatePage() {
                   </div>
                 )}
 
-                {filteredStories.map((story, index) => (
+                {displayStories.map((story, index) => (
                   <NewsCard
                     key={story.id}
                     news={transformStory(story)}
                     index={index}
-                    onClick={() => navigate(`/news/${story.id}`)}
+                    onClick={() => {
+                      // Track the read for personalization
+                      trackRead({
+                        id: story.id,
+                        category: story.category,
+                        state: story.state,
+                        original_language: story.original_language,
+                        source: "Local Sources",
+                      });
+                      navigate(`/news/${story.id}`);
+                    }}
                   />
                 ))}
               </div>
