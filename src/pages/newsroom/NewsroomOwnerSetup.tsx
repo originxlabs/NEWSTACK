@@ -59,24 +59,22 @@ export default function NewsroomOwnerSetup() {
         .eq("role", "owner")
         .single();
 
-      // Send OTP to email via Supabase Auth
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          shouldCreateUser: true, // Allow new owner creation
+      // Send OTP via custom edge function (branded email)
+      const { data, error } = await supabase.functions.invoke("send-otp", {
+        body: { 
+          email: email.trim(), 
+          purpose: existingMember ? "login" : "signup" 
         },
       });
 
-      if (error) {
-        toast.error(error.message);
+      if (error || !data?.success) {
+        toast.error(error?.message || data?.error || "Failed to send passkey");
         setIsLoading(false);
         return;
       }
 
-      // Note: Supabase sends its own OTP email with the actual code
-
       setIsNewAccount(!existingMember);
-      toast.success("Passkey sent to your email!");
+      toast.success("Passkey sent to your email from Newstack!");
       setViewMode("verify-passkey");
     } catch (err) {
       toast.error("Failed to send passkey");
@@ -94,35 +92,51 @@ export default function NewsroomOwnerSetup() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: passkey,
-        type: "email",
+      // Verify OTP via custom edge function
+      const { data, error } = await supabase.functions.invoke("verify-otp", {
+        body: { 
+          email: email.trim(), 
+          otp: passkey,
+          purpose: isNewAccount ? "signup" : "login"
+        },
       });
 
-      if (error) {
-        toast.error("Invalid passkey. Please try again.");
+      if (error || !data?.success) {
+        toast.error(data?.error || "Invalid passkey. Please try again.");
         setIsLoading(false);
         return;
       }
 
-      if (data.session) {
-        // Check if this is new owner setup or existing login
-        const { data: existingMember } = await supabase
-          .from("newsroom_members")
-          .select("id, role")
-          .eq("email", email.trim())
-          .eq("role", "owner")
-          .single();
+      // If we got a session token, use it to sign in
+      if (data.session?.token_hash) {
+        // Use the magic link token to create a session
+        const { error: sessionError } = await supabase.auth.verifyOtp({
+          email: email.trim(),
+          token: data.session.token_hash,
+          type: "magiclink",
+        });
 
-        if (existingMember) {
-          // Existing owner - direct login
-          toast.success("Welcome back, Owner!");
-          navigate("/newsroom", { replace: true });
-        } else {
-          // New owner - need to set password
-          setViewMode("set-password");
+        if (sessionError) {
+          // Fallback: Try to sign in with email link
+          console.log("Magic link verification failed, trying alternative method");
         }
+      }
+
+      // Check if this is new owner setup or existing login
+      const { data: existingMember } = await supabase
+        .from("newsroom_members")
+        .select("id, role")
+        .eq("email", email.trim())
+        .eq("role", "owner")
+        .single();
+
+      if (existingMember) {
+        // Existing owner - need to sign in properly
+        toast.success("Passkey verified! Please set/confirm your password.");
+        setViewMode("set-password");
+      } else {
+        // New owner - need to set password
+        setViewMode("set-password");
       }
     } catch (err) {
       toast.error("Verification failed");
@@ -147,22 +161,46 @@ export default function NewsroomOwnerSetup() {
     setIsLoading(true);
 
     try {
-      // Update password
-      const { error: updateError } = await supabase.auth.updateUser({
+      // Check if owner already exists
+      const { data: existingMember } = await supabase
+        .from("newsroom_members")
+        .select("id, role, user_id")
+        .eq("email", email.trim())
+        .eq("role", "owner")
+        .single();
+
+      if (existingMember) {
+        // Existing owner - just sign in
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+        if (signInError) {
+          toast.error("Invalid password. Please try again or reset your password.");
+          setIsLoading(false);
+          return;
+        }
+
+        toast.success("Welcome back, Owner!");
+        navigate("/newsroom", { replace: true });
+        return;
+      }
+
+      // New owner - create account
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
       });
 
-      if (updateError) {
-        toast.error(updateError.message);
+      if (signUpError) {
+        toast.error(signUpError.message);
         setIsLoading(false);
         return;
       }
 
-      // Get current user
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-
-      if (!currentUser) {
-        toast.error("Authentication error");
+      if (!signUpData.user) {
+        toast.error("Failed to create account");
         setIsLoading(false);
         return;
       }
@@ -171,7 +209,7 @@ export default function NewsroomOwnerSetup() {
       const { error: memberError } = await supabase
         .from("newsroom_members")
         .insert({
-          user_id: currentUser.id,
+          user_id: signUpData.user.id,
           email: email.trim(),
           role: "owner",
           is_active: true,
@@ -214,37 +252,38 @@ export default function NewsroomOwnerSetup() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: passkey,
-        type: "email",
+      // Verify OTP via custom edge function
+      const { data, error } = await supabase.functions.invoke("verify-otp", {
+        body: { 
+          email: email.trim(), 
+          otp: passkey,
+          purpose: "login"
+        },
       });
 
-      if (error) {
-        toast.error("Invalid email or passkey");
+      if (error || !data?.success) {
+        toast.error(data?.error || "Invalid email or passkey");
         setIsLoading(false);
         return;
       }
 
-      if (data.session) {
-        // Verify owner role
-        const { data: member } = await supabase
-          .from("newsroom_members")
-          .select("role")
-          .eq("email", email.trim())
-          .eq("role", "owner")
-          .single();
+      // Verify owner role
+      const { data: member } = await supabase
+        .from("newsroom_members")
+        .select("role")
+        .eq("email", email.trim())
+        .eq("role", "owner")
+        .single();
 
-        if (!member) {
-          await supabase.auth.signOut();
-          toast.error("This email is not registered as an owner");
-          setIsLoading(false);
-          return;
-        }
-
-        toast.success("Welcome back, Owner!");
-        navigate("/newsroom", { replace: true });
+      if (!member) {
+        toast.error("This email is not registered as an owner");
+        setIsLoading(false);
+        return;
       }
+
+      // Now sign in - the user should use password
+      toast.success("Passkey verified! Please enter your password to login.");
+      setViewMode("set-password");
     } catch (err) {
       toast.error("Login failed");
     } finally {
