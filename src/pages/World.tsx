@@ -237,7 +237,7 @@ function TrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
   return <Minus className="h-3 w-3 text-muted-foreground" />;
 }
 
-// Location card component
+// Location card component with enhanced flags and capitals
 interface LocationCardProps {
   id: string;
   name: string;
@@ -248,9 +248,11 @@ interface LocationCardProps {
   onClick: () => void;
   isCapital?: boolean;
   type?: string;
+  capital?: string;
+  capitalFlag?: string;
 }
 
-function LocationCard({ id, name, subtitle, flag, icon, stats, onClick, isCapital, type }: LocationCardProps) {
+function LocationCard({ id, name, subtitle, flag, icon, stats, onClick, isCapital, type, capital, capitalFlag }: LocationCardProps) {
   const hasStories = (stats?.storyCount || 0) > 0;
   
   return (
@@ -267,24 +269,31 @@ function LocationCard({ id, name, subtitle, flag, icon, stats, onClick, isCapita
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-2">
-              {flag && <span className="text-xl">{flag}</span>}
-              {icon}
-              <div>
-                <h3 className="font-medium text-sm flex items-center gap-1.5">
+              {flag && <span className="text-2xl">{flag}</span>}
+              {icon && !flag && icon}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-sm flex items-center gap-1.5 truncate">
                   {name}
                   {isCapital && (
-                    <Badge variant="outline" className="text-[9px] h-4 px-1 bg-amber-500/10 text-amber-600 border-amber-500/20">
+                    <Badge variant="outline" className="text-[9px] h-4 px-1 bg-amber-500/10 text-amber-600 border-amber-500/20 flex-shrink-0">
                       Capital
                     </Badge>
                   )}
                 </h3>
                 {subtitle && (
-                  <p className="text-[11px] text-muted-foreground">{subtitle}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>
+                )}
+                {capital && (
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <Building2 className="w-2.5 h-2.5 text-amber-500" />
+                    <span className="font-medium">{capital}</span>
+                    {capitalFlag && <span className="text-xs">{capitalFlag}</span>}
+                  </p>
                 )}
               </div>
             </div>
             {type && (
-              <Badge variant="outline" className="text-[9px]">
+              <Badge variant="outline" className="text-[9px] flex-shrink-0">
                 {type}
               </Badge>
             )}
@@ -888,6 +897,7 @@ export default function World() {
                             name={item.name}
                             subtitle={`${item.states?.length || 0} regions`}
                             flag={item.flag}
+                            capital={item.capital || (item.states?.find((s: any) => s.cities?.some((c: any) => c.isCapital))?.cities?.find((c: any) => c.isCapital)?.name)}
                             stats={stats[item.code]}
                             onClick={() => handleDrillDown(item)}
                           />

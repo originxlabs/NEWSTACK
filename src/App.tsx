@@ -30,6 +30,7 @@ import Sources from "./pages/Sources";
 import IndiaStates from "./pages/IndiaStates";
 import StatePage from "./pages/StatePage";
 import CountryPage from "./pages/CountryPage";
+import ProvincePage from "./pages/ProvincePage";
 import ContinentPage from "./pages/ContinentPage";
 import ApiDocs from "./pages/ApiDocs";
 import ApiDashboard from "./pages/ApiDashboard";
@@ -147,6 +148,7 @@ function AppContent() {
           <Route path="/world" element={<World />} />
           <Route path="/world/continent/:continentId" element={<ContinentPage />} />
           <Route path="/world/:countryCode" element={<CountryPage />} />
+          <Route path="/world/:countryCode/:provinceId" element={<ProvincePage />} />
           <Route path="/india" element={<IndiaStates />} />
           <Route path="/india/:stateId" element={<StatePage />} />
           <Route path="/places" element={<Places />} />
