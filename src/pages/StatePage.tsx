@@ -37,7 +37,8 @@ import {
   getStateConfig, 
   LANGUAGE_CONFIG,
 } from "@/lib/india-states-config";
-import { inferDistrictFromText, normalizeLanguageCode } from "@/lib/story-geo";
+import { inferDistrictFromText, normalizeLanguageCode, type InferredDistrictResult } from "@/lib/story-geo";
+import { IngestionRunHistory } from "@/components/IngestionRunHistory";
 
 interface Story {
   id: string;
@@ -54,6 +55,10 @@ interface Story {
   original_summary: string | null;
   original_language: string | null;
   confidence_level: string | null;
+}
+
+interface EnrichedStory extends Story {
+  inferredDistrict?: InferredDistrictResult;
 }
 
 interface Feed {
@@ -178,18 +183,19 @@ export default function StatePage() {
 
   // Create a derived dataset with:
   // - normalized original_language (e.g. "ta-IN" -> "ta")
-  // - inferred district when DB district is missing
-  const enrichedStories = useMemo(() => {
+  // - inferred district when DB district is missing (with confidence)
+  const enrichedStories: EnrichedStory[] = useMemo(() => {
     return stories.map((s) => {
       const normalizedLang = normalizeLanguageCode(s.original_language) || null;
-      const inferredDistrict = stateConfig?.districts?.length
+      const inferredResult = stateConfig?.districts?.length
         ? inferDistrictFromText(s, stateConfig.districts)
         : null;
 
       return {
         ...s,
         original_language: normalizedLang,
-        district: s.district || inferredDistrict,
+        district: s.district || inferredResult?.district || null,
+        inferredDistrict: !s.district ? inferredResult : undefined,
       };
     });
   }, [stories, stateConfig?.districts]);
@@ -287,7 +293,7 @@ export default function StatePage() {
   }, [enrichedStories]);
 
   // Transform story to NewsItem
-  const transformStory = (story: Story): NewsItem => {
+  const transformStory = (story: EnrichedStory): NewsItem => {
     const publishedDate = new Date(story.first_published_at);
     const now = new Date();
     const diffHours = Math.floor((now.getTime() - publishedDate.getTime()) / (1000 * 60 * 60));
@@ -417,8 +423,11 @@ export default function StatePage() {
         {/* Ingestion Pipeline */}
         <IngestionPipelineViewer 
           onIngestionComplete={fetchStories}
-          className="mb-6"
+          className="mb-4"
         />
+
+        {/* Run History */}
+        <IngestionRunHistory className="mb-6" />
 
         {/* Filters */}
         <Card className="mb-6 p-4">
