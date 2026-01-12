@@ -384,15 +384,8 @@ export default function World() {
   const [showSearch, setShowSearch] = useState(false);
   const [hasAutoDrilled, setHasAutoDrilled] = useState(false);
 
-  // Auto-drill to user's location on first load
-  useEffect(() => {
-    if (!hasAutoDrilled && userLocation.hasPermission && userLocation.continent && userLocation.country) {
-      setSelectedContinent(userLocation.continent);
-      setSelectedCountry(userLocation.country);
-      setCurrentLevel("country");
-      setHasAutoDrilled(true);
-    }
-  }, [hasAutoDrilled, userLocation.hasPermission, userLocation.continent, userLocation.country]);
+  // Removed auto-drill to user's location - always show default world landing page
+  // Users can manually click "Detect Location" button to navigate to their region
 
   // Handle search selection
   const handleSearchSelect = useCallback((result: SearchResult) => {
