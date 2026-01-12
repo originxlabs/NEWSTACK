@@ -311,7 +311,71 @@ export default function NewsroomOwnerLogin() {
     }
   };
 
-  if (user) return null;
+  // Show Access Denied screen if logged in but NOT owner/superadmin
+  if (!roleLoading && user && !isOwnerOrSuperadmin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md"
+        >
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 border-2 border-destructive/30 flex items-center justify-center mb-4">
+                <AlertTriangle className="w-8 h-8 text-destructive" />
+              </div>
+              <CardTitle className="text-xl text-destructive">Access Denied</CardTitle>
+              <CardDescription className="text-destructive/80">
+                Your account does not have owner or superadmin access to the Newsroom.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-center text-muted-foreground">
+                Only designated owners and superadmins can access the Newsroom dashboard.
+                If you believe this is an error, please contact the system administrator.
+              </p>
+              <div className="text-xs text-center text-muted-foreground bg-muted/50 rounded p-2">
+                Logged in as: <strong>{user.email}</strong>
+              </div>
+              <Button 
+                className="w-full gap-2" 
+                variant="outline"
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  navigate("/", { replace: true });
+                }}
+              >
+                Sign Out
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => navigate("/")}
+              >
+                ← Back to Home
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Loading state while checking role
+  if (roleLoading && user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-sm text-muted-foreground">Verifying access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is already logged in as owner/superadmin, they're redirected via useEffect
+  // So the form below only shows for non-logged-in users
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">

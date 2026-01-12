@@ -923,6 +923,7 @@ export type Database = {
           confidence_level: string | null
           country_code: string | null
           created_at: string
+          district: string | null
           engagement_listens: number | null
           engagement_reads: number | null
           engagement_saves: number | null
@@ -933,9 +934,11 @@ export type Database = {
           image_url: string | null
           is_global: boolean | null
           last_updated_at: string
+          locality: string | null
           normalized_headline: string
           primary_source_count: number | null
           source_count: number | null
+          state: string | null
           story_hash: string
           story_state: string | null
           summary: string | null
@@ -949,6 +952,7 @@ export type Database = {
           confidence_level?: string | null
           country_code?: string | null
           created_at?: string
+          district?: string | null
           engagement_listens?: number | null
           engagement_reads?: number | null
           engagement_saves?: number | null
@@ -959,9 +963,11 @@ export type Database = {
           image_url?: string | null
           is_global?: boolean | null
           last_updated_at?: string
+          locality?: string | null
           normalized_headline: string
           primary_source_count?: number | null
           source_count?: number | null
+          state?: string | null
           story_hash: string
           story_state?: string | null
           summary?: string | null
@@ -975,6 +981,7 @@ export type Database = {
           confidence_level?: string | null
           country_code?: string | null
           created_at?: string
+          district?: string | null
           engagement_listens?: number | null
           engagement_reads?: number | null
           engagement_saves?: number | null
@@ -985,9 +992,11 @@ export type Database = {
           image_url?: string | null
           is_global?: boolean | null
           last_updated_at?: string
+          locality?: string | null
           normalized_headline?: string
           primary_source_count?: number | null
           source_count?: number | null
+          state?: string | null
           story_hash?: string
           story_state?: string | null
           summary?: string | null
