@@ -37,6 +37,8 @@ import {
   getCountryLanguages,
   getLanguageName,
   COUNTRY_LANGUAGES,
+  getCountryProvinces,
+  COUNTRY_PROVINCES,
 } from "@/lib/world-countries-config";
 import {
   getCountryByCode,
@@ -696,13 +698,69 @@ export function WorldCountryDashboard({ countryCode, countryName, countryFlag }:
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Regions/States */}
+          {/* Provinces/States with Flags */}
+          {(() => {
+            const provinces = getCountryProvinces(upperCountryCode);
+            if (provinces.length > 0) {
+              return (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Flag className="w-4 h-4 text-primary" />
+                      Provinces/States ({provinces.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1 max-h-[350px] overflow-y-auto">
+                    {provinces.map(province => {
+                      const count = stories.filter(s => 
+                        province.majorCities?.some(city => 
+                          s.city?.toLowerCase().includes(city.toLowerCase())
+                        ) || s.state?.toLowerCase().includes(province.name.toLowerCase())
+                      ).length;
+                      
+                      return (
+                        <button
+                          key={province.id}
+                          onClick={() => navigate(`/world/${countryCode.toLowerCase()}/${province.id}`)}
+                          className={cn(
+                            "w-full flex items-center gap-2 px-3 py-2.5 rounded-md text-sm transition-colors hover:bg-muted group"
+                          )}
+                        >
+                          <span className="text-lg flex-shrink-0">
+                            {province.flagEmoji || province.flag || "🏛️"}
+                          </span>
+                          <div className="flex-1 text-left min-w-0">
+                            <div className="font-medium truncate">{province.name}</div>
+                            {province.capital && (
+                              <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <Building2 className="w-2.5 h-2.5" />
+                                {province.capital}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {count > 0 && (
+                              <Badge variant="secondary" className="text-[10px]">{count}</Badge>
+                            )}
+                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              );
+            }
+            return null;
+          })()}
+
+          {/* Regions/States from stories */}
           {uniqueStates.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-primary" />
-                  Regions ({uniqueStates.length})
+                  News by Region ({uniqueStates.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1 max-h-[300px] overflow-y-auto">
