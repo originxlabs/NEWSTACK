@@ -5,7 +5,8 @@ import {
   MapPin, TrendingUp, Globe2, Newspaper, Radio, 
   Languages, Building2, ChevronRight, RefreshCw,
   Wifi, WifiOff, Search, Filter, BarChart3, PieChart,
-  Users, Clock, Zap, ChevronDown
+  Users, Clock, Zap, ChevronDown, Volume2, VolumeX, Globe,
+  CheckCircle2, AlertCircle, Loader2
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -22,9 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-
+import { useTTS } from "@/hooks/use-tts";
 // Indian states with their codes and regional languages
 const INDIAN_STATES = [
   { id: "andhra-pradesh", name: "Andhra Pradesh", code: "AP", languages: ["te", "en"], capital: "Amaravati" },
@@ -100,6 +102,8 @@ interface StateStats {
   sources: { name: string; count: number }[];
   recentHeadlines: string[];
   languageBreakdown: { language: string; count: number }[];
+  hasLocalNews: boolean; // True if we have specific local news for this state
+  localFeedCount: number; // Number of active local feeds for this state
 }
 
 interface OverallStats {
@@ -217,6 +221,8 @@ function useStateStats() {
               sources: [],
               recentHeadlines: [],
               languageBreakdown: [],
+              hasLocalNews: false,
+              localFeedCount: 0,
             };
           }
           
@@ -258,7 +264,23 @@ function useStateStats() {
         }
       }
 
-      // Add language breakdown to states based on their regional languages
+      // Add language breakdown to states based on their regional languages and count local feeds
+      const localFeedCounts: Record<string, number> = {};
+      for (const feed of feeds || []) {
+        if (feed.category === 'local') {
+          // Try to match feed to state by name
+          for (const state of INDIAN_STATES) {
+            const stateName = state.name.toLowerCase();
+            const feedName = feed.name.toLowerCase();
+            if (feedName.includes(stateName) || 
+                feedName.includes(state.capital.toLowerCase()) ||
+                state.languages.some(lang => feed.language === lang)) {
+              localFeedCounts[state.id] = (localFeedCounts[state.id] || 0) + 1;
+            }
+          }
+        }
+      }
+      
       for (const state of INDIAN_STATES) {
         if (stateStatsMap[state.id]) {
           stateStatsMap[state.id].languageBreakdown = state.languages.map(lang => ({
@@ -266,8 +288,26 @@ function useStateStats() {
             count: languageCount[lang] || 0,
           }));
           
+          // Set hasLocalNews based on story count and local feed availability
+          stateStatsMap[state.id].hasLocalNews = stateStatsMap[state.id].storyCount > 0;
+          stateStatsMap[state.id].localFeedCount = localFeedCounts[state.id] || 0;
+          
           // Sort trending topics
           stateStatsMap[state.id].trendingTopics.sort((a, b) => b.count - a.count);
+        } else {
+          // Create entry for states without stories to show feed availability
+          stateStatsMap[state.id] = {
+            storyCount: 0,
+            trendingTopics: [],
+            sources: [],
+            recentHeadlines: [],
+            languageBreakdown: state.languages.map(lang => ({
+              language: lang,
+              count: languageCount[lang] || 0,
+            })),
+            hasLocalNews: false,
+            localFeedCount: localFeedCounts[state.id] || 0,
+          };
         }
       }
 
@@ -333,7 +373,7 @@ function useRealtimeConnection() {
   return isConnected;
 }
 
-// State Card Component
+// State Card Component with local news indicator and listen feature
 function StateCard({ 
   state, 
   stats, 
@@ -344,6 +384,18 @@ function StateCard({
   onClick: () => void;
 }) {
   const hasStories = (stats?.storyCount || 0) > 0;
+  const hasLocalNews = stats?.hasLocalNews || false;
+  const primaryLang = state.languages[0] || 'en';
+  const { speak, isPlaying, isLoading: isSpeaking, stop } = useTTS({ language: primaryLang });
+  
+  const handleListen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isPlaying) {
+      stop();
+    } else if (stats?.recentHeadlines[0]) {
+      speak(stats.recentHeadlines[0]);
+    }
+  };
   
   return (
     <motion.div
@@ -357,7 +409,7 @@ function StateCard({
         hasStories && "border-l-4 border-l-primary"
       )}>
         <CardContent className="p-4">
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start justify-between mb-2">
             <div>
               <h3 className="font-semibold text-sm">{state.name}</h3>
               <p className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -370,17 +422,59 @@ function StateCard({
             </Badge>
           </div>
           
+          {/* Local News Indicator */}
+          <div className="mb-2">
+            {hasLocalNews ? (
+              <Badge variant="secondary" className="text-[9px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                <CheckCircle2 className="w-2.5 h-2.5" />
+                Local news available
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-[9px] gap-1 bg-amber-500/10 text-amber-600 border-amber-500/20">
+                <Globe className="w-2.5 h-2.5" />
+                Showing national news
+              </Badge>
+            )}
+          </div>
+          
           {/* Story Count */}
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-2">
             <div className="flex items-center gap-1.5 bg-primary/10 rounded-full px-2 py-1">
               <Newspaper className="w-3 h-3 text-primary" />
               <span className="text-sm font-bold text-primary">{stats?.storyCount || 0}</span>
             </div>
             <span className="text-[11px] text-muted-foreground">stories</span>
+            
+            {/* Listen Button */}
+            {stats?.recentHeadlines[0] && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 ml-auto"
+                      onClick={handleListen}
+                    >
+                      {isSpeaking ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : isPlaying ? (
+                        <VolumeX className="w-3 h-3 text-primary" />
+                      ) : (
+                        <Volume2 className="w-3 h-3" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    Listen in {LANGUAGE_NAMES[primaryLang] || 'English'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
           
           {/* Languages */}
-          <div className="flex flex-wrap gap-1 mb-3">
+          <div className="flex flex-wrap gap-1 mb-2">
             {state.languages.slice(0, 3).map(lang => (
               <Badge 
                 key={lang} 
