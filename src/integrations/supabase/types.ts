@@ -90,6 +90,7 @@ export type Database = {
           created_by: string | null
           customer_email: string
           customer_name: string
+          enterprise_id: string | null
           expires_at: string | null
           id: string
           is_active: boolean
@@ -100,6 +101,7 @@ export type Database = {
           rate_limit_per_second: number
           requests_limit: number
           requests_used: number
+          subscription_id: string | null
         }
         Insert: {
           allowed_endpoints?: string[] | null
@@ -108,6 +110,7 @@ export type Database = {
           created_by?: string | null
           customer_email: string
           customer_name: string
+          enterprise_id?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean
@@ -118,6 +121,7 @@ export type Database = {
           rate_limit_per_second?: number
           requests_limit?: number
           requests_used?: number
+          subscription_id?: string | null
         }
         Update: {
           allowed_endpoints?: string[] | null
@@ -126,6 +130,7 @@ export type Database = {
           created_by?: string | null
           customer_email?: string
           customer_name?: string
+          enterprise_id?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean
@@ -136,8 +141,126 @@ export type Database = {
           rate_limit_per_second?: number
           requests_limit?: number
           requests_used?: number
+          subscription_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "enterprise_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_usage_daily: {
+        Row: {
+          api_key_id: string
+          avg_response_time_ms: number | null
+          created_at: string
+          failed_requests: number | null
+          id: string
+          news_requests: number | null
+          places_requests: number | null
+          successful_requests: number | null
+          total_requests: number | null
+          usage_date: string
+          world_requests: number | null
+        }
+        Insert: {
+          api_key_id: string
+          avg_response_time_ms?: number | null
+          created_at?: string
+          failed_requests?: number | null
+          id?: string
+          news_requests?: number | null
+          places_requests?: number | null
+          successful_requests?: number | null
+          total_requests?: number | null
+          usage_date: string
+          world_requests?: number | null
+        }
+        Update: {
+          api_key_id?: string
+          avg_response_time_ms?: number | null
+          created_at?: string
+          failed_requests?: number | null
+          id?: string
+          news_requests?: number | null
+          places_requests?: number | null
+          successful_requests?: number | null
+          total_requests?: number | null
+          usage_date?: string
+          world_requests?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_daily_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_usage_tracking: {
+        Row: {
+          api_key_id: string
+          created_at: string
+          endpoint: string
+          enterprise_id: string | null
+          id: string
+          ip_address: string | null
+          is_sandbox: boolean | null
+          method: string | null
+          request_date: string
+          request_hour: number | null
+          response_time_ms: number | null
+          status_code: number | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string
+          endpoint: string
+          enterprise_id?: string | null
+          id?: string
+          ip_address?: string | null
+          is_sandbox?: boolean | null
+          method?: string | null
+          request_date?: string
+          request_hour?: number | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string
+          endpoint?: string
+          enterprise_id?: string | null
+          id?: string
+          ip_address?: string | null
+          is_sandbox?: boolean | null
+          method?: string | null
+          request_date?: string
+          request_hour?: number | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_tracking_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       breaking_news: {
         Row: {
@@ -377,6 +500,68 @@ export type Database = {
           verified_at?: string | null
         }
         Relationships: []
+      }
+      enterprise_subscriptions: {
+        Row: {
+          api_key_id: string | null
+          billing_cycle: string | null
+          created_at: string
+          currency: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          enterprise_id: string | null
+          id: string
+          plan_type: string
+          price_paid: number | null
+          razorpay_order_id: string | null
+          razorpay_subscription_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key_id?: string | null
+          billing_cycle?: string | null
+          created_at?: string
+          currency?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          enterprise_id?: string | null
+          id?: string
+          plan_type?: string
+          price_paid?: number | null
+          razorpay_order_id?: string | null
+          razorpay_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key_id?: string | null
+          billing_cycle?: string | null
+          created_at?: string
+          currency?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          enterprise_id?: string | null
+          id?: string
+          plan_type?: string
+          price_paid?: number | null
+          razorpay_order_id?: string | null
+          razorpay_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enterprise_subscriptions_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ingestion_runs: {
         Row: {
@@ -1319,6 +1504,7 @@ export type Database = {
     Functions: {
       cleanup_expired_otps: { Args: never; Returns: undefined }
       generate_api_key: { Args: never; Returns: string }
+      generate_enterprise_id: { Args: never; Returns: string }
       generate_webhook_secret: { Args: never; Returns: string }
       get_newsroom_role: {
         Args: { _user_id: string }

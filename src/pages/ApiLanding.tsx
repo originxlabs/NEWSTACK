@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -6,17 +6,19 @@ import {
   FileJson, CheckCircle2, Copy, ExternalLink, Newspaper,
   MapPin, Zap, Radio, Bell, AlertTriangle, ChevronRight,
   Terminal, BookOpen, Activity, Key, Webhook, Play, Send,
-  Loader2, CheckCircle, XCircle, LogIn, Building2
+  Loader2, CheckCircle, XCircle, LogIn, Building2, Eye, EyeOff,
+  BarChart3, RefreshCw
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,10 +100,28 @@ const CodeBlock = ({ code, language = "json" }: { code: string; language?: strin
       </Button>
     </div>
   );
-};
+}
 
-// Interactive API Tester Component
-function ApiTester() {
+// Authenticated API Tester Component
+interface ApiTesterProps {
+  onRequireAuth: () => void;
+}
+
+interface SandboxApiKey {
+  id: string;
+  api_key: string;
+  requests_limit: number;
+  requests_used: number;
+  rate_limit_per_second: number;
+  is_active: boolean;
+  enterprise_id: string | null;
+}
+
+function ApiTester({ onRequireAuth }: ApiTesterProps) {
+  const { user, profile } = useAuth();
+  const [sandboxKey, setSandboxKey] = useState<SandboxApiKey | null>(null);
+  const [isLoadingKey, setIsLoadingKey] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
   const [endpoint, setEndpoint] = useState("news");
   const [method, setMethod] = useState("GET");
   const [category, setCategory] = useState("");
@@ -113,6 +133,81 @@ function ApiTester() {
   const [response, setResponse] = useState<any>(null);
   const [responseTime, setResponseTime] = useState<number | null>(null);
   const [responseStatus, setResponseStatus] = useState<number | null>(null);
+
+  // Fetch or create sandbox key when user logs in
+  useEffect(() => {
+    if (user) {
+      fetchSandboxKey();
+    }
+  }, [user]);
+
+  const fetchSandboxKey = async () => {
+    if (!user) return;
+    setIsLoadingKey(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from("api_keys")
+        .select("*")
+        .eq("customer_email", user.email)
+        .eq("is_sandbox", true)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching sandbox key:", error);
+      }
+      
+      if (data) {
+        setSandboxKey(data as SandboxApiKey);
+      }
+    } catch (err) {
+      console.error("Failed to fetch sandbox key:", err);
+    } finally {
+      setIsLoadingKey(false);
+    }
+  };
+
+  const generateSandboxKey = async () => {
+    if (!user) return;
+    setIsLoadingKey(true);
+    
+    try {
+      // Generate enterprise ID
+      const enterpriseId = `ENT-${crypto.randomUUID().substring(0, 8).toUpperCase()}`;
+      
+      // Generate API key using database function
+      const { data: keyData, error: keyError } = await supabase.rpc("generate_api_key");
+      if (keyError) throw keyError;
+
+      const { data, error } = await supabase
+        .from("api_keys")
+        .insert({
+          customer_name: profile?.display_name || user.email?.split("@")[0] || "Enterprise User",
+          customer_email: user.email || "",
+          api_key: keyData,
+          plan: "sandbox",
+          is_sandbox: true,
+          requests_limit: 100,
+          rate_limit_per_second: 2,
+          allowed_endpoints: ["news", "world", "places"],
+          created_by: user.id,
+          enterprise_id: enterpriseId,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setSandboxKey(data as SandboxApiKey);
+      setShowApiKey(true);
+      toast.success("Sandbox API key generated! You can now test the API.");
+    } catch (err) {
+      console.error("Failed to generate sandbox key:", err);
+      toast.error("Failed to generate API key. Please try again.");
+    } finally {
+      setIsLoadingKey(false);
+    }
+  };
 
   const getEndpointUrl = () => {
     switch (endpoint) {
@@ -159,6 +254,16 @@ function ApiTester() {
   };
 
   const runTest = async () => {
+    if (!user) {
+      onRequireAuth();
+      return;
+    }
+
+    if (!sandboxKey) {
+      toast.error("Please generate a sandbox API key first");
+      return;
+    }
+
     setIsLoading(true);
     setResponse(null);
     setResponseTime(null);
@@ -184,6 +289,8 @@ function ApiTester() {
         headers: {
           "Content-Type": "application/json",
           "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "X-API-Key": sandboxKey.api_key,
+          "X-Enterprise-ID": sandboxKey.enterprise_id || "",
         },
       });
 
@@ -193,6 +300,23 @@ function ApiTester() {
       setResponse(data);
       setResponseTime(endTime - startTime);
       setResponseStatus(res.status);
+
+      // Track API usage
+      if (res.ok) {
+        await supabase.functions.invoke("track-api-usage", {
+          body: {
+            apiKeyId: sandboxKey.id,
+            endpoint,
+            method,
+            statusCode: res.status,
+            responseTimeMs: endTime - startTime,
+            isSandbox: true,
+          },
+        });
+        
+        // Refresh sandbox key to update usage count
+        fetchSandboxKey();
+      }
     } catch (err) {
       console.error("API test error:", err);
       setResponse({ error: "Failed to connect to API" });
@@ -202,17 +326,124 @@ function ApiTester() {
     }
   };
 
+  const usagePercentage = sandboxKey 
+    ? Math.min(100, (sandboxKey.requests_used / sandboxKey.requests_limit) * 100)
+    : 0;
+
+  // Not logged in state
+  if (!user) {
+    return (
+      <Card className="border-2 border-primary/20">
+        <CardContent className="py-12 text-center">
+          <LogIn className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="font-semibold text-lg mb-2">Sign In Required</h3>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            Sign in with your enterprise account to access the API tester and get your sandbox key.
+          </p>
+          <Button onClick={onRequireAuth} className="gap-2">
+            <LogIn className="w-4 h-4" />
+            Sign In to Test API
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Loading key state
+  if (isLoadingKey && !sandboxKey) {
+    return (
+      <Card className="border-2 border-primary/20">
+        <CardContent className="py-12 text-center">
+          <Loader2 className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />
+          <p className="text-muted-foreground">Loading your API key...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // No sandbox key yet
+  if (!sandboxKey) {
+    return (
+      <Card className="border-2 border-primary/20">
+        <CardContent className="py-12 text-center">
+          <Key className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="font-semibold text-lg mb-2">Generate Your Sandbox Key</h3>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            Get a free sandbox API key with 100 requests/month to test all endpoints.
+          </p>
+          <Button onClick={generateSandboxKey} disabled={isLoadingKey} className="gap-2">
+            {isLoadingKey ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Key className="w-4 h-4" />
+                Generate Sandbox Key
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="border-2 border-primary/20">
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <CardTitle className="text-lg flex items-center gap-2">
             <Play className="w-5 h-5 text-primary" />
             Live API Tester
           </CardTitle>
-          <Badge variant="secondary" className="font-mono text-xs">
-            Sandbox Mode
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="font-mono text-xs">
+              Sandbox Mode
+            </Badge>
+            {sandboxKey.enterprise_id && (
+              <Badge variant="outline" className="font-mono text-xs">
+                {sandboxKey.enterprise_id}
+              </Badge>
+            )}
+          </div>
+        </div>
+        
+        {/* API Key Display */}
+        <div className="mt-4 p-3 bg-muted/50 rounded-lg border">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-muted-foreground">Your Sandbox API Key</span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">
+                {sandboxKey.requests_used}/{sandboxKey.requests_limit} requests
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs font-mono bg-background px-2 py-1.5 rounded border truncate">
+              {showApiKey ? sandboxKey.api_key : "nsk_test_" + "•".repeat(20)}
+            </code>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 flex-shrink-0"
+              onClick={() => setShowApiKey(!showApiKey)}
+            >
+              {showApiKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 flex-shrink-0"
+              onClick={() => {
+                navigator.clipboard.writeText(sandboxKey.api_key);
+                toast.success("API key copied");
+              }}
+            >
+              <Copy className="w-3 h-3" />
+            </Button>
+          </div>
+          <Progress value={usagePercentage} className="mt-2 h-1" />
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -697,7 +928,7 @@ export default function ApiLanding() {
                   <p className="text-muted-foreground mb-6">
                     Test the NEWSTACK API endpoints live. Sandbox mode provides access to real data with relaxed rate limits.
                   </p>
-                  <ApiTester />
+                  <ApiTester onRequireAuth={() => setShowAuthModal(true)} />
                 </section>
 
                 {/* Authentication */}
