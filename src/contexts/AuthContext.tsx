@@ -30,6 +30,9 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
+  sendPasswordResetOtp: (email: string) => Promise<{ success: boolean; error?: string }>;
+  verifyPasswordResetOtp: (email: string, otp: string) => Promise<{ success: boolean; error?: string }>;
+  updatePassword: (email: string, newPassword: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -175,6 +178,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error as Error | null };
   };
 
+  // Custom OTP-based password reset flow
+  const sendPasswordResetOtp = async (email: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("send-otp", {
+        body: { email, purpose: "password_reset" },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Failed to send OTP" };
+    }
+  };
+
+  const verifyPasswordResetOtp = async (email: string, otp: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-otp", {
+        body: { email, otp, purpose: "password_reset" },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (!data?.success) {
+        return { success: false, error: data?.error || "Invalid OTP" };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Failed to verify OTP" };
+    }
+  };
+
+  const updatePassword = async (email: string, newPassword: string) => {
+    // Use admin API via edge function to update password
+    try {
+      const { data, error } = await supabase.functions.invoke("update-password", {
+        body: { email, newPassword },
+      });
+
+      if (error) {
+        return { error: new Error(error.message) };
+      }
+
+      if (!data?.success) {
+        return { error: new Error(data?.error || "Failed to update password") };
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      return { error: new Error(err.message || "Failed to update password") };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -191,6 +252,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         updateProfile,
         refreshProfile,
+        sendPasswordResetOtp,
+        verifyPasswordResetOtp,
+        updatePassword,
       }}
     >
       {children}

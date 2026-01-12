@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, Phone, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
+import { X, Mail, Phone, ArrowRight, Loader2, Eye, EyeOff, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,23 +13,39 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
-type AuthMode = "choice" | "email" | "phone" | "otp" | "signup" | "login";
+type AuthMode = "choice" | "email" | "phone" | "otp" | "signup" | "login" | "forgot" | "reset_otp" | "new_password";
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const { signInWithEmail, signInWithOtp, verifyOtp, signUp, signIn, signInWithGoogle } = useAuth();
+  const { 
+    signInWithEmail, 
+    signInWithOtp, 
+    verifyOtp, 
+    signUp, 
+    signIn, 
+    signInWithGoogle,
+    sendPasswordResetOtp,
+    verifyPasswordResetOtp,
+    updatePassword
+  } = useAuth();
   const [mode, setMode] = useState<AuthMode>("choice");
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   const resetForm = () => {
     setEmail("");
     setPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
     setPhone("");
     setOtp("");
+    setResetEmail("");
     setMode("choice");
     setLoading(false);
   };
@@ -125,6 +141,64 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!resetEmail) return;
+    setLoading(true);
+    const result = await sendPasswordResetOtp(resetEmail);
+    setLoading(false);
+    
+    if (!result.success) {
+      toast.error(result.error || "Failed to send reset code");
+    } else {
+      toast.success("Reset code sent to your email!");
+      setMode("reset_otp");
+    }
+  };
+
+  const handleVerifyResetOtp = async () => {
+    if (!otp || otp.length < 6) return;
+    setLoading(true);
+    const result = await verifyPasswordResetOtp(resetEmail, otp);
+    setLoading(false);
+    
+    if (!result.success) {
+      toast.error(result.error || "Invalid code");
+    } else {
+      toast.success("Code verified! Set your new password.");
+      setMode("new_password");
+    }
+  };
+
+  const handleSetNewPassword = async () => {
+    if (!newPassword || !confirmPassword) return;
+    
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    
+    setLoading(true);
+    const { error } = await updatePassword(resetEmail, newPassword);
+    setLoading(false);
+    
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Password updated successfully! Please sign in.");
+      setMode("login");
+      setEmail(resetEmail);
+      setResetEmail("");
+      setOtp("");
+      setNewPassword("");
+      setConfirmPassword("");
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -175,6 +249,9 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               {mode === "otp" && "Enter OTP"}
               {mode === "signup" && "Create Account"}
               {mode === "login" && "Welcome Back"}
+              {mode === "forgot" && "Reset Password"}
+              {mode === "reset_otp" && "Enter Reset Code"}
+              {mode === "new_password" && "Set New Password"}
             </h2>
             <p className="text-muted-foreground mt-2">
               {mode === "choice" && "Free access to AI-powered world intelligence"}
@@ -183,6 +260,9 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               {mode === "otp" && "Enter the code sent to your phone"}
               {mode === "signup" && "Create your NEWSTACK account"}
               {mode === "login" && "Sign in to your account"}
+              {mode === "forgot" && "We'll send you a reset code via email"}
+              {mode === "reset_otp" && `Enter the 6-digit code sent to ${resetEmail}`}
+              {mode === "new_password" && "Choose a strong password"}
             </p>
           </div>
 
@@ -399,6 +479,18 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     </button>
                   </div>
                 </div>
+                {mode === "login" && (
+                  <Button
+                    variant="link"
+                    className="w-full justify-end p-0 h-auto text-sm"
+                    onClick={() => {
+                      setResetEmail(email);
+                      setMode("forgot");
+                    }}
+                  >
+                    Forgot password?
+                  </Button>
+                )}
                 <Button
                   className="w-full h-12"
                   onClick={mode === "signup" ? handleSignUp : handleSignIn}
@@ -423,6 +515,137 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <Button variant="ghost" className="w-full" onClick={() => setMode("choice")}>
                   Back to options
                 </Button>
+              </>
+            )}
+
+            {mode === "forgot" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email Address</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+                <Button
+                  className="w-full h-12"
+                  onClick={handleForgotPassword}
+                  disabled={loading || !resetEmail}
+                >
+                  {loading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <KeyRound className="mr-2 h-5 w-5" />
+                      Send Reset Code
+                    </>
+                  )}
+                </Button>
+                <Button variant="ghost" className="w-full" onClick={() => setMode("login")}>
+                  Back to sign in
+                </Button>
+              </>
+            )}
+
+            {mode === "reset_otp" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="reset-otp">Reset Code</Label>
+                  <Input
+                    id="reset-otp"
+                    type="text"
+                    placeholder="123456"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                    className="h-12 text-center text-2xl tracking-widest"
+                    maxLength={6}
+                  />
+                </div>
+                <Button
+                  className="w-full h-12"
+                  onClick={handleVerifyResetOtp}
+                  disabled={loading || otp.length < 6}
+                >
+                  {loading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      Verify Code
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full" 
+                  onClick={() => {
+                    setOtp("");
+                    handleForgotPassword();
+                  }}
+                  disabled={loading}
+                >
+                  Resend Code
+                </Button>
+                <Button variant="ghost" className="w-full" onClick={() => setMode("forgot")}>
+                  Use different email
+                </Button>
+              </>
+            )}
+
+            {mode === "new_password" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="h-12 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Input
+                    id="confirm-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+                <Button
+                  className="w-full h-12"
+                  onClick={handleSetNewPassword}
+                  disabled={loading || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+                >
+                  {loading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      Set New Password
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
+                </Button>
+                {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                  <p className="text-sm text-destructive text-center">Passwords don't match</p>
+                )}
               </>
             )}
           </div>
