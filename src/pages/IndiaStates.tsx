@@ -121,7 +121,10 @@ interface OverallStats {
   totalSources: number;
   totalFeeds: number;
   activeStates: number;
-  topStates: { state: string; count: number }[];
+  statesCount: number; // Total number of states (28)
+  utsCount: number; // Total number of UTs (8)
+  topStates: { state: string; count: number; type?: 'state' | 'ut' }[];
+  allRegionsCoverage: { state: string; count: number; type: 'state' | 'ut' }[]; // All 36 regions
   categoryBreakdown: { category: string; count: number }[];
   languageBreakdown: { language: string; count: number }[];
   hourlyTrend: { hour: string; count: number }[];
@@ -332,16 +335,29 @@ function useStateStats() {
       // Calculate active states (states with stories in the last 48h)
       const activeStatesCount = Object.values(stateStatsMap).filter(s => s.storyCount > 0).length;
 
+      // Build all regions coverage (all 28 states + 8 UTs)
+      const allRegionsCoverage = ALL_REGIONS.map(region => ({
+        state: region.name, // Use 'state' key for compatibility with TopStatesLeaderboard
+        count: stateStatsMap[region.id]?.storyCount || 0,
+        type: region.type as 'state' | 'ut',
+      })).sort((a, b) => b.count - a.count);
+
       // Build overall stats
       const overall: OverallStats = {
         totalStories: stories?.length || 0,
         totalSources: Object.keys(sourceCount).length,
         totalFeeds: feeds?.length || 0,
         activeStates: activeStatesCount,
+        statesCount: INDIAN_STATES.length,
+        utsCount: UNION_TERRITORIES.length,
         topStates: Object.entries(stateCount)
-          .map(([state, count]) => ({ state, count }))
+          .map(([state, count]) => {
+            const regionInfo = ALL_REGIONS.find(r => r.name === state);
+            return { state, count, type: (regionInfo?.type || 'state') as 'state' | 'ut' };
+          })
           .sort((a, b) => b.count - a.count)
           .slice(0, 10),
+        allRegionsCoverage,
         categoryBreakdown: Object.entries(categoryCount)
           .map(([category, count]) => ({ category, count }))
           .sort((a, b) => b.count - a.count),
@@ -657,18 +673,28 @@ function CategoryChart({ data }: { data: { category: string; count: number }[] }
   );
 }
 
-// Top States Leaderboard
-function TopStatesLeaderboard({ data }: { data: { state: string; count: number }[] }) {
+// Top States Leaderboard (with all regions - scrollable)
+function TopStatesLeaderboard({ 
+  data, 
+  showAll = false 
+}: { 
+  data: { state: string; count: number; type?: 'state' | 'ut' }[]; 
+  showAll?: boolean;
+}) {
   const maxCount = data[0]?.count || 1;
+  const displayData = showAll ? data : data.slice(0, 10);
   
   return (
-    <div className="space-y-2">
-      {data.map((item, idx) => {
-        const percentage = (item.count / maxCount) * 100;
+    <div className={cn(
+      "space-y-2",
+      showAll && "max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent"
+    )}>
+      {displayData.map((item, idx) => {
+        const percentage = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
         return (
           <div key={item.state} className="flex items-center gap-3">
             <span className={cn(
-              "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+              "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
               idx === 0 ? "bg-yellow-500 text-yellow-950" :
               idx === 1 ? "bg-gray-300 text-gray-700" :
               idx === 2 ? "bg-amber-600 text-amber-100" :
@@ -676,16 +702,26 @@ function TopStatesLeaderboard({ data }: { data: { state: string; count: number }
             )}>
               {idx + 1}
             </span>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between text-xs mb-0.5">
-                <span className="font-medium">{item.state}</span>
-                <span className="text-muted-foreground">{item.count} stories</span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="font-medium truncate">{item.state}</span>
+                  {item.type === 'ut' && (
+                    <Badge variant="outline" className="text-[8px] h-4 px-1 border-purple-500/30 text-purple-600">
+                      UT
+                    </Badge>
+                  )}
+                </div>
+                <span className="text-muted-foreground flex-shrink-0 ml-2">{item.count}</span>
               </div>
               <Progress value={percentage} className="h-1" />
             </div>
           </div>
         );
       })}
+      {displayData.length === 0 && (
+        <p className="text-xs text-muted-foreground text-center py-4">No coverage data yet</p>
+      )}
     </div>
   );
 }
@@ -862,7 +898,23 @@ export default function IndiaStates() {
             </div>
 
             {/* Overall Stats Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+              {/* States & UTs - Prominent Display */}
+              <Card className="bg-gradient-to-br from-orange-500/10 via-white/5 to-green-500/10 border-orange-500/20 sm:col-span-1">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 text-orange-600 mb-1">
+                    <MapPin className="w-4 h-4" />
+                    <span className="text-xs font-medium">States & UTs</span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-2xl font-bold">{overallStats?.statesCount || 28}</p>
+                    <span className="text-muted-foreground text-sm">+</span>
+                    <p className="text-xl font-bold text-purple-600">{overallStats?.utsCount || 8}</p>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">States + Union Territories</p>
+                </CardContent>
+              </Card>
+              
               <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-blue-600 mb-1">
@@ -881,13 +933,13 @@ export default function IndiaStates() {
                     <span className="text-xs font-medium">Active Feeds</span>
                   </div>
                   <p className="text-2xl font-bold">{overallStats?.totalFeeds || 0}</p>
-                  <p className="text-[10px] text-muted-foreground">{overallStats?.totalSources || 0} sources reporting</p>
+                  <p className="text-[10px] text-muted-foreground">{overallStats?.totalSources || 0} sources</p>
                 </CardContent>
               </Card>
               
-              <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20">
+              <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-500/20">
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-2 text-orange-600 mb-1">
+                  <div className="flex items-center gap-2 text-cyan-600 mb-1">
                     <Languages className="w-4 h-4" />
                     <span className="text-xs font-medium">Languages</span>
                   </div>
@@ -899,7 +951,7 @@ export default function IndiaStates() {
               <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-purple-600 mb-1">
-                    <MapPin className="w-4 h-4" />
+                    <TrendingUp className="w-4 h-4" />
                     <span className="text-xs font-medium">Active Regions</span>
                   </div>
                   <p className="text-2xl font-bold">{overallStats?.activeStates || 0}</p>
@@ -916,17 +968,22 @@ export default function IndiaStates() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Sidebar - Analytics */}
               <div className="lg:col-span-1 space-y-4">
-                {/* Top States */}
+                {/* All Regions Coverage - Scrollable */}
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-primary" />
-                      Top States by Coverage
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4 text-primary" />
+                        All Regions Coverage
+                      </div>
+                      <Badge variant="outline" className="text-[9px]">
+                        {INDIAN_STATES.length} States + {UNION_TERRITORIES.length} UTs
+                      </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {overallStats?.topStates && overallStats.topStates.length > 0 ? (
-                      <TopStatesLeaderboard data={overallStats.topStates} />
+                    {overallStats?.allRegionsCoverage && overallStats.allRegionsCoverage.length > 0 ? (
+                      <TopStatesLeaderboard data={overallStats.allRegionsCoverage} showAll={true} />
                     ) : (
                       <p className="text-xs text-muted-foreground">No data available</p>
                     )}
