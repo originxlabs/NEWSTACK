@@ -27,6 +27,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useTTS } from "@/hooks/use-tts";
+import { toast } from "sonner";
+import { IngestionStatusPanel } from "@/components/IngestionStatusPanel";
 // All 28 States of India
 const INDIAN_STATES = [
   { id: "andhra-pradesh", name: "Andhra Pradesh", code: "AP", languages: ["te", "en"], capital: "Amaravati", type: "state" },
@@ -736,32 +738,43 @@ export default function IndiaStates() {
   const [isIngesting, setIsIngesting] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // Manual RSS ingestion trigger
+  // Manual RSS ingestion trigger using supabase.functions.invoke
   const handleTriggerIngestion = useCallback(async () => {
     setIsIngesting(true);
+    toast.loading("Starting news ingestion...", { id: "ingestion" });
+    
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ingest-rss`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({}),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke("ingest-rss");
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Ingestion completed:", data);
-        // Refresh stats after ingestion
-        await refetch();
-      } else {
-        console.error("Ingestion failed:", await response.text());
+      if (error) {
+        console.error("Ingestion error:", error);
+        toast.error("Ingestion failed", {
+          id: "ingestion",
+          description: error.message || "Unknown error occurred",
+        });
+        return;
       }
+      
+      console.log("Ingestion completed:", data);
+      
+      // Show success with stats
+      const storiesCreated = data?.stats?.storiesCreated || 0;
+      const storiesMerged = data?.stats?.storiesMerged || 0;
+      const feedsProcessed = data?.stats?.feedsProcessed || 0;
+      
+      toast.success("News ingestion complete!", {
+        id: "ingestion",
+        description: `${feedsProcessed} feeds processed, ${storiesCreated} new stories, ${storiesMerged} merged`,
+      });
+      
+      // Refresh stats after ingestion
+      await refetch();
     } catch (err) {
       console.error("Ingestion error:", err);
+      toast.error("Ingestion failed", {
+        id: "ingestion",
+        description: err instanceof Error ? err.message : "Network error",
+      });
     } finally {
       setIsIngesting(false);
     }
@@ -959,6 +972,13 @@ export default function IndiaStates() {
                 </CardContent>
               </Card>
             </div>
+          </div>
+        </section>
+
+        {/* Ingestion Status Panel */}
+        <section className="border-b border-border/50 bg-muted/10">
+          <div className="container mx-auto max-w-7xl px-4 py-4">
+            <IngestionStatusPanel />
           </div>
         </section>
 

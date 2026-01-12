@@ -6,24 +6,21 @@ import { Logo } from "@/components/Logo";
 const footerLinks = {
   Product: [
     { name: "News", href: "/news" },
+    { name: "India", href: "/india" },
     { name: "World", href: "/world" },
     { name: "Places", href: "/places" },
-    { name: "Methodology", href: "/features" },
-    { name: "Sources", href: "/news?filter=sources" },
   ],
   Developers: [
     { name: "API Overview", href: "/api" },
-    { name: "Documentation", href: "/api" },
-    { name: "Data Access", href: "/api" },
+    { name: "Documentation", href: "/api/docs" },
   ],
-  Enterprise: [
-    { name: "Newsroom Tools", href: "/newsroom" },
-    { name: "Contact Sales", href: "/support" },
+  Company: [
+    { name: "Contact", href: "/support" },
+    { name: "Newsroom", href: "/newsroom" },
   ],
   Legal: [
     { name: "Privacy Policy", href: "/privacy" },
     { name: "Terms of Service", href: "/terms" },
-    { name: "Cookie Policy", href: "/privacy" },
   ],
 };
 

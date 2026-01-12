@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Loader2, Radio, RefreshCw, 
   Layers, Zap, Shield, 
-  Grid3X3, List, Bell, ChevronDown, X, Globe, Wifi, WifiOff
+  Grid3X3, List, Bell, ChevronDown, X, Globe, Wifi, WifiOff, Rss
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -26,6 +26,7 @@ import { useLastViewed } from "@/hooks/use-last-viewed";
 import { clusterStories, groupByTimeBlocks, StoryCluster, RawStory } from "@/lib/story-clustering";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { ActiveFeedsPanel } from "@/components/ActiveFeedsPanel";
 
 import { 
   GEO_HIERARCHY, 
@@ -488,6 +489,15 @@ export default function News() {
             </motion.div>
           </div>
         </section>
+
+        {/* Active Feeds Panel - Show when filtering by state */}
+        {stateFilter && (
+          <section className="border-b border-border/50 bg-muted/10">
+            <div className="container mx-auto max-w-7xl px-4 py-3">
+              <ActiveFeedsPanel state={stateFilter} />
+            </div>
+          </section>
+        )}
 
         {/* Mobile Controls Bar */}
         <section className="sticky top-14 z-30 border-b border-border/50 bg-background/95 backdrop-blur-sm lg:hidden">
