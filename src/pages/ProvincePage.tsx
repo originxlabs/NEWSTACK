@@ -20,7 +20,7 @@ import { BreadcrumbNav, BreadcrumbItem } from "@/components/BreadcrumbNav";
 import { RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
 import { AutoRefreshTimer } from "@/components/AutoRefreshTimer";
 import { AudioPlaylistPlayer } from "@/components/AudioPlaylistPlayer";
-import { WeatherWidget } from "@/components/weather/WeatherWidget";
+import { WeatherAQIWidget } from "@/components/weather/WeatherAQIWidget";
 import { PageLoader } from "@/components/PageLoader";
 import { getCountryProvinces, getProvince, getCountryLanguages, getAdministrativeTerm, COUNTRY_PROVINCES } from "@/lib/world-countries-config";
 import { getCountryByCode, getContinentById, COUNTRY_TO_CONTINENT } from "@/lib/geo-hierarchy";
@@ -270,12 +270,13 @@ export default function ProvincePage() {
           <AutoRefreshTimer onRefresh={fetchStories} intervalMinutes={5} />
         </div>
 
-        {/* Weather Widget for Capital */}
+        {/* Weather & AQI Widget for Capital */}
         {province.capitalCoordinates && (
-          <WeatherWidget 
+          <WeatherAQIWidget 
             lat={province.capitalCoordinates.lat}
             lng={province.capitalCoordinates.lng}
             cityName={province.capital || province.name}
+            showAQI={true}
           />
         )}
 
