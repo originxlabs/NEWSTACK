@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useOwnerAuditLog } from "@/hooks/use-owner-audit-log";
+import { PasswordStrengthMeter } from "@/components/newsroom/PasswordStrengthMeter";
 
 type ViewMode = "warning" | "auth" | "verify-passkey" | "set-password" | "success";
 
@@ -634,6 +635,7 @@ export default function NewsroomOwnerSetup() {
                         )}
                       </Button>
                     </div>
+                    <PasswordStrengthMeter password={password} />
                   </div>
 
                   <div className="space-y-2">
