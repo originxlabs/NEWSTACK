@@ -697,7 +697,39 @@ export default function IndiaStates() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isIngesting, setIsIngesting] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // Manual RSS ingestion trigger
+  const handleTriggerIngestion = useCallback(async () => {
+    setIsIngesting(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ingest-rss`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({}),
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Ingestion completed:", data);
+        // Refresh stats after ingestion
+        await refetch();
+      } else {
+        console.error("Ingestion failed:", await response.text());
+      }
+    } catch (err) {
+      console.error("Ingestion error:", err);
+    } finally {
+      setIsIngesting(false);
+    }
+  }, [refetch]);
 
   // Filter states
   const filteredStates = useMemo(() => {
@@ -798,6 +830,34 @@ export default function IndiaStates() {
                   <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
                   {formatTime(lastUpdated)}
                 </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleTriggerIngestion}
+                        disabled={isIngesting}
+                        className="gap-1.5 bg-primary"
+                      >
+                        {isIngesting ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Fetching...
+                          </>
+                        ) : (
+                          <>
+                            <Radio className="w-3.5 h-3.5" />
+                            Fetch News
+                          </>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p className="text-xs">Manually trigger RSS feed ingestion from all {overallStats?.totalFeeds || 150}+ sources</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
 
