@@ -85,31 +85,26 @@ function ThemeInitializer() {
   return null;
 }
 
-// Splash screen manager component
+// Splash screen manager component - Shows N logo animation on every navigation
 function SplashManager() {
   const location = useLocation();
-  const [showSplash, setShowSplash] = useState(false);
+  const [showSplash, setShowSplash] = useState(true); // Always show on initial load
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const previousPath = useRef<string | null>(null);
-  const hasShownInitial = useRef(false);
-  const navigationCount = useRef(0);
-
-  // Show splash on initial page load (page refresh)
-  useEffect(() => {
-    if (!hasShownInitial.current) {
-      setShowSplash(true);
-      hasShownInitial.current = true;
-      setIsInitialLoad(true);
-      navigationCount.current = 0;
-    }
-  }, []);
+  const previousPath = useRef<string>(location.pathname);
+  const isFirstRender = useRef(true);
 
   // Show splash on ALL route changes (navigation)
   useEffect(() => {
-    // Skip the first navigation since that's the initial load
-    if (previousPath.current !== null && previousPath.current !== location.pathname) {
-      navigationCount.current++;
-      // Show splash for ALL navigation events
+    if (isFirstRender.current) {
+      // First render - show splash for initial load
+      isFirstRender.current = false;
+      setShowSplash(true);
+      setIsInitialLoad(true);
+      return;
+    }
+
+    // Subsequent navigations - show splash for any path change
+    if (previousPath.current !== location.pathname) {
       setShowSplash(true);
       setIsInitialLoad(false);
     }
@@ -125,7 +120,7 @@ function SplashManager() {
       {showSplash && (
         <SplashScreen 
           onComplete={handleSplashComplete} 
-          duration={isInitialLoad ? 2200 : 1400} 
+          duration={isInitialLoad ? 2000 : 1000} 
         />
       )}
     </>
