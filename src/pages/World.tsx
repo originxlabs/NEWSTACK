@@ -645,7 +645,34 @@ export default function World() {
         variant="bar"
       />
       
-      <main className="pt-14">
+      {/* Breadcrumb Navigation - Sticky below header */}
+      <div className="container mx-auto max-w-6xl px-4">
+        <BreadcrumbNav
+          items={navBreadcrumbItems}
+          onNavigate={(item, index) => {
+            if (item.type === "home") {
+              handleBreadcrumbNavigate("world");
+            } else if (item.type === "continent") {
+              handleBreadcrumbNavigate("continent");
+            } else if (item.type === "country") {
+              handleBreadcrumbNavigate("country");
+            } else if (item.type === "state") {
+              handleBreadcrumbNavigate("state");
+            } else if (item.type === "city") {
+              handleBreadcrumbNavigate("city");
+            }
+          }}
+          onGoBack={() => {
+            if (currentLevel === "continent") handleBreadcrumbNavigate("world");
+            else if (currentLevel === "country") handleBreadcrumbNavigate("continent");
+            else if (currentLevel === "state") handleBreadcrumbNavigate("country");
+            else if (currentLevel === "city") handleBreadcrumbNavigate("state");
+            else if (currentLevel === "locality") handleBreadcrumbNavigate("city");
+          }}
+        />
+      </div>
+      
+      <main className="pt-4">
         {/* Page Header */}
         <section className="border-b border-border/50 bg-muted/20">
           <div className="container mx-auto max-w-6xl px-4 py-6">
@@ -739,31 +766,7 @@ export default function World() {
                 Drill down from {geoStats.totalContinents} continents → {geoStats.totalCountries} countries → {geoStats.totalStates.toLocaleString()} states → {geoStats.totalCities.toLocaleString()} cities. Real-time news from verified sources.
               </p>
 
-              {/* Enhanced Breadcrumb Navigation */}
-              <BreadcrumbNav
-                items={navBreadcrumbItems}
-                onNavigate={(item, index) => {
-                  if (item.type === "home") {
-                    handleBreadcrumbNavigate("world");
-                  } else if (item.type === "continent") {
-                    handleBreadcrumbNavigate("continent");
-                  } else if (item.type === "country") {
-                    handleBreadcrumbNavigate("country");
-                  } else if (item.type === "state") {
-                    handleBreadcrumbNavigate("state");
-                  } else if (item.type === "city") {
-                    handleBreadcrumbNavigate("city");
-                  }
-                }}
-                onGoBack={() => {
-                  if (currentLevel === "continent") handleBreadcrumbNavigate("world");
-                  else if (currentLevel === "country") handleBreadcrumbNavigate("continent");
-                  else if (currentLevel === "state") handleBreadcrumbNavigate("country");
-                  else if (currentLevel === "city") handleBreadcrumbNavigate("state");
-                  else if (currentLevel === "locality") handleBreadcrumbNavigate("city");
-                }}
-                className="mb-2"
-              />
+              {/* Breadcrumb is now outside main, in sticky header */}
               
               <div className="flex items-center justify-end">
                 {currentLevel !== "world" && (

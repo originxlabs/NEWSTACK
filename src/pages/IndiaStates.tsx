@@ -32,6 +32,7 @@ import { IngestionPipelineViewer } from "@/components/IngestionPipelineViewer";
 import { StateFlagBadge } from "@/components/StateFlagBadge";
 import { getStateConfig, getStateFlag } from "@/lib/india-states-config";
 import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
+import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 // State color mapping based on region
 const STATE_COLORS: Record<string, string> = {
   // North
@@ -845,7 +846,19 @@ export default function IndiaStates() {
         variant="bar"
       />
       
-      <main className="pt-14">
+      {/* Breadcrumb Navigation - Sticky below header */}
+      <div className="container mx-auto max-w-7xl px-4">
+        <BreadcrumbNav
+          items={[
+            { id: "home", label: "Home", path: "/", type: "home" },
+            { id: "india", label: "India", type: "country", icon: <span>🇮🇳</span> },
+          ]}
+          onNavigate={() => {}}
+          onGoBack={() => navigate("/")}
+        />
+      </div>
+      
+      <main className="pt-4">
         {/* Hero Section */}
         <section className="border-b border-border/50 bg-gradient-to-b from-orange-500/5 via-white/5 to-green-500/5">
           <div className="container mx-auto max-w-7xl px-4 py-8">
