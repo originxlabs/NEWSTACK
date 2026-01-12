@@ -21,6 +21,11 @@ interface Story {
   city: string | null;
   category: string | null;
   original_language: string | null;
+  inferredDistrict?: {
+    district: string;
+    confidence: "high" | "medium" | "low";
+    matchType: "exact" | "alias" | "fuzzy";
+  } | null;
 }
 
 interface DistrictDrilldownProps {
@@ -53,34 +58,50 @@ export function DistrictDrilldown({
   // Get flag info
   const flagInfo = getStateFlag(stateId);
 
-  // Calculate stories per district
+  // Calculate stories per district (using district field + inferred)
   const districtStats = useMemo(() => {
-    const stats: Record<string, { count: number; regional: number; categories: Record<string, number> }> = {};
+    const stats: Record<string, { 
+      count: number; 
+      regional: number; 
+      categories: Record<string, number>;
+      inferredCount: number;
+      confidenceCounts: { high: number; medium: number; low: number };
+    }> = {};
     
     districts.forEach(d => {
-      stats[d.name.toLowerCase()] = { count: 0, regional: 0, categories: {} };
+      stats[d.name.toLowerCase()] = { 
+        count: 0, 
+        regional: 0, 
+        categories: {},
+        inferredCount: 0,
+        confidenceCounts: { high: 0, medium: 0, low: 0 }
+      };
     });
 
     stories.forEach(story => {
       const districtLower = story.district?.toLowerCase() || "";
-      const cityLower = story.city?.toLowerCase() || "";
       
-      // Try to match story to district
+      // Match by district field (which may already be inferred)
       for (const district of districts) {
         const districtName = district.name.toLowerCase();
-        const hqName = district.headquarters?.toLowerCase() || "";
         
-        if (
-          districtLower.includes(districtName) ||
-          districtName.includes(districtLower) ||
-          cityLower.includes(hqName) ||
-          hqName.includes(cityLower) ||
-          cityLower.includes(districtName)
-        ) {
+        if (districtLower === districtName || districtLower.includes(districtName)) {
           if (!stats[districtName]) {
-            stats[districtName] = { count: 0, regional: 0, categories: {} };
+            stats[districtName] = { 
+              count: 0, 
+              regional: 0, 
+              categories: {},
+              inferredCount: 0,
+              confidenceCounts: { high: 0, medium: 0, low: 0 }
+            };
           }
           stats[districtName].count++;
+          
+          // Track if this was inferred
+          if (story.inferredDistrict) {
+            stats[districtName].inferredCount++;
+            stats[districtName].confidenceCounts[story.inferredDistrict.confidence]++;
+          }
           
           if (story.original_language && story.original_language !== "en") {
             stats[districtName].regional++;
@@ -226,11 +247,20 @@ export function DistrictDrilldown({
                     const stats = districtStats[district.name.toLowerCase()];
                     const storyCount = stats?.count || 0;
                     const regionalCount = stats?.regional || 0;
+                    const inferredCount = stats?.inferredCount || 0;
+                    const confidenceCounts = stats?.confidenceCounts || { high: 0, medium: 0, low: 0 };
                     const isSelected = selectedDistrict.toLowerCase() === district.name.toLowerCase();
                     const hasNews = storyCount > 0;
                     const topCategory = stats?.categories 
                       ? Object.entries(stats.categories).sort((a, b) => b[1] - a[1])[0]?.[0]
                       : null;
+                    
+                    // Determine dominant confidence for inferred stories
+                    const hasInferred = inferredCount > 0;
+                    const dominantConfidence = 
+                      confidenceCounts.high > 0 ? "high" : 
+                      confidenceCounts.medium > 0 ? "medium" : 
+                      confidenceCounts.low > 0 ? "low" : null;
 
                     return (
                       <motion.button
@@ -306,6 +336,21 @@ export function DistrictDrilldown({
                                 <Badge className="text-[8px] h-4 px-1 bg-emerald-500/20 text-emerald-600 border-0">
                                   <Languages className="w-2 h-2 mr-0.5" />
                                   {regionalCount} regional
+                                </Badge>
+                              )}
+                              {hasInferred && (
+                                <Badge 
+                                  className={cn(
+                                    "text-[8px] h-4 px-1 border-0",
+                                    dominantConfidence === "high" 
+                                      ? "bg-blue-500/20 text-blue-600" 
+                                      : dominantConfidence === "medium"
+                                        ? "bg-amber-500/20 text-amber-600"
+                                        : "bg-gray-500/20 text-gray-600"
+                                  )}
+                                  title={`Inferred from text (${dominantConfidence} confidence)`}
+                                >
+                                  ~{inferredCount} inferred
                                 </Badge>
                               )}
                             </div>
