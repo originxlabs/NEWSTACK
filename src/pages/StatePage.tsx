@@ -312,43 +312,48 @@ export default function StatePage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <Header />
       
+      {/* Spacer for fixed header */}
+      <div className="h-14" />
+      
+      {/* Breadcrumb Navigation - Sticky below header */}
+      <div className="sticky top-14 z-40 bg-background/98 backdrop-blur-md border-b border-border/40">
+        <div className="container mx-auto px-4">
+          <BreadcrumbNav
+            items={[
+              { id: "home", label: "Home", path: "/", type: "home" },
+              { id: "india", label: "India", path: "/india", type: "country", icon: <span>🇮🇳</span> },
+              { id: stateId || "state", label: stateName, type: "state" },
+              ...(selectedDistrict !== "all" ? [{ id: selectedDistrict, label: selectedDistrict, type: "district" as const }] : []),
+              ...(selectedCity !== "all" ? [{ id: selectedCity, label: selectedCity, type: "city" as const }] : []),
+            ]}
+            onNavigate={(item, index) => {
+              if (item.type === "state") {
+                setSelectedDistrict("all");
+                setSelectedCity("all");
+              } else if (item.type === "district") {
+                setSelectedCity("all");
+              }
+            }}
+            onGoBack={() => {
+              if (selectedCity !== "all") {
+                setSelectedCity("all");
+              } else if (selectedDistrict !== "all") {
+                setSelectedDistrict("all");
+              } else {
+                navigate("/india");
+              }
+            }}
+          />
+        </div>
+      </div>
+      
       {/* Real-time news indicator */}
       <RealtimeNewsIndicator 
         onRefresh={fetchStories} 
         variant="bar"
       />
       
-      {/* Breadcrumb Navigation - Sticky below header */}
-      <div className="container mx-auto px-4">
-        <BreadcrumbNav
-          items={[
-            { id: "home", label: "Home", path: "/", type: "home" },
-            { id: "india", label: "India", path: "/india", type: "country", icon: <span>🇮🇳</span> },
-            { id: stateId || "state", label: stateName, type: "state" },
-            ...(selectedDistrict !== "all" ? [{ id: selectedDistrict, label: selectedDistrict, type: "district" as const }] : []),
-            ...(selectedCity !== "all" ? [{ id: selectedCity, label: selectedCity, type: "city" as const }] : []),
-          ]}
-          onNavigate={(item, index) => {
-            if (item.type === "state") {
-              setSelectedDistrict("all");
-              setSelectedCity("all");
-            } else if (item.type === "district") {
-              setSelectedCity("all");
-            }
-          }}
-          onGoBack={() => {
-            if (selectedCity !== "all") {
-              setSelectedCity("all");
-            } else if (selectedDistrict !== "all") {
-              setSelectedDistrict("all");
-            } else {
-              navigate("/india");
-            }
-          }}
-        />
-      </div>
-      
-      <main className="container mx-auto px-4 py-6 pt-4">
+      <main className="container mx-auto px-4 py-6">
 
         {/* State Header */}
         <div className="mb-8">
