@@ -62,22 +62,22 @@ export default function NewsroomOwnerLogin() {
   const checkOwnerAndPasswordExpiry = async (ownerEmail: string) => {
     const normalized = ownerEmail.trim().toLowerCase();
 
-    // Check if owner exists
+    // Check if owner exists in newsroom_members (case-insensitive)
     const { data: member } = await supabase
       .from("newsroom_members")
       .select("email, role, is_active, password_last_set_at")
-      .eq("email", normalized)
+      .ilike("email", normalized)
       .eq("role", "owner")
       .eq("is_active", true)
       .maybeSingle();
 
     if (!member) {
-      // Fallback: check admin_users
+      // Fallback: check admin_users for super_admin (case-insensitive)
       const { data: adminOwner } = await supabase
         .from("admin_users")
         .select("email, role")
-        .eq("email", normalized)
-        .eq("role", "owner")
+        .ilike("email", normalized)
+        .in("role", ["super_admin", "admin"])
         .maybeSingle();
 
       if (!adminOwner) {

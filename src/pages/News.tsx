@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Loader2, Radio, RefreshCw, 
   Layers, Zap, Shield, 
-  Grid3X3, List, Bell, ChevronDown, X, Globe
+  Grid3X3, List, Bell, ChevronDown, X, Globe, Wifi, WifiOff
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useInfiniteNews, NewsArticle } from "@/hooks/use-news";
+import { useRealtimeStories } from "@/hooks/use-realtime-stories";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { StoryIntelligencePanel, StoryIntelligenceItem } from "@/components/news/StoryIntelligencePanel";
 import { LeftContextPanel } from "@/components/news/LeftContextPanel";
@@ -164,6 +165,9 @@ export default function News() {
   
   const lastSession = getLastSessionTime();
 
+  // Realtime subscription for live updates
+  const { newStories, isConnected, refresh: realtimeRefresh, resetNewCount } = useRealtimeStories();
+
   const queryParams = useMemo(() => ({
     country: country?.code,
     language: language?.code === "en" ? "eng" : language?.code,
@@ -179,14 +183,22 @@ export default function News() {
     refetch,
   } = useInfiniteNews(queryParams);
 
+  // Handle refresh with realtime reset
+  const handleFullRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setLastRefreshed(new Date());
+    resetNewCount();
+    setIsRefreshing(false);
+  }, [refetch, resetNewCount]);
+
   // Auto-refresh every 2 minutes for live data
   useEffect(() => {
     const interval = setInterval(() => {
-      refetch();
-      setLastRefreshed(new Date());
+      handleFullRefresh();
     }, 2 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [refetch]);
+  }, [handleFullRefresh]);
 
   // Clear region filter
   const clearRegionFilter = useCallback(() => {
@@ -281,8 +293,9 @@ export default function News() {
     setIsRefreshing(true);
     await refetch();
     setLastRefreshed(new Date());
+    resetNewCount();
     setIsRefreshing(false);
-  }, [refetch]);
+  }, [refetch, resetNewCount]);
 
   const handleResetFilters = useCallback(() => {
     setSelectedCategory("all");
@@ -340,9 +353,26 @@ export default function News() {
               animate={{ opacity: 1, y: 0 }}
             >
               <div className="flex items-center gap-2 mb-2">
-                <Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px]">
-                  <Radio className="w-2.5 h-2.5" />
-                  LIVE
+                <Badge 
+                  variant="outline" 
+                  className={cn(
+                    "gap-1 text-[10px]",
+                    isConnected 
+                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                      : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                  )}
+                >
+                  {isConnected ? (
+                    <>
+                      <Wifi className="w-2.5 h-2.5" />
+                      LIVE
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="w-2.5 h-2.5" />
+                      OFFLINE
+                    </>
+                  )}
                 </Badge>
                 <span className="text-[11px] text-muted-foreground">
                   Updated {format(lastRefreshed, "h:mm a")}
@@ -351,6 +381,16 @@ export default function News() {
                   <Badge variant="outline" className="gap-1 bg-primary/10 text-primary border-primary/20 text-[10px]">
                     <Bell className="w-2.5 h-2.5" />
                     {updatedStoriesCount} updated
+                  </Badge>
+                )}
+                {newStories > 0 && (
+                  <Badge 
+                    variant="outline" 
+                    className="gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] cursor-pointer animate-pulse"
+                    onClick={handleRefresh}
+                  >
+                    <Zap className="w-2.5 h-2.5" />
+                    {newStories} new {newStories === 1 ? "story" : "stories"} - Click to load
                   </Badge>
                 )}
               </div>
