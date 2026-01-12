@@ -23,6 +23,8 @@ import {
   ChevronUp,
   Volume2,
   VolumeX,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +60,12 @@ const PIPELINE_STEPS: Omit<PipelineStep, "status">[] = [
   { id: "complete", name: "Complete", icon: <Monitor className="w-4 h-4" /> },
 ];
 
+// Rate limiting keys
+const RATE_LIMIT_KEY = "pipeline_last_success";
+const RATE_LIMIT_FAILURE_KEY = "pipeline_last_failure";
+const SUCCESS_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
+const FAILURE_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
 interface IngestionPipelineViewerProps {
   onIngestionComplete?: () => void;
   autoRefreshInterval?: number; // in ms, 0 to disable
@@ -82,12 +90,52 @@ export function IngestionPipelineViewer({
   const [nextRefreshIn, setNextRefreshIn] = useState<number>(autoRefreshInterval / 1000);
   const [isExpanded, setIsExpanded] = useState(!defaultCollapsed);
   const [isMuted, setIsMuted] = useState(audioFeedback.isMuted);
+  const [progressPercent, setProgressPercent] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+  const [lastStatus, setLastStatus] = useState<"success" | "error" | null>(null);
   const [stats, setStats] = useState({
     feedsProcessed: 0,
     storiesCreated: 0,
     storiesMerged: 0,
     totalDuration: 0,
   });
+
+  // Check rate limiting
+  const checkRateLimit = useCallback(() => {
+    const lastSuccess = localStorage.getItem(RATE_LIMIT_KEY);
+    const lastFailure = localStorage.getItem(RATE_LIMIT_FAILURE_KEY);
+    
+    if (lastSuccess) {
+      const elapsed = Date.now() - parseInt(lastSuccess, 10);
+      if (elapsed < SUCCESS_COOLDOWN_MS) {
+        return { blocked: true, remainingMs: SUCCESS_COOLDOWN_MS - elapsed, reason: "success" };
+      }
+    }
+    
+    if (lastFailure) {
+      const elapsed = Date.now() - parseInt(lastFailure, 10);
+      if (elapsed < FAILURE_COOLDOWN_MS) {
+        return { blocked: true, remainingMs: FAILURE_COOLDOWN_MS - elapsed, reason: "failure" };
+      }
+    }
+    
+    return { blocked: false, remainingMs: 0, reason: null };
+  }, []);
+
+  // Update cooldown timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const { blocked, remainingMs } = checkRateLimit();
+      if (blocked) {
+        setCooldownRemaining(Math.ceil(remainingMs / 1000));
+      } else {
+        setCooldownRemaining(0);
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [checkRateLimit]);
 
   // Sync mute state with audioFeedback
   useEffect(() => {
@@ -105,10 +153,19 @@ export function IngestionPipelineViewer({
   const resetPipeline = useCallback(() => {
     setSteps(PIPELINE_STEPS.map((s) => ({ ...s, status: "pending" as const })));
     setStats({ feedsProcessed: 0, storiesCreated: 0, storiesMerged: 0, totalDuration: 0 });
+    setProgressPercent(0);
+    setErrorMessage(null);
+    setLastStatus(null);
+  }, []);
+
+  // Update progress based on completed steps
+  const updateProgress = useCallback((completedCount: number, total: number = PIPELINE_STEPS.length) => {
+    const percent = Math.round((completedCount / total) * 100);
+    setProgressPercent(percent);
   }, []);
 
   // Simulate step progression with realistic timing
-  const simulateStepProgress = useCallback(async (stepId: string, duration: number) => {
+  const simulateStepProgress = useCallback(async (stepId: string, duration: number, stepIndex: number) => {
     // Set current step to running
     setSteps((prev) =>
       prev.map((s) => (s.id === stepId ? { ...s, status: "running" as const } : s))
@@ -123,11 +180,32 @@ export function IngestionPipelineViewer({
         s.id === stepId ? { ...s, status: "completed" as const, duration } : s
       )
     );
-  }, []);
+    
+    updateProgress(stepIndex + 1);
+  }, [updateProgress]);
+
+  // Format cooldown time
+  const formatCooldown = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   // Run the ingestion with visual pipeline
   const runIngestion = useCallback(async () => {
     if (isRunning) return;
+
+    // Check rate limiting
+    const { blocked, remainingMs, reason } = checkRateLimit();
+    if (blocked) {
+      const waitTime = Math.ceil(remainingMs / 60000);
+      toast.error(`Please wait ${waitTime} minute${waitTime > 1 ? 's' : ''} before trying again`, {
+        description: reason === "success" 
+          ? "Pipeline completed successfully. Rate limit applies to prevent overload."
+          : "Pipeline failed recently. Please wait before retrying.",
+      });
+      return;
+    }
 
     setIsRunning(true);
     setIsExpanded(true); // Auto-expand when running
@@ -138,24 +216,25 @@ export function IngestionPipelineViewer({
 
     try {
       // Step 1: Fetch RSS Feeds
-      await simulateStepProgress("fetch", 500);
+      await simulateStepProgress("fetch", 500, 0);
 
       // Step 2: Extract fields
-      await simulateStepProgress("extract", 400);
+      await simulateStepProgress("extract", 400, 1);
 
       // Step 3: Strip CDATA
-      await simulateStepProgress("strip", 300);
+      await simulateStepProgress("strip", 300, 2);
 
       // Step 4: Decode entities
-      await simulateStepProgress("decode", 300);
+      await simulateStepProgress("decode", 300, 3);
 
       // Step 5: Validate text
-      await simulateStepProgress("validate", 400);
+      await simulateStepProgress("validate", 400, 4);
 
       // Step 6: Classify - set to running before API call
       setSteps((prev) =>
         prev.map((s) => (s.id === "classify" ? { ...s, status: "running" as const } : s))
       );
+      updateProgress(5.5);
 
       // Now actually call the edge function
       const { data, error } = await supabase.functions.invoke("ingest-rss", {
@@ -178,33 +257,34 @@ export function IngestionPipelineViewer({
           s.id === "classify" ? { ...s, status: "completed" as const, duration: 600 } : s
         )
       );
+      updateProgress(6);
       setStats((prev) => ({
         ...prev,
         feedsProcessed: data?.stats?.feedsProcessed || data?.feedsProcessed || 0,
       }));
 
       // Step 7: Deduplicate
-      await simulateStepProgress("dedupe", 500);
+      await simulateStepProgress("dedupe", 500, 6);
       setStats((prev) => ({
         ...prev,
         storiesMerged: data?.stats?.storiesMerged || data?.storiesMerged || 0,
       }));
 
       // Step 8: Cluster into stories
-      await simulateStepProgress("cluster", 400);
+      await simulateStepProgress("cluster", 400, 7);
 
       // Step 9: Score confidence
-      await simulateStepProgress("score", 300);
+      await simulateStepProgress("score", 300, 8);
 
       // Step 10: Persist to database
-      await simulateStepProgress("persist", 500);
+      await simulateStepProgress("persist", 500, 9);
       setStats((prev) => ({
         ...prev,
         storiesCreated: data?.stats?.storiesCreated || data?.storiesCreated || 0,
       }));
 
       // Step 11: Complete
-      await simulateStepProgress("complete", 200);
+      await simulateStepProgress("complete", 200, 10);
 
       const totalDuration = Date.now() - startTime;
       setStats((prev) => ({ ...prev, totalDuration }));
@@ -220,6 +300,10 @@ export function IngestionPipelineViewer({
 
       // Play success sound
       audioFeedback.playSuccess();
+      
+      // Save success timestamp for rate limiting
+      localStorage.setItem(RATE_LIMIT_KEY, Date.now().toString());
+      setLastStatus("success");
 
       onIngestionComplete?.();
     } catch (err) {
@@ -232,15 +316,35 @@ export function IngestionPipelineViewer({
 
       // Play error sound
       audioFeedback.playError();
+      
+      // Save failure timestamp for rate limiting
+      localStorage.setItem(RATE_LIMIT_FAILURE_KEY, Date.now().toString());
+      setLastStatus("error");
+
+      // Set user-friendly error message
+      const errorMsg = err instanceof Error ? err.message : "Unknown error occurred";
+      let friendlyMessage = "Failed to fetch news. ";
+      
+      if (errorMsg.includes("timeout") || errorMsg.includes("network")) {
+        friendlyMessage += "Network issue detected. Check your connection and try again in 5 minutes.";
+      } else if (errorMsg.includes("rate") || errorMsg.includes("limit")) {
+        friendlyMessage += "Too many requests. Please wait 5 minutes before trying again.";
+      } else if (errorMsg.includes("connection closed")) {
+        friendlyMessage += "Connection was interrupted. The operation may have completed on the server.";
+      } else {
+        friendlyMessage += "An unexpected error occurred. Please try again in 5 minutes.";
+      }
+      
+      setErrorMessage(friendlyMessage);
 
       toast.error("Ingestion failed", {
         id: "ingestion-pipeline",
-        description: err instanceof Error ? err.message : "Unknown error - check console for details",
+        description: friendlyMessage,
       });
     } finally {
       setIsRunning(false);
     }
-  }, [isRunning, resetPipeline, simulateStepProgress, onIngestionComplete]);
+  }, [isRunning, resetPipeline, simulateStepProgress, onIngestionComplete, checkRateLimit, updateProgress]);
 
   // Auto-refresh polling with countdown
   useEffect(() => {
@@ -252,7 +356,7 @@ export function IngestionPipelineViewer({
     const countdownInterval = setInterval(() => {
       setNextRefreshIn((prev) => {
         if (prev <= 1) {
-          if (!isRunning) {
+          if (!isRunning && cooldownRemaining === 0) {
             runIngestion();
           }
           return autoRefreshInterval / 1000;
@@ -262,7 +366,7 @@ export function IngestionPipelineViewer({
     }, 1000);
 
     return () => clearInterval(countdownInterval);
-  }, [autoRefreshEnabled, autoRefreshInterval, isRunning, runIngestion]);
+  }, [autoRefreshEnabled, autoRefreshInterval, isRunning, runIngestion, cooldownRemaining]);
 
   const getStepColor = (status: PipelineStep["status"]) => {
     switch (status) {
@@ -291,7 +395,7 @@ export function IngestionPipelineViewer({
   };
 
   const completedSteps = steps.filter((s) => s.status === "completed").length;
-  const progressPercent = (completedSteps / steps.length) * 100;
+  const displayPercent = isRunning ? progressPercent : (completedSteps / steps.length) * 100;
 
   return (
     <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
@@ -314,7 +418,24 @@ export function IngestionPipelineViewer({
                 )}
               </button>
             </CollapsibleTrigger>
+            
+            {/* Top-right progress indicator when running */}
             <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+              {isRunning && (
+                <div className="flex items-center gap-2 bg-blue-500/10 rounded-full px-3 py-1">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                  <span className="text-xs font-medium text-blue-600">{progressPercent}%</span>
+                </div>
+              )}
+              
+              {/* Cooldown indicator */}
+              {cooldownRemaining > 0 && !isRunning && (
+                <Badge variant="outline" className="gap-1 text-xs bg-amber-500/10 text-amber-600 border-amber-500/20">
+                  <Timer className="w-3 h-3" />
+                  Wait {formatCooldown(cooldownRemaining)}
+                </Badge>
+              )}
+              
               {/* Auto-refresh toggle */}
               {showAutoRefreshControls && (
                 <button
@@ -332,7 +453,7 @@ export function IngestionPipelineViewer({
                     <ToggleLeft className="w-3.5 h-3.5" />
                   )}
                   <span className="hidden sm:inline">Auto</span>
-                  {autoRefreshEnabled && !isRunning && (
+                  {autoRefreshEnabled && !isRunning && cooldownRemaining === 0 && (
                     <span className="flex items-center gap-0.5 text-[10px]">
                       <Timer className="w-3 h-3" />
                       {Math.floor(nextRefreshIn / 60)}:{String(nextRefreshIn % 60).padStart(2, "0")}
@@ -365,31 +486,27 @@ export function IngestionPipelineViewer({
                 </TooltipContent>
               </Tooltip>
               
-              {isRunning && (
-                <Badge variant="secondary" className="gap-1 text-xs">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Processing...
-                </Badge>
-              )}
               <Button
                 size="sm"
                 onClick={runIngestion}
-                disabled={isRunning}
+                disabled={isRunning || cooldownRemaining > 0}
                 className="gap-1.5 h-8"
               >
                 {isRunning ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : cooldownRemaining > 0 ? (
+                  <Timer className="w-3.5 h-3.5" />
                 ) : (
                   <Play className="w-3.5 h-3.5" />
                 )}
-                {isRunning ? "Running..." : "Fetch News"}
+                {isRunning ? `${progressPercent}%` : cooldownRemaining > 0 ? formatCooldown(cooldownRemaining) : "Fetch News"}
               </Button>
             </div>
           </div>
 
           {/* Progress bar - always visible */}
           <div className="mt-3">
-            <Progress value={progressPercent} className="h-2" />
+            <Progress value={displayPercent} className="h-2" />
             <div className="flex items-center justify-between mt-1 text-[10px] text-muted-foreground">
               <span>{completedSteps} of {steps.length} steps</span>
               {stats.totalDuration > 0 && (
@@ -400,6 +517,36 @@ export function IngestionPipelineViewer({
               )}
             </div>
           </div>
+          
+          {/* Error message display */}
+          <AnimatePresence>
+            {errorMessage && lastStatus === "error" && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg"
+              >
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-xs text-red-600 font-medium">{errorMessage}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      You can try again in {formatCooldown(cooldownRemaining || 300)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => setErrorMessage(null)}
+                  >
+                    <XCircle className="w-3 h-3" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardHeader>
 
         <CollapsibleContent>
