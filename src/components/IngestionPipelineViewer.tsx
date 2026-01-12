@@ -5,7 +5,6 @@ import {
   FileText,
   Code,
   Hash,
-  FileCode,
   CheckCircle2,
   Brain,
   GitMerge,
@@ -20,15 +19,18 @@ import {
   ToggleLeft,
   ToggleRight,
   Play,
-  RefreshCw,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { audioFeedback } from "@/lib/audio-feedback";
 
 export type PipelineStep = {
   id: string;
@@ -57,6 +59,7 @@ interface IngestionPipelineViewerProps {
   onIngestionComplete?: () => void;
   autoRefreshInterval?: number; // in ms, 0 to disable
   showAutoRefreshControls?: boolean;
+  defaultCollapsed?: boolean;
   className?: string;
 }
 
@@ -64,6 +67,7 @@ export function IngestionPipelineViewer({
   onIngestionComplete,
   autoRefreshInterval = 15 * 60 * 1000, // Default 15 minutes
   showAutoRefreshControls = true,
+  defaultCollapsed = true,
   className,
 }: IngestionPipelineViewerProps) {
   const [steps, setSteps] = useState<PipelineStep[]>(
@@ -73,6 +77,7 @@ export function IngestionPipelineViewer({
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(autoRefreshInterval > 0);
   const [nextRefreshIn, setNextRefreshIn] = useState<number>(autoRefreshInterval / 1000);
+  const [isExpanded, setIsExpanded] = useState(!defaultCollapsed);
   const [stats, setStats] = useState({
     feedsProcessed: 0,
     storiesCreated: 0,
@@ -109,6 +114,7 @@ export function IngestionPipelineViewer({
     if (isRunning) return;
 
     setIsRunning(true);
+    setIsExpanded(true); // Auto-expand when running
     resetPipeline();
     const startTime = Date.now();
 
@@ -196,6 +202,9 @@ export function IngestionPipelineViewer({
         description: `${feedsProcessed} feeds → ${storiesCreated} new stories`,
       });
 
+      // Play success sound
+      audioFeedback.playSuccess();
+
       onIngestionComplete?.();
     } catch (err) {
       console.error("Ingestion error:", err);
@@ -204,6 +213,9 @@ export function IngestionPipelineViewer({
       setSteps((prev) =>
         prev.map((s) => (s.status === "running" ? { ...s, status: "error" as const } : s))
       );
+
+      // Play error sound
+      audioFeedback.playError();
 
       toast.error("Ingestion failed", {
         id: "ingestion-pipeline",
@@ -266,169 +278,185 @@ export function IngestionPipelineViewer({
   const progressPercent = (completedSteps / steps.length) * 100;
 
   return (
-    <Card className={cn("border-border/50 overflow-hidden", className)}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Rss className="w-4 h-4 text-primary" />
-            RSS Processing Pipeline
-          </CardTitle>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Auto-refresh toggle */}
-            {showAutoRefreshControls && (
-              <button
-                onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-                className={cn(
-                  "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors",
-                  autoRefreshEnabled
-                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                    : "bg-muted text-muted-foreground border border-border"
-                )}
-              >
-                {autoRefreshEnabled ? (
-                  <ToggleRight className="w-3.5 h-3.5" />
+    <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+      <Card className={cn("border-border/50 overflow-hidden", className)}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-2">
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center gap-2 hover:text-primary transition-colors text-left">
+                <Rss className="w-4 h-4 text-primary flex-shrink-0" />
+                <span className="text-sm font-medium">RSS Processing Pipeline</span>
+                {isExpanded ? (
+                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
                 ) : (
-                  <ToggleLeft className="w-3.5 h-3.5" />
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 )}
-                <span className="hidden sm:inline">Auto</span>
-                {autoRefreshEnabled && !isRunning && (
-                  <span className="flex items-center gap-0.5 text-[10px]">
-                    <Timer className="w-3 h-3" />
-                    {Math.floor(nextRefreshIn / 60)}:{String(nextRefreshIn % 60).padStart(2, "0")}
-                  </span>
+                {!isExpanded && stats.totalDuration > 0 && (
+                  <Badge variant="outline" className="text-[10px] ml-2">
+                    Last: {stats.feedsProcessed} feeds, {stats.storiesCreated} stories
+                  </Badge>
                 )}
               </button>
-            )}
-            {isRunning && (
-              <Badge variant="secondary" className="gap-1 text-xs">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Processing...
-              </Badge>
-            )}
-            <Button
-              size="sm"
-              onClick={runIngestion}
-              disabled={isRunning}
-              className="gap-1.5 h-8"
-            >
-              {isRunning ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Play className="w-3.5 h-3.5" />
-              )}
-              {isRunning ? "Running..." : "Fetch News"}
-            </Button>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        <div className="mt-3">
-          <Progress value={progressPercent} className="h-2" />
-          <div className="flex items-center justify-between mt-1 text-[10px] text-muted-foreground">
-            <span>{completedSteps} of {steps.length} steps</span>
-            {stats.totalDuration > 0 && (
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {(stats.totalDuration / 1000).toFixed(1)}s
-              </span>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="pt-0">
-        {/* Pipeline visualization - horizontal scrollable */}
-        <div className="overflow-x-auto pb-2 -mx-4 px-4">
-          <div className="flex items-center gap-0 min-w-max py-4">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                {/* Step box */}
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0.5 }}
-                  animate={{
-                    scale: step.status === "running" ? 1.05 : 1,
-                    opacity: step.status === "pending" ? 0.6 : 1,
-                  }}
-                  transition={{ duration: 0.3 }}
+            </CollapsibleTrigger>
+            <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+              {/* Auto-refresh toggle */}
+              {showAutoRefreshControls && (
+                <button
+                  onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
                   className={cn(
-                    "flex flex-col items-center justify-center",
-                    "w-16 sm:w-20 h-16 sm:h-20 rounded-xl border-2 transition-all duration-300",
-                    "shadow-sm hover:shadow-md cursor-default",
-                    getStepColor(step.status)
+                    "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors",
+                    autoRefreshEnabled
+                      ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                      : "bg-muted text-muted-foreground border border-border"
                   )}
                 >
-                  <div className="mb-1">
-                    {step.status === "running" ? (
-                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                    ) : step.status === "error" ? (
-                      <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                    ) : (
-                      step.icon
-                    )}
-                  </div>
-                  <span className="text-[9px] sm:text-[10px] font-medium text-center leading-tight px-1">
-                    {step.name}
-                  </span>
-                  {step.count !== undefined && step.count > 0 && (
-                    <span className="text-[8px] opacity-75">({step.count})</span>
+                  {autoRefreshEnabled ? (
+                    <ToggleRight className="w-3.5 h-3.5" />
+                  ) : (
+                    <ToggleLeft className="w-3.5 h-3.5" />
                   )}
-                </motion.div>
-
-                {/* Connector arrow */}
-                {index < steps.length - 1 && (
-                  <div className="flex items-center mx-0.5 sm:mx-1">
-                    <div
-                      className={cn(
-                        "w-4 sm:w-6 h-0.5 transition-colors duration-300",
-                        getConnectorColor(step.status)
-                      )}
-                    />
-                    <div
-                      className={cn(
-                        "w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] transition-colors duration-300",
-                        step.status === "completed"
-                          ? "border-l-emerald-500"
-                          : step.status === "running"
-                          ? "border-l-blue-500"
-                          : step.status === "error"
-                          ? "border-l-red-500"
-                          : "border-l-border"
-                      )}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats row */}
-        <AnimatePresence>
-          {(stats.feedsProcessed > 0 || stats.storiesCreated > 0 || stats.storiesMerged > 0) && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-border/50"
-            >
-              <Badge variant="outline" className="gap-1.5 text-xs bg-blue-500/10 text-blue-600 border-blue-500/20">
-                <Rss className="w-3 h-3" />
-                {stats.feedsProcessed} feeds
-              </Badge>
-              <Badge variant="outline" className="gap-1.5 text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                <FileText className="w-3 h-3" />
-                +{stats.storiesCreated} new
-              </Badge>
-              {stats.storiesMerged > 0 && (
-                <Badge variant="outline" className="gap-1.5 text-xs bg-purple-500/10 text-purple-600 border-purple-500/20">
-                  <GitMerge className="w-3 h-3" />
-                  {stats.storiesMerged} merged
+                  <span className="hidden sm:inline">Auto</span>
+                  {autoRefreshEnabled && !isRunning && (
+                    <span className="flex items-center gap-0.5 text-[10px]">
+                      <Timer className="w-3 h-3" />
+                      {Math.floor(nextRefreshIn / 60)}:{String(nextRefreshIn % 60).padStart(2, "0")}
+                    </span>
+                  )}
+                </button>
+              )}
+              {isRunning && (
+                <Badge variant="secondary" className="gap-1 text-xs">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Processing...
                 </Badge>
               )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </CardContent>
-    </Card>
+              <Button
+                size="sm"
+                onClick={runIngestion}
+                disabled={isRunning}
+                className="gap-1.5 h-8"
+              >
+                {isRunning ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Play className="w-3.5 h-3.5" />
+                )}
+                {isRunning ? "Running..." : "Fetch News"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Progress bar - always visible */}
+          <div className="mt-3">
+            <Progress value={progressPercent} className="h-2" />
+            <div className="flex items-center justify-between mt-1 text-[10px] text-muted-foreground">
+              <span>{completedSteps} of {steps.length} steps</span>
+              {stats.totalDuration > 0 && (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {(stats.totalDuration / 1000).toFixed(1)}s
+                </span>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+
+        <CollapsibleContent>
+          <CardContent className="pt-0">
+            {/* Pipeline visualization - horizontal scrollable */}
+            <div className="overflow-x-auto pb-2 -mx-4 px-4">
+              <div className="flex items-center gap-0 min-w-max py-4">
+                {steps.map((step, index) => (
+                  <div key={step.id} className="flex items-center">
+                    {/* Step box */}
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0.5 }}
+                      animate={{
+                        scale: step.status === "running" ? 1.05 : 1,
+                        opacity: step.status === "pending" ? 0.6 : 1,
+                      }}
+                      transition={{ duration: 0.3 }}
+                      className={cn(
+                        "flex flex-col items-center justify-center",
+                        "w-16 sm:w-20 h-16 sm:h-20 rounded-xl border-2 transition-all duration-300",
+                        "shadow-sm hover:shadow-md cursor-default",
+                        getStepColor(step.status)
+                      )}
+                    >
+                      <div className="mb-1">
+                        {step.status === "running" ? (
+                          <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                        ) : step.status === "error" ? (
+                          <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                        ) : (
+                          step.icon
+                        )}
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-medium text-center leading-tight px-1">
+                        {step.name}
+                      </span>
+                      {step.count !== undefined && step.count > 0 && (
+                        <span className="text-[8px] opacity-75">({step.count})</span>
+                      )}
+                    </motion.div>
+
+                    {/* Connector arrow */}
+                    {index < steps.length - 1 && (
+                      <div className="flex items-center mx-0.5 sm:mx-1">
+                        <div
+                          className={cn(
+                            "w-4 sm:w-6 h-0.5 transition-colors duration-300",
+                            getConnectorColor(step.status)
+                          )}
+                        />
+                        <div
+                          className={cn(
+                            "w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] transition-colors duration-300",
+                            step.status === "completed"
+                              ? "border-l-emerald-500"
+                              : step.status === "running"
+                              ? "border-l-blue-500"
+                              : step.status === "error"
+                              ? "border-l-red-500"
+                              : "border-l-border"
+                          )}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats row */}
+            <AnimatePresence>
+              {(stats.feedsProcessed > 0 || stats.storiesCreated > 0 || stats.storiesMerged > 0) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-border/50"
+                >
+                  <Badge variant="outline" className="gap-1.5 text-xs bg-blue-500/10 text-blue-600 border-blue-500/20">
+                    <Rss className="w-3 h-3" />
+                    {stats.feedsProcessed} feeds
+                  </Badge>
+                  <Badge variant="outline" className="gap-1.5 text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                    <FileText className="w-3 h-3" />
+                    +{stats.storiesCreated} new
+                  </Badge>
+                  {stats.storiesMerged > 0 && (
+                    <Badge variant="outline" className="gap-1.5 text-xs bg-purple-500/10 text-purple-600 border-purple-500/20">
+                      <GitMerge className="w-3 h-3" />
+                      {stats.storiesMerged} merged
+                    </Badge>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }

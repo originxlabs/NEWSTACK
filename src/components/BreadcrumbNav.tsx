@@ -80,14 +80,17 @@ export function BreadcrumbNav({
   };
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn(
+      "flex items-center gap-2 sticky top-16 z-40 bg-background/95 backdrop-blur-sm py-2 -mx-4 px-4 border-b border-border/30",
+      className
+    )}>
       {/* Back Button */}
       {items.length > 1 && (
         <Button
           variant="ghost"
           size="sm"
           onClick={handleBack}
-          className="gap-1.5 h-8 px-2"
+          className="gap-1.5 h-8 px-2 flex-shrink-0"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="hidden sm:inline">Back</span>

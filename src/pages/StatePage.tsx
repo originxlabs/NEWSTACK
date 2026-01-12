@@ -318,8 +318,8 @@ export default function StatePage() {
         variant="bar"
       />
       
-      <main className="container mx-auto px-4 py-6">
-        {/* Breadcrumb Navigation */}
+      {/* Breadcrumb Navigation - Sticky below header */}
+      <div className="container mx-auto px-4">
         <BreadcrumbNav
           items={[
             { id: "home", label: "Home", path: "/", type: "home" },
@@ -345,8 +345,10 @@ export default function StatePage() {
               navigate("/india");
             }
           }}
-          className="mb-6"
         />
+      </div>
+      
+      <main className="container mx-auto px-4 py-6 pt-4">
 
         {/* State Header */}
         <div className="mb-8">
