@@ -126,21 +126,27 @@ export function SplashScreen({ onComplete, duration = 2200, countryCode }: Splas
             }}
             className="relative z-10 flex flex-col items-center"
           >
-            {/* Logo Container - No spinning, just stack animation */}
-            <div className="relative mb-6">
-              {/* N Logo - Animated stacks forming the complete N */}
+            {/* Logo Container - Prominent N animation */}
+            <div className="relative mb-8">
+              {/* N Logo - Large and prominent with animated stacks */}
               <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
                 transition={{ 
                   type: "spring",
-                  stiffness: 300,
-                  damping: 15,
+                  stiffness: 200,
+                  damping: 12,
                   delay: 0.1
                 }}
-                className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center text-foreground"
+                className="relative w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center"
               >
-                <NLogoSquare size={80} animate />
+                {/* Background glow for the N */}
+                <div className="absolute inset-0 bg-primary/10 rounded-3xl blur-xl" />
+                
+                {/* The N Logo */}
+                <div className="relative z-10 text-foreground">
+                  <NLogoSquare size={120} animate themeAware />
+                </div>
               </motion.div>
               
               {/* Glow Ring */}
