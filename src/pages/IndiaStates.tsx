@@ -30,6 +30,7 @@ import { useTTS } from "@/hooks/use-tts";
 import { toast } from "sonner";
 import { IngestionPipelineViewer } from "@/components/IngestionPipelineViewer";
 import { IngestionRunHistory } from "@/components/IngestionRunHistory";
+import { IngestionTimelineChart } from "@/components/IngestionTimelineChart";
 import { StateFlagBadge } from "@/components/StateFlagBadge";
 import { getStateConfig, getStateFlag } from "@/lib/india-states-config";
 import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
@@ -975,6 +976,7 @@ export default function IndiaStates() {
         <section className="border-b border-border/50 bg-muted/10">
           <div className="container mx-auto max-w-7xl px-4 py-4 space-y-4">
             <IngestionPipelineViewer onIngestionComplete={refetch} />
+            <IngestionTimelineChart />
             <IngestionRunHistory defaultCollapsed={true} maxRuns={10} />
           </div>
         </section>
