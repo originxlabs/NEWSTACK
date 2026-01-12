@@ -362,6 +362,12 @@ export function WorldCountryDashboard({ countryCode, countryName, countryFlag }:
                   <Building2 className="w-4 h-4" />
                   Capital: {metadata?.capital || "N/A"}
                 </span>
+                {metadata?.currency && (
+                  <span className="flex items-center gap-1">
+                    <span className="text-lg font-semibold">{metadata.currencySymbol || "$"}</span>
+                    {metadata.currency}
+                  </span>
+                )}
                 <span className="flex items-center gap-1">
                   <Newspaper className="w-4 h-4" />
                   {stories.length} stories

@@ -29,7 +29,7 @@ import {
 } from "@/lib/geo-hierarchy";
 import { LocationSearch } from "@/components/world/LocationSearch";
 import { useUserLocation } from "@/hooks/use-user-location";
-import { LiveNewsTicker } from "@/components/world/LiveNewsTicker";
+import { InteractiveWorldMap } from "@/components/world/InteractiveWorldMap";
 import { BreadcrumbNav, BreadcrumbItem as NavBreadcrumbItem } from "@/components/BreadcrumbNav";
 import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
 
@@ -816,29 +816,33 @@ export default function World() {
           </div>
         </section>
 
-        {/* Main Content with Live Ticker */}
+        {/* Interactive World Map - Only show at world level */}
+        {currentLevel === "world" && (
+          <section className="py-6 bg-muted/5">
+            <div className="container mx-auto max-w-6xl px-4">
+              <InteractiveWorldMap
+                continentStats={stats}
+                onContinentClick={(continentId) => {
+                  const continent = getContinentById(continentId);
+                  if (continent) {
+                    handleDrillDown(continent);
+                  }
+                }}
+                selectedContinent={selectedContinent?.id}
+              />
+            </div>
+          </section>
+        )}
+
+        {/* Main Content - Clean Layout */}
         <section className="py-8">
           <div className="container mx-auto max-w-6xl px-4">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Live Ticker Sidebar */}
-              <div className="lg:col-span-1 order-2 lg:order-1">
-                <div className="sticky top-20">
-                  <Card className="border-border/50">
-                    <CardContent className="p-4">
-                      <LiveNewsTicker maxItems={6} />
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-
-              {/* Location Grid */}
-              <div className="lg:col-span-3 order-1 lg:order-2">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentLevel + (selectedContinent?.id || "") + (selectedCountry?.id || "")}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.2 }}
               >
                 {/* Back Button for non-world levels */}
@@ -942,8 +946,6 @@ export default function World() {
                 )}
               </motion.div>
             </AnimatePresence>
-              </div>
-            </div>
           </div>
         </section>
 

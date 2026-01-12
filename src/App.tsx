@@ -105,11 +105,16 @@ function SplashManager() {
   // Show splash on route changes (navigation)
   useEffect(() => {
     if (previousPath.current !== null && previousPath.current !== location.pathname) {
-      // Only show splash for major navigation (different base paths)
+      // Show splash for any navigation between different sections
       const prevBase = previousPath.current.split('/')[1] || '';
       const currBase = location.pathname.split('/')[1] || '';
       
-      if (prevBase !== currBase) {
+      // Show splash when navigating between major sections
+      const majorSections = ['', 'news', 'world', 'india', 'places', 'topics', 'listen', 'features', 'api', 'newsroom'];
+      const isPrevMajor = majorSections.includes(prevBase);
+      const isCurrMajor = majorSections.includes(currBase);
+      
+      if ((isPrevMajor || isCurrMajor) && prevBase !== currBase) {
         setShowSplash(true);
         setIsInitialLoad(false);
       }
