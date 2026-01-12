@@ -44,6 +44,10 @@ export interface NewsItem {
   sourceCount?: number;
   locationRelevance?: "Local" | "Country" | "Global";
   sources?: NewsSource[];
+  // Original language support
+  original_headline?: string | null;
+  original_summary?: string | null;
+  original_language?: string | null;
 }
 
 interface NewsCardProps {
@@ -87,22 +91,72 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   
-  // Translation state
+  // Language toggle state - for stories with original language content
+  const hasOriginalLanguage = !!(news.original_headline && news.original_language);
+  const [showOriginal, setShowOriginal] = useState(hasOriginalLanguage); // Default to original if available
+  
+  // Translation state (for translating to English via API)
   const [translateEnabled, setTranslateEnabled] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [translatedHeadline, setTranslatedHeadline] = useState<string | null>(null);
   const [translatedSummary, setTranslatedSummary] = useState<string | null>(null);
   
-  const displayHeadline = translateEnabled && translatedHeadline ? translatedHeadline : news.headline;
-  const displaySummary = translateEnabled && translatedSummary ? translatedSummary : news.summary;
+  // Determine what to display
+  const getDisplayContent = () => {
+    if (hasOriginalLanguage && showOriginal) {
+      return {
+        headline: news.original_headline || news.headline,
+        summary: news.original_summary || news.summary,
+      };
+    }
+    if (translateEnabled && translatedHeadline) {
+      return {
+        headline: translatedHeadline,
+        summary: translatedSummary || news.summary,
+      };
+    }
+    return {
+      headline: news.headline,
+      summary: news.summary,
+    };
+  };
+  
+  const { headline: displayHeadline, summary: displaySummary } = getDisplayContent();
+  
+  // Get language display name
+  const getLanguageName = (code: string | null | undefined) => {
+    const languageMap: Record<string, string> = {
+      'or': 'ଓଡ଼ିଆ',
+      'hi': 'हिंदी',
+      'bn': 'বাংলা',
+      'ta': 'தமிழ்',
+      'te': 'తెలుగు',
+      'mr': 'मराठी',
+      'gu': 'ગુજરાતી',
+      'kn': 'ಕನ್ನಡ',
+      'ml': 'മലയാളം',
+      'pa': 'ਪੰਜਾਬੀ',
+      'en': 'English',
+    };
+    return languageMap[code || 'en'] || code || 'English';
+  };
 
   const locationRelevance = news.locationRelevance || (
     news.isGlobal ? "Global" : 
     news.countryCode === country?.code ? "Country" : "Global"
   );
   
-  const handleToggleTranslation = async (e: React.MouseEvent) => {
+  // Toggle between original language and English translation
+  const handleLanguageToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // If we have original language content, toggle between original and English
+    if (hasOriginalLanguage) {
+      setShowOriginal(!showOriginal);
+      return;
+    }
+    
+    // Otherwise, translate to English via API
     const nextEnabled = !translateEnabled;
     setTranslateEnabled(nextEnabled);
 
@@ -345,15 +399,17 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
                       )}
                     </Button>
 
-                    {/* Translation Toggle */}
+                    {/* Language Toggle */}
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={handleToggleTranslation}
+                      onClick={handleLanguageToggle}
                       disabled={isTranslating}
                       className={cn(
                         "h-8 text-xs gap-1",
-                        translateEnabled && "bg-primary/10 text-primary"
+                        (hasOriginalLanguage && showOriginal) || translateEnabled
+                          ? "bg-primary/10 text-primary"
+                          : ""
                       )}
                     >
                       {isTranslating ? (
@@ -362,7 +418,13 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
                         <Languages className="w-3.5 h-3.5" />
                       )}
                       <span className="hidden sm:inline">
-                        {translateEnabled ? "Original" : "English"}
+                        {hasOriginalLanguage
+                          ? showOriginal
+                            ? getLanguageName(news.original_language)
+                            : "English"
+                          : translateEnabled
+                          ? "Original"
+                          : "English"}
                       </span>
                     </Button>
 

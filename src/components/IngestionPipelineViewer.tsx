@@ -16,6 +16,9 @@ import {
   Monitor,
   Loader2,
   XCircle,
+  Timer,
+  ToggleLeft,
+  ToggleRight,
   Play,
   RefreshCw,
 } from "lucide-react";
@@ -53,12 +56,14 @@ const PIPELINE_STEPS: Omit<PipelineStep, "status">[] = [
 interface IngestionPipelineViewerProps {
   onIngestionComplete?: () => void;
   autoRefreshInterval?: number; // in ms, 0 to disable
+  showAutoRefreshControls?: boolean;
   className?: string;
 }
 
 export function IngestionPipelineViewer({
   onIngestionComplete,
-  autoRefreshInterval = 0,
+  autoRefreshInterval = 15 * 60 * 1000, // Default 15 minutes
+  showAutoRefreshControls = true,
   className,
 }: IngestionPipelineViewerProps) {
   const [steps, setSteps] = useState<PipelineStep[]>(
@@ -66,6 +71,8 @@ export function IngestionPipelineViewer({
   );
   const [isRunning, setIsRunning] = useState(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(autoRefreshInterval > 0);
+  const [nextRefreshIn, setNextRefreshIn] = useState<number>(autoRefreshInterval / 1000);
   const [stats, setStats] = useState({
     feedsProcessed: 0,
     storiesCreated: 0,
@@ -188,18 +195,27 @@ export function IngestionPipelineViewer({
     }
   }, [isRunning, resetPipeline, simulateStepProgress, onIngestionComplete]);
 
-  // Auto-refresh polling
+  // Auto-refresh polling with countdown
   useEffect(() => {
-    if (autoRefreshInterval <= 0) return;
+    if (!autoRefreshEnabled || autoRefreshInterval <= 0) return;
 
-    const interval = setInterval(() => {
-      if (!isRunning) {
-        runIngestion();
-      }
-    }, autoRefreshInterval);
+    // Reset countdown when auto-refresh starts or after an ingestion
+    setNextRefreshIn(autoRefreshInterval / 1000);
 
-    return () => clearInterval(interval);
-  }, [autoRefreshInterval, isRunning, runIngestion]);
+    const countdownInterval = setInterval(() => {
+      setNextRefreshIn((prev) => {
+        if (prev <= 1) {
+          if (!isRunning) {
+            runIngestion();
+          }
+          return autoRefreshInterval / 1000;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownInterval);
+  }, [autoRefreshEnabled, autoRefreshInterval, isRunning, runIngestion]);
 
   const getStepColor = (status: PipelineStep["status"]) => {
     switch (status) {
@@ -238,7 +254,32 @@ export function IngestionPipelineViewer({
             <Rss className="w-4 h-4 text-primary" />
             RSS Processing Pipeline
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Auto-refresh toggle */}
+            {showAutoRefreshControls && (
+              <button
+                onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                className={cn(
+                  "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors",
+                  autoRefreshEnabled
+                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                    : "bg-muted text-muted-foreground border border-border"
+                )}
+              >
+                {autoRefreshEnabled ? (
+                  <ToggleRight className="w-3.5 h-3.5" />
+                ) : (
+                  <ToggleLeft className="w-3.5 h-3.5" />
+                )}
+                <span className="hidden sm:inline">Auto</span>
+                {autoRefreshEnabled && !isRunning && (
+                  <span className="flex items-center gap-0.5 text-[10px]">
+                    <Timer className="w-3 h-3" />
+                    {Math.floor(nextRefreshIn / 60)}:{String(nextRefreshIn % 60).padStart(2, "0")}
+                  </span>
+                )}
+              </button>
+            )}
             {isRunning && (
               <Badge variant="secondary" className="gap-1 text-xs">
                 <Loader2 className="w-3 h-3 animate-spin" />

@@ -23,6 +23,10 @@ export interface NewsArticle {
   country_code: string | null;
   source_count?: number;
   location_relevance?: "Local" | "Country" | "Global";
+  // Original language support
+  original_headline?: string | null;
+  original_summary?: string | null;
+  original_language?: string | null;
 }
 
 interface FetchNewsParams {
