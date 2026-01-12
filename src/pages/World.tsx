@@ -3,15 +3,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { 
   Globe, ChevronRight, ChevronLeft, MapPin, Building2, 
-  Layers, Radio, RefreshCw, TrendingUp, TrendingDown,
-  AlertTriangle, Activity, Minus, Home, Filter, X, Wifi, WifiOff
+  Layers, RefreshCw, TrendingUp, TrendingDown,
+  Minus, Wifi, WifiOff, Search, Navigation, Loader2
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -24,7 +23,11 @@ import {
   getContinentById,
   getCountryById,
   COUNTRY_TO_CONTINENT,
+  getGeoStats,
+  SearchResult,
 } from "@/lib/geo-hierarchy";
+import { LocationSearch } from "@/components/world/LocationSearch";
+import { useUserLocation } from "@/hooks/use-user-location";
 
 // Navigation levels
 type DrillLevel = "world" | "continent" | "country" | "state" | "city" | "locality";
