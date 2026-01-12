@@ -136,17 +136,17 @@ function useLocationStats(level: DrillLevel, codes: string[], parentCountryCode?
           };
         }
       } else if (level === "state") {
-        // For states: count stories where city matches state name + country-level stories
+        // For states: count ONLY stories where city matches state name or cities in that state
+        // Do NOT include country-level fallback in counts (that would inflate numbers incorrectly)
         const countryStories = parentCountryCode 
           ? stories.filter(s => s.country_code?.toUpperCase() === parentCountryCode.toUpperCase())
           : stories;
         
-        // Country-level stories (city is null) should contribute to each state
+        // Country-level stories for headline fallback only (not counted)
         const countryLevelStories = countryStories.filter(s => !s.city);
-        const countryFallbackCount = countryLevelStories.length;
         
         for (const stateId of codes) {
-          // Normalize state name for matching (e.g., "maharashtra" -> "Maharashtra")
+          // Normalize state name for matching
           const stateNameNormalized = stateId.toLowerCase().replace(/-/g, ' ').replace(/_/g, ' ');
           
           // Find stories that mention this state in the city field
@@ -154,52 +154,38 @@ function useLocationStats(level: DrillLevel, codes: string[], parentCountryCode?
             s.city && s.city.toLowerCase().includes(stateNameNormalized)
           );
           
-          // Also find stories where city is a city in this state (check common city names)
-          const cityMatches = countryStories.filter(s => {
-            if (!s.city) return false;
-            const cityLower = s.city.toLowerCase();
-            // Match specific cities we know are in this state from geo-hierarchy
-            return false; // Will be enhanced with city lookup
-          });
-          
-          // Total = state-specific + country-level fallback
-          const totalCount = stateStories.length + countryFallbackCount;
+          // Count ONLY specific stories (no fallback inflation)
+          const specificCount = stateStories.length;
           
           statsMap[stateId] = {
-            storyCount: totalCount,
-            trend: stateStories.length > 5 ? "up" : totalCount > 10 ? "stable" : "stable",
+            storyCount: specificCount,
+            trend: specificCount > 5 ? "up" : specificCount > 0 ? "stable" : "stable",
             topHeadline: stateStories[0]?.headline || countryLevelStories[0]?.headline,
           };
         }
       } else if (level === "city") {
-        // For cities: count stories that match city name + state-level stories + country-level stories
+        // For cities: count ONLY stories that specifically match this city name
         const countryStories = parentCountryCode 
           ? stories.filter(s => s.country_code?.toUpperCase() === parentCountryCode.toUpperCase())
           : stories;
         
-        // State-level stories (if parent state exists)
-        const stateStories = parentStateName 
-          ? countryStories.filter(s => s.city?.toLowerCase().includes(parentStateName.toLowerCase()))
-          : [];
-        
-        // Country-level stories (fallback)
+        // Country-level stories for headline fallback only
         const countryLevelStories = countryStories.filter(s => !s.city);
-        const fallbackCount = countryLevelStories.length;
         
         for (const cityId of codes) {
           const cityNameNormalized = cityId.toLowerCase().replace(/-/g, ' ').replace(/_/g, ' ');
           
-          // Find stories matching this specific city
+          // Find stories matching this specific city ONLY
           const cityMatches = countryStories.filter(s => 
             s.city && s.city.toLowerCase().includes(cityNameNormalized)
           );
           
-          // Total = city-specific + fallback from country-level
-          const totalCount = cityMatches.length + fallbackCount;
+          // Count ONLY specific city stories
+          const specificCount = cityMatches.length;
           
           statsMap[cityId] = {
-            storyCount: totalCount,
-            trend: cityMatches.length > 2 ? "up" : "stable",
+            storyCount: specificCount,
+            trend: specificCount > 2 ? "up" : specificCount > 0 ? "stable" : "stable",
             topHeadline: cityMatches[0]?.headline || countryLevelStories[0]?.headline,
           };
         }

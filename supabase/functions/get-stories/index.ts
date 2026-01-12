@@ -271,32 +271,46 @@ serve(async (req) => {
 
     // Apply geographic filters in order of specificity: locality > city > state > country > region
     // This implements the drill-down from World page: Continent → Country → State → City → Locality
-    // IMPORTANT: For state/city/locality, we include country-level fallback to ensure news is always shown
+    // IMPORTANT: Show ONLY location-specific stories first; if none exist, then show country-level
     
-    if (locality && country) {
-      // Locality filter - search in city field OR fall back to country news
-      // Use OR to include both locality-specific and country-level stories
-      query = query.or(`city.ilike.%${locality}%,and(country_code.eq.${country.toUpperCase()},city.is.null)`);
-      console.log(`Filtering by locality: ${locality} (with country fallback: ${country})`);
-    } else if (locality) {
-      query = query.ilike("city", `%${locality}%`);
-      console.log(`Filtering by locality: ${locality}`);
-    } else if (city && country) {
-      // City filter - include city matches OR country-level stories without city
-      query = query.or(`city.ilike.%${city}%,and(country_code.eq.${country.toUpperCase()},city.is.null)`);
-      console.log(`Filtering by city: ${city} (with country fallback: ${country})`);
+    let locationFilter = null;
+    let locationName = "";
+    
+    if (locality) {
+      locationFilter = locality;
+      locationName = `locality: ${locality}`;
     } else if (city) {
-      query = query.ilike("city", `%${city}%`);
-      console.log(`Filtering by city: ${city}`);
-    } else if (state && country) {
-      // State filter - search in city field (states often stored there) OR include country-level stories
-      const stateSearchTerm = state.replace(/-/g, ' ').replace(/_/g, ' ');
-      query = query.or(`city.ilike.%${stateSearchTerm}%,and(country_code.eq.${country.toUpperCase()},city.is.null)`);
-      console.log(`Filtering by state: ${state} (with country fallback: ${country})`);
+      locationFilter = city;
+      locationName = `city: ${city}`;
     } else if (state) {
-      const stateSearchTerm = state.replace(/-/g, ' ').replace(/_/g, ' ');
-      query = query.ilike("city", `%${stateSearchTerm}%`);
-      console.log(`Filtering by state: ${state}`);
+      locationFilter = state.replace(/-/g, ' ').replace(/_/g, ' ');
+      locationName = `state: ${state}`;
+    }
+    
+    if (locationFilter && country) {
+      // First, try to get location-specific stories only
+      const { count: specificCount } = await supabase
+        .from("stories")
+        .select("*", { count: "exact", head: true })
+        .eq("country_code", country.toUpperCase())
+        .ilike("city", `%${locationFilter}%`)
+        .gte("first_published_at", cutoffTime);
+      
+      console.log(`Specific stories for ${locationName}: ${specificCount || 0}`);
+      
+      if (specificCount && specificCount > 0) {
+        // We have location-specific stories, show only those
+        query = query.eq("country_code", country.toUpperCase()).ilike("city", `%${locationFilter}%`);
+        console.log(`Showing ${specificCount} location-specific stories for ${locationName}`);
+      } else {
+        // No specific stories, fall back to country-level news
+        query = query.eq("country_code", country.toUpperCase());
+        console.log(`No specific stories for ${locationName}, showing all ${country} news`);
+      }
+    } else if (locationFilter) {
+      // No country context, just filter by location
+      query = query.ilike("city", `%${locationFilter}%`);
+      console.log(`Filtering by ${locationName} (no country context)`);
     } else if (country) {
       // Country filter - filter by country code
       query = query.eq("country_code", country.toUpperCase());

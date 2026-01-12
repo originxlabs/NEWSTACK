@@ -153,47 +153,91 @@ function useStateStats() {
       const stateCount: Record<string, number> = {};
       const hourlyCount: Record<string, number> = {};
 
+      // City to state mapping for accurate matching
+      const CITY_TO_STATE: Record<string, string> = {
+        "mumbai": "maharashtra", "pune": "maharashtra", "nagpur": "maharashtra", "nashik": "maharashtra", "thane": "maharashtra",
+        "delhi": "delhi", "new delhi": "delhi",
+        "bengaluru": "karnataka", "bangalore": "karnataka", "mysuru": "karnataka", "hubli": "karnataka",
+        "chennai": "tamil-nadu", "coimbatore": "tamil-nadu", "madurai": "tamil-nadu", "salem": "tamil-nadu",
+        "hyderabad": "telangana", "secunderabad": "telangana", "warangal": "telangana",
+        "kolkata": "west-bengal", "howrah": "west-bengal", "durgapur": "west-bengal",
+        "ahmedabad": "gujarat", "surat": "gujarat", "vadodara": "gujarat", "rajkot": "gujarat",
+        "jaipur": "rajasthan", "jodhpur": "rajasthan", "udaipur": "rajasthan", "kota": "rajasthan",
+        "lucknow": "uttar-pradesh", "kanpur": "uttar-pradesh", "agra": "uttar-pradesh", "varanasi": "uttar-pradesh", "noida": "uttar-pradesh", "ghaziabad": "uttar-pradesh",
+        "patna": "bihar", "gaya": "bihar", "muzaffarpur": "bihar",
+        "bhopal": "madhya-pradesh", "indore": "madhya-pradesh", "jabalpur": "madhya-pradesh", "gwalior": "madhya-pradesh",
+        "thiruvananthapuram": "kerala", "kochi": "kerala", "kozhikode": "kerala", "thrissur": "kerala",
+        "chandigarh": "chandigarh",
+        "guwahati": "assam", "silchar": "assam", "dibrugarh": "assam",
+        "visakhapatnam": "andhra-pradesh", "vizag": "andhra-pradesh", "vijayawada": "andhra-pradesh", "tirupati": "andhra-pradesh", "guntur": "andhra-pradesh", "amaravati": "andhra-pradesh",
+        "bhubaneswar": "odisha", "cuttack": "odisha", "rourkela": "odisha",
+        "raipur": "chhattisgarh", "bhilai": "chhattisgarh", "bilaspur": "chhattisgarh",
+        "ranchi": "jharkhand", "jamshedpur": "jharkhand", "dhanbad": "jharkhand",
+        "ludhiana": "punjab", "amritsar": "punjab", "jalandhar": "punjab",
+        "dehradun": "uttarakhand", "haridwar": "uttarakhand", "rishikesh": "uttarakhand",
+        "shimla": "himachal-pradesh", "dharamshala": "himachal-pradesh", "manali": "himachal-pradesh",
+        "panaji": "goa", "margao": "goa", "vasco": "goa",
+        "imphal": "manipur", "shillong": "meghalaya", "aizawl": "mizoram", "kohima": "nagaland",
+        "agartala": "tripura", "itanagar": "arunachal-pradesh", "gangtok": "sikkim",
+        "srinagar": "jammu-kashmir", "jammu": "jammu-kashmir", "leh": "ladakh",
+        "puducherry": "puducherry", "pondicherry": "puducherry",
+      };
+
       // Process stories
       for (const story of stories || []) {
         // Match story to state based on city field
-        const cityLower = story.city?.toLowerCase() || "";
+        const cityLower = story.city?.toLowerCase()?.trim() || "";
         
-        for (const state of INDIAN_STATES) {
-          const stateName = state.name.toLowerCase();
-          const capitalName = state.capital.toLowerCase();
-          
-          if (cityLower.includes(stateName) || cityLower.includes(capitalName) || 
-              stateName.includes(cityLower) || cityLower === state.code.toLowerCase()) {
+        if (!cityLower) continue; // Skip stories without city info
+        
+        let matchedStateId: string | null = null;
+        
+        // First try direct city-to-state mapping
+        if (CITY_TO_STATE[cityLower]) {
+          matchedStateId = CITY_TO_STATE[cityLower];
+        } else {
+          // Try matching against state names
+          for (const state of INDIAN_STATES) {
+            const stateName = state.name.toLowerCase();
+            const capitalName = state.capital.toLowerCase();
             
-            if (!stateStatsMap[state.id]) {
-              stateStatsMap[state.id] = {
-                storyCount: 0,
-                trendingTopics: [],
-                sources: [],
-                recentHeadlines: [],
-                languageBreakdown: [],
-              };
+            if (cityLower === stateName || cityLower === capitalName || 
+                cityLower.includes(stateName) || stateName.includes(cityLower)) {
+              matchedStateId = state.id;
+              break;
             }
-            
-            stateStatsMap[state.id].storyCount++;
-            
-            if (stateStatsMap[state.id].recentHeadlines.length < 5) {
-              stateStatsMap[state.id].recentHeadlines.push(story.headline);
-            }
-            
-            // Track category for this state
-            if (story.category) {
-              const existing = stateStatsMap[state.id].trendingTopics.find(t => t.topic === story.category);
-              if (existing) {
-                existing.count++;
-              } else {
-                stateStatsMap[state.id].trendingTopics.push({ topic: story.category, count: 1 });
-              }
-            }
-            
-            stateCount[state.name] = (stateCount[state.name] || 0) + 1;
-            break;
           }
+        }
+        
+        if (matchedStateId) {
+          if (!stateStatsMap[matchedStateId]) {
+            stateStatsMap[matchedStateId] = {
+              storyCount: 0,
+              trendingTopics: [],
+              sources: [],
+              recentHeadlines: [],
+              languageBreakdown: [],
+            };
+          }
+          
+          stateStatsMap[matchedStateId].storyCount++;
+          
+          if (stateStatsMap[matchedStateId].recentHeadlines.length < 5) {
+            stateStatsMap[matchedStateId].recentHeadlines.push(story.headline);
+          }
+          
+          // Track category for this state
+          if (story.category) {
+            const existing = stateStatsMap[matchedStateId].trendingTopics.find(t => t.topic === story.category);
+            if (existing) {
+              existing.count++;
+            } else {
+              stateStatsMap[matchedStateId].trendingTopics.push({ topic: story.category, count: 1 });
+            }
+          }
+          
+          const stateName = INDIAN_STATES.find(s => s.id === matchedStateId)?.name || matchedStateId;
+          stateCount[stateName] = (stateCount[stateName] || 0) + 1;
         }
         
         // Track overall category
@@ -504,7 +548,11 @@ export default function IndiaStates() {
   }, [refetch]);
 
   const handleStateClick = useCallback((state: typeof INDIAN_STATES[0]) => {
-    navigate(`/news?country=IN&state=${state.name}`);
+    // Use URLSearchParams to properly encode the query parameters
+    const params = new URLSearchParams();
+    params.set("country", "IN");
+    params.set("state", state.name);
+    navigate(`/news?${params.toString()}`);
   }, [navigate]);
 
   const formatTime = (date: Date) => {
