@@ -13,6 +13,7 @@ import { NLogoSquare } from "@/components/NLogo";
 const navLinks = [
   { name: "News", href: "/news" },
   { name: "World", href: "/world" },
+  { name: "Sources", href: "/sources" },
   { name: "Places", href: "/places" },
 ];
 

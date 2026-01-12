@@ -26,6 +26,7 @@ import RefundPolicy from "./pages/RefundPolicy";
 import NotFound from "./pages/NotFound";
 import StoryDetail from "./pages/StoryDetail";
 import ApiLanding from "./pages/ApiLanding";
+import Sources from "./pages/Sources";
 import ApiDocs from "./pages/ApiDocs";
 import ApiDashboard from "./pages/ApiDashboard";
 import NewsroomLayout from "./pages/newsroom/NewsroomLayout";
@@ -141,6 +142,7 @@ function AppContent() {
           <Route path="/listen" element={<Listen />} />
           <Route path="/world" element={<World />} />
           <Route path="/places" element={<Places />} />
+          <Route path="/sources" element={<Sources />} />
           <Route path="/topics" element={<Topics />} />
           <Route path="/features" element={<Features />} />
           <Route path="/compare" element={<Features />} />
