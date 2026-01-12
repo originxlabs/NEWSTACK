@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { IngestionPipelineViewer } from "@/components/IngestionPipelineViewer";
 import { StateFlagBadge } from "@/components/StateFlagBadge";
 import { getStateConfig, getStateFlag } from "@/lib/india-states-config";
+import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
 // State color mapping based on region
 const STATE_COLORS: Record<string, string> = {
   // North
@@ -838,6 +839,12 @@ export default function IndiaStates() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       
+      {/* Real-time news indicator */}
+      <RealtimeNewsIndicator 
+        onRefresh={handleRefresh} 
+        variant="bar"
+      />
+      
       <main className="pt-14">
         {/* Hero Section */}
         <section className="border-b border-border/50 bg-gradient-to-b from-orange-500/5 via-white/5 to-green-500/5">
@@ -847,6 +854,7 @@ export default function IndiaStates() {
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-3xl">🇮🇳</span>
                   <h1 className="text-2xl sm:text-3xl font-bold">India Dashboard</h1>
+                  <RealtimeStatusDot />
                 </div>
                 <p className="text-muted-foreground text-sm">
                   Real-time news intelligence across {INDIAN_STATES.length} states and {UNION_TERRITORIES.length} union territories

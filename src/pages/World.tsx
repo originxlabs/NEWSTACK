@@ -31,6 +31,7 @@ import { LocationSearch } from "@/components/world/LocationSearch";
 import { useUserLocation } from "@/hooks/use-user-location";
 import { LiveNewsTicker } from "@/components/world/LiveNewsTicker";
 import { BreadcrumbNav, BreadcrumbItem as NavBreadcrumbItem } from "@/components/BreadcrumbNav";
+import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
 
 // Navigation levels
 type DrillLevel = "world" | "continent" | "country" | "state" | "city" | "locality";
@@ -638,6 +639,12 @@ export default function World() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       
+      {/* Real-time news indicator */}
+      <RealtimeNewsIndicator 
+        onRefresh={handleRefresh} 
+        variant="bar"
+      />
+      
       <main className="pt-14">
         {/* Page Header */}
         <section className="border-b border-border/50 bg-muted/20">
@@ -722,9 +729,12 @@ export default function World() {
               </AnimatePresence>
 
               {/* Title */}
-              <h1 className="font-display text-2xl sm:text-3xl font-semibold text-foreground mb-2">
-                Global Intelligence
-              </h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="font-display text-2xl sm:text-3xl font-semibold text-foreground">
+                  Global Intelligence
+                </h1>
+                <RealtimeStatusDot />
+              </div>
               <p className="text-muted-foreground text-sm max-w-2xl mb-4">
                 Drill down from {geoStats.totalContinents} continents → {geoStats.totalCountries} countries → {geoStats.totalStates.toLocaleString()} states → {geoStats.totalCities.toLocaleString()} cities. Real-time news from verified sources.
               </p>
