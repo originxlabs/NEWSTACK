@@ -342,6 +342,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_otps: {
+        Row: {
+          attempts: number
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          max_attempts: number
+          otp_code: string
+          purpose: string
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+          otp_code: string
+          purpose?: string
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+          otp_code?: string
+          purpose?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       ingestion_runs: {
         Row: {
           completed_at: string | null
@@ -1174,6 +1210,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_otps: { Args: never; Returns: undefined }
       generate_api_key: { Args: never; Returns: string }
       generate_webhook_secret: { Args: never; Returns: string }
       get_newsroom_role: {
