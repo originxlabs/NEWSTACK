@@ -244,7 +244,7 @@ const Index = () => {
               <NavCard 
                 icon={<Layers className="w-5 h-5" />}
                 title="Source Network"
-                description="170+ verified sources"
+                description="550+ verified sources"
                 href="/news?filter=sources"
               />
             </div>
@@ -277,7 +277,7 @@ const Index = () => {
         <section className="py-8 px-4 border-t border-border/50">
           <div className="container mx-auto max-w-3xl text-center">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">How it works:</strong> Stories are ingested from 170+ independent public sources every 15 minutes. 
+              <strong className="text-foreground">How it works:</strong> Stories are ingested from 550+ independent public sources every 15 minutes. 
               Similar reports are clustered into evolving stories, timelines are built automatically, and credibility is assessed based on source diversity and consistency.
               This platform organizes information — it does not publish opinions.
             </p>
