@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Shield, AlertTriangle, TrendingUp, ChevronDown, Info, Layers, 
-  CheckCircle2, RefreshCw, Globe, Building2, Newspaper, Radio
+  CheckCircle2, RefreshCw, Globe, Building2, Newspaper, Radio, Wifi, WifiOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -115,10 +115,48 @@ export function RightTrustPanel({
     }
   }, []);
 
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+
   useEffect(() => {
     fetchStats();
     const interval = setInterval(fetchStats, refreshInterval);
-    return () => clearInterval(interval);
+
+    // Subscribe to realtime changes on story_sources
+    const channel = supabase
+      .channel("trust-panel-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "story_sources",
+        },
+        () => {
+          // Refetch stats when sources change
+          fetchStats();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "stories",
+          filter: "has_contradictions=eq.true",
+        },
+        () => {
+          // Refetch when contradiction status changes
+          fetchStats();
+        }
+      )
+      .subscribe((status) => {
+        setIsRealtimeConnected(status === "SUBSCRIBED");
+      });
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [fetchStats, refreshInterval]);
 
   const handleRefresh = () => {
@@ -177,8 +215,14 @@ export function RightTrustPanel({
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
             {/* Live indicator */}
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-              <Radio className="w-2.5 h-2.5 text-emerald-500 animate-pulse" />
-              <span>Live • Updated {stats ? formatTime(stats.lastUpdated) : "..."}</span>
+              {isRealtimeConnected ? (
+                <Wifi className="w-2.5 h-2.5 text-emerald-500" />
+              ) : (
+                <WifiOff className="w-2.5 h-2.5 text-amber-500" />
+              )}
+              <span>
+                {isRealtimeConnected ? "Live" : "Polling"} • Updated {stats ? formatTime(stats.lastUpdated) : "..."}
+              </span>
             </div>
 
             {isLoading ? (

@@ -62,26 +62,26 @@ export default function NewsroomOwnerSetup() {
   const ensureEmailIsOwner = async (ownerEmail: string) => {
     const normalized = ownerEmail.trim().toLowerCase();
 
-    // Prefer admin_users for the single "owner" source of truth (created during setup)
-    const { data: adminOwner } = await supabase
-      .from("admin_users")
-      .select("email, role")
-      .eq("email", normalized)
-      .eq("role", "owner")
-      .maybeSingle();
-
-    if (adminOwner) return true;
-
-    // Fallback: allow if newsroom_members marks them as owner
+    // PRIMARY: Check newsroom_members for owner role (this is the source of truth)
     const { data: memberOwner } = await supabase
       .from("newsroom_members")
       .select("email, role, is_active")
-      .eq("email", normalized)
+      .ilike("email", normalized)
       .eq("role", "owner")
       .eq("is_active", true)
       .maybeSingle();
 
-    return !!memberOwner;
+    if (memberOwner) return true;
+
+    // FALLBACK: Check admin_users for super_admin role (case-insensitive)
+    const { data: adminOwner } = await supabase
+      .from("admin_users")
+      .select("email, role")
+      .ilike("email", normalized)
+      .in("role", ["super_admin", "admin"])
+      .maybeSingle();
+
+    return !!adminOwner;
   };
 
   const handleOwnerPasswordLogin = async (e: React.FormEvent) => {
