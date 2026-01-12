@@ -28,43 +28,14 @@ import { cn } from "@/lib/utils";
 import { NewsCard, NewsItem } from "@/components/NewsCard";
 import { IngestionPipelineViewer } from "@/components/IngestionPipelineViewer";
 import { ActiveFeedsPanel } from "@/components/ActiveFeedsPanel";
-
-// State configuration with language priorities
-const STATE_CONFIG: Record<string, {
-  name: string;
-  code: string;
-  languages: string[];
-  capital: string;
-  color: string;
-  cities: string[];
-  districts?: string[];
-}> = {
-  "odisha": {
-    name: "Odisha",
-    code: "OD",
-    languages: ["or", "en"],
-    capital: "Bhubaneswar",
-    color: "bg-cyan-500",
-    cities: ["Bhubaneswar", "Cuttack", "Rourkela", "Puri", "Berhampur", "Sambalpur", "Balasore", "Jharsuguda"],
-    districts: ["Khordha", "Cuttack", "Sundargarh", "Ganjam", "Puri", "Mayurbhanj", "Balasore", "Sambalpur"],
-  },
-  // Add more states as needed
-};
-
-// Language mapping with native scripts
-const LANGUAGE_CONFIG: Record<string, { name: string; native: string; color: string }> = {
-  or: { name: "Odia", native: "ଓଡ଼ିଆ", color: "bg-cyan-500" },
-  hi: { name: "Hindi", native: "हिंदी", color: "bg-orange-500" },
-  bn: { name: "Bengali", native: "বাংলা", color: "bg-yellow-500" },
-  ta: { name: "Tamil", native: "தமிழ்", color: "bg-green-500" },
-  te: { name: "Telugu", native: "తెలుగు", color: "bg-purple-500" },
-  mr: { name: "Marathi", native: "मराठी", color: "bg-pink-500" },
-  gu: { name: "Gujarati", native: "ગુજરાતી", color: "bg-indigo-500" },
-  kn: { name: "Kannada", native: "ಕನ್ನಡ", color: "bg-red-500" },
-  ml: { name: "Malayalam", native: "മലയാളം", color: "bg-teal-500" },
-  pa: { name: "Punjabi", native: "ਪੰਜਾਬੀ", color: "bg-amber-500" },
-  en: { name: "English", native: "English", color: "bg-blue-500" },
-};
+import { DistrictDrilldown } from "@/components/DistrictDrilldown";
+import { StateFlagBadge } from "@/components/StateFlagBadge";
+import { 
+  getStateConfig, 
+  getLanguageConfig, 
+  LANGUAGE_CONFIG,
+  type StateConfig 
+} from "@/lib/india-states-config";
 
 interface Story {
   id: string;
@@ -107,8 +78,8 @@ export default function StatePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  // Get state config
-  const stateConfig = stateId ? STATE_CONFIG[stateId.toLowerCase()] : null;
+  // Get state config from centralized config
+  const stateConfig = stateId ? getStateConfig(stateId) : undefined;
   const stateName = stateConfig?.name || stateId?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "State";
 
   // Fetch stories for this state
@@ -351,12 +322,7 @@ export default function StatePage() {
         {/* State Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <div className={cn(
-              "w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold",
-              stateConfig?.color || "bg-primary"
-            )}>
-              {stateConfig?.code || stateName.slice(0, 2).toUpperCase()}
-            </div>
+            <StateFlagBadge stateId={stateId || ""} size="xl" />
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">{stateName} News</h1>
               <p className="text-muted-foreground flex items-center gap-2">
@@ -550,6 +516,20 @@ export default function StatePage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* District Drilldown */}
+            {stateConfig?.districts && stateConfig.districts.length > 0 && (
+              <DistrictDrilldown
+                stateId={stateId || ""}
+                stateName={stateName}
+                stateCode={stateConfig.code}
+                stateColor={stateConfig.color}
+                districts={stateConfig.districts}
+                stories={stories}
+                onDistrictSelect={setSelectedDistrict}
+                selectedDistrict={selectedDistrict}
+              />
+            )}
+
             {/* Active Feeds */}
             <Card>
               <CardHeader className="pb-3">
