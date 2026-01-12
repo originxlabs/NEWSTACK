@@ -51,6 +51,12 @@ verify_jwt = false
 [functions.send-email]
 verify_jwt = false
 
+[functions.send-otp]
+verify_jwt = false
+
+[functions.verify-otp]
+verify_jwt = false
+
 # Schedule RSS ingestion every 15 minutes for fresher news
 [[cron]]
 name = "ingest-rss-cron"
