@@ -29,7 +29,7 @@ import {
 } from "@/lib/geo-hierarchy";
 import { LocationSearch } from "@/components/world/LocationSearch";
 import { useUserLocation } from "@/hooks/use-user-location";
-import { InteractiveWorldMap } from "@/components/world/InteractiveWorldMap";
+// Removed InteractiveWorldMap import - map removed for cleaner UI
 import { BreadcrumbNav, BreadcrumbItem as NavBreadcrumbItem } from "@/components/BreadcrumbNav";
 import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
 
@@ -816,23 +816,7 @@ export default function World() {
           </div>
         </section>
 
-        {/* Interactive World Map - Only show at world level */}
-        {currentLevel === "world" && (
-          <section className="py-6 bg-muted/5">
-            <div className="container mx-auto max-w-6xl px-4">
-              <InteractiveWorldMap
-                continentStats={stats}
-                onContinentClick={(continentId) => {
-                  const continent = getContinentById(continentId);
-                  if (continent) {
-                    handleDrillDown(continent);
-                  }
-                }}
-                selectedContinent={selectedContinent?.id}
-              />
-            </div>
-          </section>
-        )}
+        {/* Map section removed for cleaner UI */}
 
         {/* Main Content - Clean Layout */}
         <section className="py-8">
