@@ -29,6 +29,7 @@ import { NewsCard, NewsItem } from "@/components/NewsCard";
 import { IngestionPipelineViewer } from "@/components/IngestionPipelineViewer";
 import { ActiveFeedsPanel } from "@/components/ActiveFeedsPanel";
 import { DistrictDrilldown } from "@/components/DistrictDrilldown";
+import { CityDrilldown } from "@/components/CityDrilldown";
 import { StateFlagBadge } from "@/components/StateFlagBadge";
 import { 
   getStateConfig, 
