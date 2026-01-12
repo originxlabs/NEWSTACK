@@ -549,8 +549,13 @@ export default function World() {
       setCurrentLevel("continent");
     } else if (currentLevel === "continent") {
       const country = item as Country;
-      setSelectedCountry(country);
-      setCurrentLevel("country");
+      // Navigate to dedicated country page for India, otherwise use in-page drill-down or country page
+      if (country.code === "IN") {
+        navigate("/india");
+      } else {
+        // Navigate to country page for full dashboard experience
+        navigate(`/world/${country.code.toLowerCase()}`);
+      }
     } else if (currentLevel === "country") {
       const state = item as State;
       setSelectedState(state);

@@ -27,6 +27,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { NewsCard, NewsItem } from "@/components/NewsCard";
 import { BreadcrumbNav, BreadcrumbItem } from "@/components/BreadcrumbNav";
+import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
+import { IngestionPipelineViewer } from "@/components/IngestionPipelineViewer";
 import { 
   GEO_HIERARCHY,
   getCountryByCode,
@@ -252,8 +254,14 @@ export default function CountryPage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <Header />
       
-      <main className="container mx-auto px-4 py-6">
-        {/* Breadcrumb Navigation */}
+      {/* Real-time news indicator */}
+      <RealtimeNewsIndicator 
+        onRefresh={fetchStories} 
+        variant="bar"
+      />
+      
+      {/* Breadcrumb Navigation - Sticky below header */}
+      <div className="container mx-auto px-4">
         <BreadcrumbNav
           items={breadcrumbItems}
           onNavigate={(item, index) => {
@@ -273,8 +281,10 @@ export default function CountryPage() {
               navigate("/world");
             }
           }}
-          className="mb-6"
         />
+      </div>
+      
+      <main className="container mx-auto px-4 py-6 pt-4">
 
         {/* Country Header */}
         <div className="mb-8">
@@ -282,8 +292,11 @@ export default function CountryPage() {
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-4xl">
               {countryFlag}
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">{countryName} News</h1>
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl sm:text-3xl font-bold">{countryName} News</h1>
+                <RealtimeStatusDot />
+              </div>
               <p className="text-muted-foreground flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
                 {continent?.name || "World"} • 
@@ -315,6 +328,12 @@ export default function CountryPage() {
             </Card>
           </div>
         </div>
+
+        {/* Ingestion Pipeline */}
+        <IngestionPipelineViewer 
+          onIngestionComplete={fetchStories}
+          className="mb-6"
+        />
 
         {/* Filters */}
         <Card className="mb-6 p-4">

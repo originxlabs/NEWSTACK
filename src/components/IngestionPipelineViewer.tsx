@@ -21,12 +21,15 @@ import {
   Play,
   ChevronDown,
   ChevronUp,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -78,12 +81,25 @@ export function IngestionPipelineViewer({
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(autoRefreshInterval > 0);
   const [nextRefreshIn, setNextRefreshIn] = useState<number>(autoRefreshInterval / 1000);
   const [isExpanded, setIsExpanded] = useState(!defaultCollapsed);
+  const [isMuted, setIsMuted] = useState(audioFeedback.isMuted);
   const [stats, setStats] = useState({
     feedsProcessed: 0,
     storiesCreated: 0,
     storiesMerged: 0,
     totalDuration: 0,
   });
+
+  // Sync mute state with audioFeedback
+  useEffect(() => {
+    const unsubscribe = audioFeedback.subscribe(() => {
+      setIsMuted(audioFeedback.isMuted);
+    });
+    return unsubscribe;
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    audioFeedback.toggleMute();
+  }, []);
 
   // Reset pipeline to initial state
   const resetPipeline = useCallback(() => {
@@ -324,6 +340,31 @@ export function IngestionPipelineViewer({
                   )}
                 </button>
               )}
+              
+              {/* Sound toggle */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={toggleMute}
+                    className={cn(
+                      "flex items-center justify-center w-8 h-8 rounded-md transition-colors",
+                      isMuted
+                        ? "bg-muted text-muted-foreground hover:bg-muted/80"
+                        : "bg-primary/10 text-primary hover:bg-primary/20"
+                    )}
+                  >
+                    {isMuted ? (
+                      <VolumeX className="w-4 h-4" />
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isMuted ? "Unmute sounds" : "Mute sounds"}</p>
+                </TooltipContent>
+              </Tooltip>
+              
               {isRunning && (
                 <Badge variant="secondary" className="gap-1 text-xs">
                   <Loader2 className="w-3 h-3 animate-spin" />
