@@ -38,6 +38,7 @@ import {
   getLanguageName,
   COUNTRY_LANGUAGES,
   getCountryProvinces,
+  getAdministrativeTerm,
   COUNTRY_PROVINCES,
 } from "@/lib/world-countries-config";
 import {
@@ -707,7 +708,7 @@ export function WorldCountryDashboard({ countryCode, countryName, countryFlag }:
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <Flag className="w-4 h-4 text-primary" />
-                      Provinces/States ({provinces.length})
+                      {getAdministrativeTerm(upperCountryCode).plural} ({provinces.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-1 max-h-[350px] overflow-y-auto">
