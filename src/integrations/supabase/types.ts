@@ -936,6 +936,9 @@ export type Database = {
           last_updated_at: string
           locality: string | null
           normalized_headline: string
+          original_headline: string | null
+          original_language: string | null
+          original_summary: string | null
           primary_source_count: number | null
           source_count: number | null
           state: string | null
@@ -965,6 +968,9 @@ export type Database = {
           last_updated_at?: string
           locality?: string | null
           normalized_headline: string
+          original_headline?: string | null
+          original_language?: string | null
+          original_summary?: string | null
           primary_source_count?: number | null
           source_count?: number | null
           state?: string | null
@@ -994,6 +1000,9 @@ export type Database = {
           last_updated_at?: string
           locality?: string | null
           normalized_headline?: string
+          original_headline?: string | null
+          original_language?: string | null
+          original_summary?: string | null
           primary_source_count?: number | null
           source_count?: number | null
           state?: string | null
