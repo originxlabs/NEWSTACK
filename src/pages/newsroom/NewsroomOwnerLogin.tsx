@@ -29,7 +29,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useOwnerAuditLog } from "@/hooks/use-owner-audit-log";
-import { differenceInDays, formatDistanceToNow } from "date-fns";
+import { differenceInDays } from "date-fns";
+import { PasswordStrengthMeter } from "@/components/newsroom/PasswordStrengthMeter";
 
 type ViewMode = "login" | "password-expired" | "verify-passkey" | "set-password" | "success";
 
@@ -597,6 +598,7 @@ export default function NewsroomOwnerLogin() {
                         )}
                       </Button>
                     </div>
+                    <PasswordStrengthMeter password={password} />
                   </div>
 
                   <div className="space-y-2">
