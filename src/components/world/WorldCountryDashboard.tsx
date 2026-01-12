@@ -40,7 +40,10 @@ import {
   getCountryProvinces,
   getAdministrativeTerm,
   COUNTRY_PROVINCES,
+  getCountryMetadata,
+  COUNTRY_METADATA,
 } from "@/lib/world-countries-config";
+import { WeatherAQIWidget } from "@/components/weather/WeatherAQIWidget";
 import {
   getCountryByCode,
   getContinentById,
@@ -338,35 +341,46 @@ export function WorldCountryDashboard({ countryCode, countryName, countryFlag }:
       />
 
       {/* Country Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-4xl">
-          {countryFlag}
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold">{countryName}</h1>
-            <RealtimeStatusDot />
+      {(() => {
+        const metadata = getCountryMetadata(upperCountryCode);
+        return (
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-4xl">
+              {countryFlag}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl sm:text-3xl font-bold">{countryName}</h1>
+                <RealtimeStatusDot />
+              </div>
+              <p className="text-muted-foreground flex items-center gap-2 flex-wrap text-sm">
+                <span className="flex items-center gap-1">
+                  <Globe2 className="w-4 h-4" />
+                  {metadata?.continent || continent?.name || "World"}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Building2 className="w-4 h-4" />
+                  Capital: {metadata?.capital || "N/A"}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Newspaper className="w-4 h-4" />
+                  {stories.length} stories
+                </span>
+                {countryLanguages.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Languages className="w-4 h-4" />
+                    {countryLanguages.slice(0, 3).map(l => l.nativeName).join(", ")}
+                  </span>
+                )}
+              </p>
+            </div>
+            <AutoRefreshTimer
+              onRefresh={fetchStories}
+              intervalMinutes={5}
+            />
           </div>
-          <p className="text-muted-foreground flex items-center gap-2 flex-wrap">
-            <MapPin className="w-4 h-4" />
-            {continent?.name || "World"}
-            <span className="flex items-center gap-1">
-              <Newspaper className="w-4 h-4" />
-              {stories.length} stories
-            </span>
-            {countryLanguages.length > 0 && (
-              <span className="flex items-center gap-1">
-                <Languages className="w-4 h-4" />
-                {countryLanguages.slice(0, 3).map(l => l.nativeName).join(", ")}
-              </span>
-            )}
-          </p>
-        </div>
-        <AutoRefreshTimer
-          onRefresh={fetchStories}
-          intervalMinutes={5}
-        />
-      </div>
+        );
+      })()}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -699,6 +713,23 @@ export function WorldCountryDashboard({ countryCode, countryName, countryFlag }:
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Weather & AQI for Capital */}
+          {(() => {
+            const metadata = getCountryMetadata(upperCountryCode);
+            if (metadata?.capitalCoordinates) {
+              return (
+                <WeatherAQIWidget
+                  lat={metadata.capitalCoordinates.lat}
+                  lng={metadata.capitalCoordinates.lng}
+                  cityName={metadata.capital}
+                  showAQI={true}
+                  compact={false}
+                />
+              );
+            }
+            return null;
+          })()}
+
           {/* Provinces/States with Flags */}
           {(() => {
             const provinces = getCountryProvinces(upperCountryCode);
@@ -755,13 +786,13 @@ export function WorldCountryDashboard({ countryCode, countryName, countryFlag }:
             return null;
           })()}
 
-          {/* Regions/States from stories */}
+          {/* Regions/States from stories - FILTERED BY COUNTRY */}
           {uniqueStates.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-primary" />
-                  News by Region ({uniqueStates.length})
+                  {countryName} Regions ({uniqueStates.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1 max-h-[300px] overflow-y-auto">
@@ -787,13 +818,13 @@ export function WorldCountryDashboard({ countryCode, countryName, countryFlag }:
             </Card>
           )}
 
-          {/* Cities */}
+          {/* Cities - FILTERED BY COUNTRY */}
           {uniqueCities.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-primary" />
-                  Cities ({uniqueCities.length})
+                  {countryName} Cities ({uniqueCities.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1 max-h-[250px] overflow-y-auto">

@@ -891,6 +891,565 @@ export const COUNTRY_PROVINCES: Record<string, ProvinceConfig[]> = {
       population: 4906210,
       area: 18399
     }
+  ],
+
+  // Mexico - Estados (States)
+  MX: [
+    {
+      id: "mexico-city",
+      name: "Mexico City (CDMX)",
+      capital: "Mexico City",
+      capitalCoordinates: { lat: 19.4326, lng: -99.1332 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "es",
+      majorCities: ["Mexico City", "Iztapalapa", "Ecatepec", "Gustavo A. Madero"],
+      population: 21804515,
+      area: 1485
+    },
+    {
+      id: "jalisco",
+      name: "Jalisco",
+      capital: "Guadalajara",
+      capitalCoordinates: { lat: 20.6597, lng: -103.3496 },
+      flag: "🌮",
+      flagEmoji: "🌮",
+      language: "es",
+      majorCities: ["Guadalajara", "Zapopan", "Tlaquepaque", "Tonalá", "Puerto Vallarta"],
+      population: 8348151,
+      area: 78599
+    },
+    {
+      id: "nuevo-leon",
+      name: "Nuevo León",
+      capital: "Monterrey",
+      capitalCoordinates: { lat: 25.6866, lng: -100.3161 },
+      flag: "🏭",
+      flagEmoji: "🏭",
+      language: "es",
+      majorCities: ["Monterrey", "Guadalupe", "San Nicolás", "Apodaca", "Santa Catarina"],
+      population: 5784442,
+      area: 64220
+    },
+    {
+      id: "estado-de-mexico",
+      name: "State of Mexico",
+      capital: "Toluca",
+      capitalCoordinates: { lat: 19.2826, lng: -99.6557 },
+      flag: "🌋",
+      flagEmoji: "🌋",
+      language: "es",
+      majorCities: ["Ecatepec", "Nezahualcóyotl", "Toluca", "Naucalpan", "Tlalnepantla"],
+      population: 16992418,
+      area: 22357
+    },
+    {
+      id: "veracruz",
+      name: "Veracruz",
+      capital: "Xalapa",
+      capitalCoordinates: { lat: 19.5438, lng: -96.9102 },
+      flag: "⚓",
+      flagEmoji: "⚓",
+      language: "es",
+      majorCities: ["Veracruz", "Xalapa", "Coatzacoalcos", "Córdoba", "Boca del Río"],
+      population: 8112505,
+      area: 71820
+    },
+    {
+      id: "puebla",
+      name: "Puebla",
+      capital: "Puebla",
+      capitalCoordinates: { lat: 19.0414, lng: -98.2063 },
+      flag: "🏺",
+      flagEmoji: "🏺",
+      language: "es",
+      majorCities: ["Puebla", "Tehuacán", "San Martín Texmelucan", "Atlixco"],
+      population: 6583278,
+      area: 34306
+    },
+    {
+      id: "quintana-roo",
+      name: "Quintana Roo",
+      capital: "Chetumal",
+      capitalCoordinates: { lat: 18.5001, lng: -88.2965 },
+      flag: "🏖️",
+      flagEmoji: "🏖️",
+      language: "es",
+      majorCities: ["Cancún", "Playa del Carmen", "Chetumal", "Cozumel", "Tulum"],
+      population: 1857985,
+      area: 42361
+    },
+    {
+      id: "yucatan",
+      name: "Yucatán",
+      capital: "Mérida",
+      capitalCoordinates: { lat: 20.9674, lng: -89.5926 },
+      flag: "🦜",
+      flagEmoji: "🦜",
+      language: "es",
+      majorCities: ["Mérida", "Valladolid", "Tizimín", "Progreso"],
+      population: 2320898,
+      area: 39612
+    }
+  ],
+
+  // Indonesia - Provinsi (Provinces)
+  ID: [
+    {
+      id: "jakarta",
+      name: "DKI Jakarta",
+      capital: "Jakarta",
+      capitalCoordinates: { lat: -6.2088, lng: 106.8456 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "id",
+      majorCities: ["Jakarta", "South Jakarta", "East Jakarta", "West Jakarta", "North Jakarta"],
+      population: 10562088,
+      area: 664
+    },
+    {
+      id: "west-java",
+      name: "West Java (Jawa Barat)",
+      capital: "Bandung",
+      capitalCoordinates: { lat: -6.9175, lng: 107.6191 },
+      flag: "🌋",
+      flagEmoji: "🌋",
+      language: "id",
+      languages: ["id", "su"],
+      majorCities: ["Bandung", "Bekasi", "Depok", "Bogor", "Cirebon", "Karawang"],
+      population: 49935858,
+      area: 35377
+    },
+    {
+      id: "east-java",
+      name: "East Java (Jawa Timur)",
+      capital: "Surabaya",
+      capitalCoordinates: { lat: -7.2575, lng: 112.7521 },
+      flag: "🦈",
+      flagEmoji: "🦈",
+      language: "id",
+      languages: ["id", "jv"],
+      majorCities: ["Surabaya", "Malang", "Sidoarjo", "Kediri", "Jember"],
+      population: 40665696,
+      area: 47922
+    },
+    {
+      id: "central-java",
+      name: "Central Java (Jawa Tengah)",
+      capital: "Semarang",
+      capitalCoordinates: { lat: -6.9666, lng: 110.4196 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "id",
+      languages: ["id", "jv"],
+      majorCities: ["Semarang", "Solo", "Surakarta", "Pekalongan", "Magelang"],
+      population: 36516035,
+      area: 32544
+    },
+    {
+      id: "bali",
+      name: "Bali",
+      capital: "Denpasar",
+      capitalCoordinates: { lat: -8.6705, lng: 115.2126 },
+      flag: "🏝️",
+      flagEmoji: "🏝️",
+      language: "id",
+      languages: ["id", "ban"],
+      majorCities: ["Denpasar", "Singaraja", "Ubud", "Kuta", "Sanur"],
+      population: 4317404,
+      area: 5780
+    },
+    {
+      id: "north-sumatra",
+      name: "North Sumatra (Sumatera Utara)",
+      capital: "Medan",
+      capitalCoordinates: { lat: 3.5952, lng: 98.6722 },
+      flag: "🌴",
+      flagEmoji: "🌴",
+      language: "id",
+      majorCities: ["Medan", "Binjai", "Pematangsiantar", "Tanjungbalai"],
+      population: 14799361,
+      area: 72981
+    },
+    {
+      id: "south-sulawesi",
+      name: "South Sulawesi (Sulawesi Selatan)",
+      capital: "Makassar",
+      capitalCoordinates: { lat: -5.1477, lng: 119.4327 },
+      flag: "🌊",
+      flagEmoji: "🌊",
+      language: "id",
+      majorCities: ["Makassar", "Parepare", "Palopo", "Maros"],
+      population: 9073509,
+      area: 46717
+    },
+    {
+      id: "yogyakarta",
+      name: "Yogyakarta (DIY)",
+      capital: "Yogyakarta",
+      capitalCoordinates: { lat: -7.7956, lng: 110.3695 },
+      flag: "👑",
+      flagEmoji: "👑",
+      language: "id",
+      languages: ["id", "jv"],
+      majorCities: ["Yogyakarta", "Sleman", "Bantul"],
+      population: 3842932,
+      area: 3133
+    }
+  ],
+
+  // South Africa - Provinces
+  ZA: [
+    {
+      id: "gauteng",
+      name: "Gauteng",
+      capital: "Johannesburg",
+      capitalCoordinates: { lat: -26.2041, lng: 28.0473 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "en",
+      languages: ["en", "zu", "af", "st"],
+      majorCities: ["Johannesburg", "Pretoria", "Soweto", "Sandton", "Centurion", "Midrand"],
+      population: 15810388,
+      area: 18176
+    },
+    {
+      id: "western-cape",
+      name: "Western Cape",
+      capital: "Cape Town",
+      capitalCoordinates: { lat: -33.9249, lng: 18.4241 },
+      flag: "🏔️",
+      flagEmoji: "🏔️",
+      language: "af",
+      languages: ["af", "en", "xh"],
+      majorCities: ["Cape Town", "Stellenbosch", "Paarl", "George", "Worcester"],
+      population: 7005741,
+      area: 129462
+    },
+    {
+      id: "kwazulu-natal",
+      name: "KwaZulu-Natal",
+      capital: "Pietermaritzburg",
+      capitalCoordinates: { lat: -29.6006, lng: 30.3794 },
+      flag: "🦁",
+      flagEmoji: "🦁",
+      language: "zu",
+      languages: ["zu", "en"],
+      majorCities: ["Durban", "Pietermaritzburg", "Newcastle", "Richards Bay", "Ladysmith"],
+      population: 11513575,
+      area: 94361
+    },
+    {
+      id: "eastern-cape",
+      name: "Eastern Cape",
+      capital: "Bhisho",
+      capitalCoordinates: { lat: -32.8494, lng: 27.4367 },
+      flag: "🌊",
+      flagEmoji: "🌊",
+      language: "xh",
+      languages: ["xh", "af", "en"],
+      majorCities: ["Port Elizabeth", "East London", "Mthatha", "Bhisho"],
+      population: 6734001,
+      area: 168966
+    },
+    {
+      id: "limpopo",
+      name: "Limpopo",
+      capital: "Polokwane",
+      capitalCoordinates: { lat: -23.9045, lng: 29.4689 },
+      flag: "🌿",
+      flagEmoji: "🌿",
+      language: "st",
+      languages: ["st", "tn", "ve", "en"],
+      majorCities: ["Polokwane", "Tzaneen", "Mokopane", "Thohoyandou"],
+      population: 5982584,
+      area: 125754
+    },
+    {
+      id: "mpumalanga",
+      name: "Mpumalanga",
+      capital: "Mbombela",
+      capitalCoordinates: { lat: -25.4753, lng: 30.9694 },
+      flag: "🌄",
+      flagEmoji: "🌄",
+      language: "ss",
+      languages: ["ss", "zu", "en"],
+      majorCities: ["Mbombela", "Secunda", "Witbank", "Middelburg"],
+      population: 4679786,
+      area: 76495
+    },
+    {
+      id: "free-state",
+      name: "Free State",
+      capital: "Bloemfontein",
+      capitalCoordinates: { lat: -29.0852, lng: 26.1596 },
+      flag: "🌻",
+      flagEmoji: "🌻",
+      language: "st",
+      languages: ["st", "af", "en"],
+      majorCities: ["Bloemfontein", "Welkom", "Bethlehem", "Kroonstad"],
+      population: 2928903,
+      area: 129825
+    },
+    {
+      id: "north-west",
+      name: "North West",
+      capital: "Mahikeng",
+      capitalCoordinates: { lat: -25.8652, lng: 25.6444 },
+      flag: "⛏️",
+      flagEmoji: "⛏️",
+      language: "tn",
+      languages: ["tn", "af", "en"],
+      majorCities: ["Rustenburg", "Mahikeng", "Klerksdorp", "Potchefstroom"],
+      population: 4108816,
+      area: 104882
+    },
+    {
+      id: "northern-cape",
+      name: "Northern Cape",
+      capital: "Kimberley",
+      capitalCoordinates: { lat: -28.7282, lng: 24.7499 },
+      flag: "💎",
+      flagEmoji: "💎",
+      language: "af",
+      languages: ["af", "en", "tn"],
+      majorCities: ["Kimberley", "Upington", "Springbok", "De Aar"],
+      population: 1292786,
+      area: 372889
+    }
+  ],
+
+  // Turkey - İller (Provinces) / Bölgeler (Regions)
+  TR: [
+    {
+      id: "istanbul",
+      name: "Istanbul (İstanbul)",
+      capital: "Istanbul",
+      capitalCoordinates: { lat: 41.0082, lng: 28.9784 },
+      flag: "🕌",
+      flagEmoji: "🕌",
+      language: "tr",
+      majorCities: ["Istanbul", "Kadıköy", "Üsküdar", "Beşiktaş", "Fatih", "Bakırköy"],
+      population: 15840900,
+      area: 5343
+    },
+    {
+      id: "ankara",
+      name: "Ankara",
+      capital: "Ankara",
+      capitalCoordinates: { lat: 39.9334, lng: 32.8597 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "tr",
+      majorCities: ["Ankara", "Çankaya", "Keçiören", "Yenimahalle", "Mamak"],
+      population: 5747325,
+      area: 25632
+    },
+    {
+      id: "izmir",
+      name: "Izmir (İzmir)",
+      capital: "Izmir",
+      capitalCoordinates: { lat: 38.4192, lng: 27.1287 },
+      flag: "⚓",
+      flagEmoji: "⚓",
+      language: "tr",
+      majorCities: ["Izmir", "Konak", "Karşıyaka", "Bornova", "Buca"],
+      population: 4425789,
+      area: 12012
+    },
+    {
+      id: "antalya",
+      name: "Antalya",
+      capital: "Antalya",
+      capitalCoordinates: { lat: 36.8969, lng: 30.7133 },
+      flag: "🏖️",
+      flagEmoji: "🏖️",
+      language: "tr",
+      majorCities: ["Antalya", "Alanya", "Manavgat", "Serik", "Kemer"],
+      population: 2619832,
+      area: 20177
+    },
+    {
+      id: "bursa",
+      name: "Bursa",
+      capital: "Bursa",
+      capitalCoordinates: { lat: 40.1885, lng: 29.0610 },
+      flag: "🏔️",
+      flagEmoji: "🏔️",
+      language: "tr",
+      majorCities: ["Bursa", "Nilüfer", "Osmangazi", "İnegöl", "Yıldırım"],
+      population: 3147818,
+      area: 10813
+    },
+    {
+      id: "adana",
+      name: "Adana",
+      capital: "Adana",
+      capitalCoordinates: { lat: 37.0017, lng: 35.3289 },
+      flag: "🌾",
+      flagEmoji: "🌾",
+      language: "tr",
+      majorCities: ["Adana", "Seyhan", "Yüreğir", "Çukurova", "Ceyhan"],
+      population: 2274106,
+      area: 13844
+    },
+    {
+      id: "konya",
+      name: "Konya",
+      capital: "Konya",
+      capitalCoordinates: { lat: 37.8746, lng: 32.4932 },
+      flag: "🌀",
+      flagEmoji: "🌀",
+      language: "tr",
+      majorCities: ["Konya", "Selçuklu", "Meram", "Karatay", "Ereğli"],
+      population: 2296347,
+      area: 41001
+    },
+    {
+      id: "gaziantep",
+      name: "Gaziantep",
+      capital: "Gaziantep",
+      capitalCoordinates: { lat: 37.0662, lng: 37.3833 },
+      flag: "🥙",
+      flagEmoji: "🥙",
+      language: "tr",
+      majorCities: ["Gaziantep", "Şahinbey", "Şehitkamil", "Nizip"],
+      population: 2130432,
+      area: 6887
+    }
+  ],
+
+  // India - States (adding here for completeness)
+  IN: [
+    {
+      id: "maharashtra",
+      name: "Maharashtra",
+      capital: "Mumbai",
+      capitalCoordinates: { lat: 19.0760, lng: 72.8777 },
+      flag: "🏙️",
+      flagEmoji: "🏙️",
+      language: "mr",
+      languages: ["mr", "hi", "en"],
+      majorCities: ["Mumbai", "Pune", "Nagpur", "Nashik", "Thane", "Aurangabad"],
+      population: 123144223,
+      area: 307713
+    },
+    {
+      id: "karnataka",
+      name: "Karnataka",
+      capital: "Bengaluru",
+      capitalCoordinates: { lat: 12.9716, lng: 77.5946 },
+      flag: "🐘",
+      flagEmoji: "🐘",
+      language: "kn",
+      languages: ["kn", "en"],
+      majorCities: ["Bengaluru", "Mysuru", "Mangaluru", "Hubli", "Belgaum"],
+      population: 67562686,
+      area: 191791
+    },
+    {
+      id: "tamil-nadu",
+      name: "Tamil Nadu",
+      capital: "Chennai",
+      capitalCoordinates: { lat: 13.0827, lng: 80.2707 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "ta",
+      languages: ["ta", "en"],
+      majorCities: ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem"],
+      population: 77841267,
+      area: 130058
+    },
+    {
+      id: "uttar-pradesh",
+      name: "Uttar Pradesh",
+      capital: "Lucknow",
+      capitalCoordinates: { lat: 26.8467, lng: 80.9462 },
+      flag: "🕌",
+      flagEmoji: "🕌",
+      language: "hi",
+      languages: ["hi", "ur"],
+      majorCities: ["Lucknow", "Kanpur", "Varanasi", "Agra", "Noida", "Allahabad"],
+      population: 231502578,
+      area: 240928
+    },
+    {
+      id: "west-bengal",
+      name: "West Bengal",
+      capital: "Kolkata",
+      capitalCoordinates: { lat: 22.5726, lng: 88.3639 },
+      flag: "🌸",
+      flagEmoji: "🌸",
+      language: "bn",
+      languages: ["bn", "en"],
+      majorCities: ["Kolkata", "Howrah", "Durgapur", "Asansol", "Siliguri"],
+      population: 99609303,
+      area: 88752
+    },
+    {
+      id: "gujarat",
+      name: "Gujarat",
+      capital: "Gandhinagar",
+      capitalCoordinates: { lat: 23.2156, lng: 72.6369 },
+      flag: "🦁",
+      flagEmoji: "🦁",
+      language: "gu",
+      languages: ["gu", "hi", "en"],
+      majorCities: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"],
+      population: 63872399,
+      area: 196024
+    },
+    {
+      id: "rajasthan",
+      name: "Rajasthan",
+      capital: "Jaipur",
+      capitalCoordinates: { lat: 26.9124, lng: 75.7873 },
+      flag: "🏰",
+      flagEmoji: "🏰",
+      language: "hi",
+      majorCities: ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Bikaner"],
+      population: 79502477,
+      area: 342239
+    },
+    {
+      id: "kerala",
+      name: "Kerala",
+      capital: "Thiruvananthapuram",
+      capitalCoordinates: { lat: 8.5241, lng: 76.9366 },
+      flag: "🌴",
+      flagEmoji: "🌴",
+      language: "ml",
+      languages: ["ml", "en"],
+      majorCities: ["Thiruvananthapuram", "Kochi", "Kozhikode", "Thrissur", "Kollam"],
+      population: 35699443,
+      area: 38863
+    },
+    {
+      id: "delhi",
+      name: "Delhi",
+      capital: "New Delhi",
+      capitalCoordinates: { lat: 28.6139, lng: 77.2090 },
+      flag: "🏛️",
+      flagEmoji: "🏛️",
+      language: "hi",
+      languages: ["hi", "en", "pa", "ur"],
+      majorCities: ["New Delhi", "Delhi", "Dwarka", "Rohini"],
+      population: 18710922,
+      area: 1484
+    },
+    {
+      id: "goa",
+      name: "Goa",
+      capital: "Panaji",
+      capitalCoordinates: { lat: 15.4909, lng: 73.8278 },
+      flag: "🏖️",
+      flagEmoji: "🏖️",
+      language: "kok",
+      languages: ["kok", "mr", "en"],
+      majorCities: ["Panaji", "Margao", "Vasco da Gama", "Mapusa"],
+      population: 1586250,
+      area: 3702
+    }
   ]
 };
 
@@ -911,6 +1470,7 @@ export const ADMINISTRATIVE_TERMS: Record<string, { singular: string; plural: st
   PK: { singular: "Province", plural: "Provinces" },
   ZA: { singular: "Province", plural: "Provinces" },
   AR: { singular: "Provincia", plural: "Provincias" },
+  ID: { singular: "Provinsi", plural: "Provinsi" },
   
   // Countries with Regions/Departments
   FR: { singular: "Région", plural: "Régions", subDivision: "Département" },
@@ -932,9 +1492,570 @@ export const ADMINISTRATIVE_TERMS: Record<string, { singular: string; plural: st
   // Countries with Do/Special Cities
   KR: { singular: "Province/City", plural: "Provinces & Cities" },
   
+  // Countries with İller (Provinces)
+  TR: { singular: "İl", plural: "İller" },
+  
   // Default fallback
   DEFAULT: { singular: "Region", plural: "Regions" }
 };
+
+// Country metadata with capital, continent, and key info
+export interface CountryMetadata {
+  code: string;
+  name: string;
+  flag: string;
+  capital: string;
+  capitalCoordinates: { lat: number; lng: number };
+  continent: string;
+  continentCode: string;
+  population?: number;
+  area?: number; // km²
+  currency?: string;
+  currencySymbol?: string;
+  callingCode?: string;
+  drivingSide?: "left" | "right";
+  timezone?: string;
+}
+
+export const COUNTRY_METADATA: Record<string, CountryMetadata> = {
+  US: {
+    code: "US",
+    name: "United States",
+    flag: "🇺🇸",
+    capital: "Washington, D.C.",
+    capitalCoordinates: { lat: 38.9072, lng: -77.0369 },
+    continent: "North America",
+    continentCode: "NA",
+    population: 331002651,
+    currency: "USD",
+    currencySymbol: "$",
+    callingCode: "+1",
+    drivingSide: "right"
+  },
+  GB: {
+    code: "GB",
+    name: "United Kingdom",
+    flag: "🇬🇧",
+    capital: "London",
+    capitalCoordinates: { lat: 51.5074, lng: -0.1278 },
+    continent: "Europe",
+    continentCode: "EU",
+    population: 67886011,
+    currency: "GBP",
+    currencySymbol: "£",
+    callingCode: "+44",
+    drivingSide: "left"
+  },
+  DE: {
+    code: "DE",
+    name: "Germany",
+    flag: "🇩🇪",
+    capital: "Berlin",
+    capitalCoordinates: { lat: 52.5200, lng: 13.4050 },
+    continent: "Europe",
+    continentCode: "EU",
+    population: 83783942,
+    currency: "EUR",
+    currencySymbol: "€",
+    callingCode: "+49",
+    drivingSide: "right"
+  },
+  FR: {
+    code: "FR",
+    name: "France",
+    flag: "🇫🇷",
+    capital: "Paris",
+    capitalCoordinates: { lat: 48.8566, lng: 2.3522 },
+    continent: "Europe",
+    continentCode: "EU",
+    population: 65273511,
+    currency: "EUR",
+    currencySymbol: "€",
+    callingCode: "+33",
+    drivingSide: "right"
+  },
+  JP: {
+    code: "JP",
+    name: "Japan",
+    flag: "🇯🇵",
+    capital: "Tokyo",
+    capitalCoordinates: { lat: 35.6762, lng: 139.6503 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 126476461,
+    currency: "JPY",
+    currencySymbol: "¥",
+    callingCode: "+81",
+    drivingSide: "left"
+  },
+  CN: {
+    code: "CN",
+    name: "China",
+    flag: "🇨🇳",
+    capital: "Beijing",
+    capitalCoordinates: { lat: 39.9042, lng: 116.4074 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 1439323776,
+    currency: "CNY",
+    currencySymbol: "¥",
+    callingCode: "+86",
+    drivingSide: "right"
+  },
+  IN: {
+    code: "IN",
+    name: "India",
+    flag: "🇮🇳",
+    capital: "New Delhi",
+    capitalCoordinates: { lat: 28.6139, lng: 77.2090 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 1380004385,
+    currency: "INR",
+    currencySymbol: "₹",
+    callingCode: "+91",
+    drivingSide: "left"
+  },
+  AU: {
+    code: "AU",
+    name: "Australia",
+    flag: "🇦🇺",
+    capital: "Canberra",
+    capitalCoordinates: { lat: -35.2809, lng: 149.1300 },
+    continent: "Oceania",
+    continentCode: "OC",
+    population: 25499884,
+    currency: "AUD",
+    currencySymbol: "$",
+    callingCode: "+61",
+    drivingSide: "left"
+  },
+  CA: {
+    code: "CA",
+    name: "Canada",
+    flag: "🇨🇦",
+    capital: "Ottawa",
+    capitalCoordinates: { lat: 45.4215, lng: -75.6972 },
+    continent: "North America",
+    continentCode: "NA",
+    population: 37742154,
+    currency: "CAD",
+    currencySymbol: "$",
+    callingCode: "+1",
+    drivingSide: "right"
+  },
+  BR: {
+    code: "BR",
+    name: "Brazil",
+    flag: "🇧🇷",
+    capital: "Brasília",
+    capitalCoordinates: { lat: -15.8267, lng: -47.9218 },
+    continent: "South America",
+    continentCode: "SA",
+    population: 212559417,
+    currency: "BRL",
+    currencySymbol: "R$",
+    callingCode: "+55",
+    drivingSide: "right"
+  },
+  RU: {
+    code: "RU",
+    name: "Russia",
+    flag: "🇷🇺",
+    capital: "Moscow",
+    capitalCoordinates: { lat: 55.7558, lng: 37.6173 },
+    continent: "Europe/Asia",
+    continentCode: "EU",
+    population: 145934462,
+    currency: "RUB",
+    currencySymbol: "₽",
+    callingCode: "+7",
+    drivingSide: "right"
+  },
+  MX: {
+    code: "MX",
+    name: "Mexico",
+    flag: "🇲🇽",
+    capital: "Mexico City",
+    capitalCoordinates: { lat: 19.4326, lng: -99.1332 },
+    continent: "North America",
+    continentCode: "NA",
+    population: 128932753,
+    currency: "MXN",
+    currencySymbol: "$",
+    callingCode: "+52",
+    drivingSide: "right"
+  },
+  ID: {
+    code: "ID",
+    name: "Indonesia",
+    flag: "🇮🇩",
+    capital: "Jakarta",
+    capitalCoordinates: { lat: -6.2088, lng: 106.8456 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 273523615,
+    currency: "IDR",
+    currencySymbol: "Rp",
+    callingCode: "+62",
+    drivingSide: "left"
+  },
+  ZA: {
+    code: "ZA",
+    name: "South Africa",
+    flag: "🇿🇦",
+    capital: "Pretoria",
+    capitalCoordinates: { lat: -25.7461, lng: 28.1881 },
+    continent: "Africa",
+    continentCode: "AF",
+    population: 59308690,
+    currency: "ZAR",
+    currencySymbol: "R",
+    callingCode: "+27",
+    drivingSide: "left"
+  },
+  TR: {
+    code: "TR",
+    name: "Turkey",
+    flag: "🇹🇷",
+    capital: "Ankara",
+    capitalCoordinates: { lat: 39.9334, lng: 32.8597 },
+    continent: "Europe/Asia",
+    continentCode: "AS",
+    population: 84339067,
+    currency: "TRY",
+    currencySymbol: "₺",
+    callingCode: "+90",
+    drivingSide: "right"
+  },
+  KR: {
+    code: "KR",
+    name: "South Korea",
+    flag: "🇰🇷",
+    capital: "Seoul",
+    capitalCoordinates: { lat: 37.5665, lng: 126.9780 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 51780579,
+    currency: "KRW",
+    currencySymbol: "₩",
+    callingCode: "+82",
+    drivingSide: "right"
+  },
+  ES: {
+    code: "ES",
+    name: "Spain",
+    flag: "🇪🇸",
+    capital: "Madrid",
+    capitalCoordinates: { lat: 40.4168, lng: -3.7038 },
+    continent: "Europe",
+    continentCode: "EU",
+    population: 46754778,
+    currency: "EUR",
+    currencySymbol: "€",
+    callingCode: "+34",
+    drivingSide: "right"
+  },
+  IT: {
+    code: "IT",
+    name: "Italy",
+    flag: "🇮🇹",
+    capital: "Rome",
+    capitalCoordinates: { lat: 41.9028, lng: 12.4964 },
+    continent: "Europe",
+    continentCode: "EU",
+    population: 60461826,
+    currency: "EUR",
+    currencySymbol: "€",
+    callingCode: "+39",
+    drivingSide: "right"
+  },
+  SA: {
+    code: "SA",
+    name: "Saudi Arabia",
+    flag: "🇸🇦",
+    capital: "Riyadh",
+    capitalCoordinates: { lat: 24.7136, lng: 46.6753 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 34813871,
+    currency: "SAR",
+    currencySymbol: "﷼",
+    callingCode: "+966",
+    drivingSide: "right"
+  },
+  AE: {
+    code: "AE",
+    name: "United Arab Emirates",
+    flag: "🇦🇪",
+    capital: "Abu Dhabi",
+    capitalCoordinates: { lat: 24.4539, lng: 54.3773 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 9890402,
+    currency: "AED",
+    currencySymbol: "د.إ",
+    callingCode: "+971",
+    drivingSide: "right"
+  },
+  SG: {
+    code: "SG",
+    name: "Singapore",
+    flag: "🇸🇬",
+    capital: "Singapore",
+    capitalCoordinates: { lat: 1.3521, lng: 103.8198 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 5850342,
+    currency: "SGD",
+    currencySymbol: "$",
+    callingCode: "+65",
+    drivingSide: "left"
+  },
+  TH: {
+    code: "TH",
+    name: "Thailand",
+    flag: "🇹🇭",
+    capital: "Bangkok",
+    capitalCoordinates: { lat: 13.7563, lng: 100.5018 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 69799978,
+    currency: "THB",
+    currencySymbol: "฿",
+    callingCode: "+66",
+    drivingSide: "left"
+  },
+  MY: {
+    code: "MY",
+    name: "Malaysia",
+    flag: "🇲🇾",
+    capital: "Kuala Lumpur",
+    capitalCoordinates: { lat: 3.1390, lng: 101.6869 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 32365999,
+    currency: "MYR",
+    currencySymbol: "RM",
+    callingCode: "+60",
+    drivingSide: "left"
+  },
+  PH: {
+    code: "PH",
+    name: "Philippines",
+    flag: "🇵🇭",
+    capital: "Manila",
+    capitalCoordinates: { lat: 14.5995, lng: 120.9842 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 109581078,
+    currency: "PHP",
+    currencySymbol: "₱",
+    callingCode: "+63",
+    drivingSide: "right"
+  },
+  VN: {
+    code: "VN",
+    name: "Vietnam",
+    flag: "🇻🇳",
+    capital: "Hanoi",
+    capitalCoordinates: { lat: 21.0278, lng: 105.8342 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 97338579,
+    currency: "VND",
+    currencySymbol: "₫",
+    callingCode: "+84",
+    drivingSide: "right"
+  },
+  NG: {
+    code: "NG",
+    name: "Nigeria",
+    flag: "🇳🇬",
+    capital: "Abuja",
+    capitalCoordinates: { lat: 9.0765, lng: 7.3986 },
+    continent: "Africa",
+    continentCode: "AF",
+    population: 206139589,
+    currency: "NGN",
+    currencySymbol: "₦",
+    callingCode: "+234",
+    drivingSide: "right"
+  },
+  EG: {
+    code: "EG",
+    name: "Egypt",
+    flag: "🇪🇬",
+    capital: "Cairo",
+    capitalCoordinates: { lat: 30.0444, lng: 31.2357 },
+    continent: "Africa",
+    continentCode: "AF",
+    population: 102334404,
+    currency: "EGP",
+    currencySymbol: "£",
+    callingCode: "+20",
+    drivingSide: "right"
+  },
+  PK: {
+    code: "PK",
+    name: "Pakistan",
+    flag: "🇵🇰",
+    capital: "Islamabad",
+    capitalCoordinates: { lat: 33.6844, lng: 73.0479 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 220892340,
+    currency: "PKR",
+    currencySymbol: "₨",
+    callingCode: "+92",
+    drivingSide: "left"
+  },
+  BD: {
+    code: "BD",
+    name: "Bangladesh",
+    flag: "🇧🇩",
+    capital: "Dhaka",
+    capitalCoordinates: { lat: 23.8103, lng: 90.4125 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 164689383,
+    currency: "BDT",
+    currencySymbol: "৳",
+    callingCode: "+880",
+    drivingSide: "left"
+  },
+  NL: {
+    code: "NL",
+    name: "Netherlands",
+    flag: "🇳🇱",
+    capital: "Amsterdam",
+    capitalCoordinates: { lat: 52.3676, lng: 4.9041 },
+    continent: "Europe",
+    continentCode: "EU",
+    population: 17134872,
+    currency: "EUR",
+    currencySymbol: "€",
+    callingCode: "+31",
+    drivingSide: "right"
+  },
+  PL: {
+    code: "PL",
+    name: "Poland",
+    flag: "🇵🇱",
+    capital: "Warsaw",
+    capitalCoordinates: { lat: 52.2297, lng: 21.0122 },
+    continent: "Europe",
+    continentCode: "EU",
+    population: 37846611,
+    currency: "PLN",
+    currencySymbol: "zł",
+    callingCode: "+48",
+    drivingSide: "right"
+  },
+  UA: {
+    code: "UA",
+    name: "Ukraine",
+    flag: "🇺🇦",
+    capital: "Kyiv",
+    capitalCoordinates: { lat: 50.4501, lng: 30.5234 },
+    continent: "Europe",
+    continentCode: "EU",
+    population: 43733762,
+    currency: "UAH",
+    currencySymbol: "₴",
+    callingCode: "+380",
+    drivingSide: "right"
+  },
+  SE: {
+    code: "SE",
+    name: "Sweden",
+    flag: "🇸🇪",
+    capital: "Stockholm",
+    capitalCoordinates: { lat: 59.3293, lng: 18.0686 },
+    continent: "Europe",
+    continentCode: "EU",
+    population: 10099265,
+    currency: "SEK",
+    currencySymbol: "kr",
+    callingCode: "+46",
+    drivingSide: "right"
+  },
+  NO: {
+    code: "NO",
+    name: "Norway",
+    flag: "🇳🇴",
+    capital: "Oslo",
+    capitalCoordinates: { lat: 59.9139, lng: 10.7522 },
+    continent: "Europe",
+    continentCode: "EU",
+    population: 5421241,
+    currency: "NOK",
+    currencySymbol: "kr",
+    callingCode: "+47",
+    drivingSide: "right"
+  },
+  DK: {
+    code: "DK",
+    name: "Denmark",
+    flag: "🇩🇰",
+    capital: "Copenhagen",
+    capitalCoordinates: { lat: 55.6761, lng: 12.5683 },
+    continent: "Europe",
+    continentCode: "EU",
+    population: 5792202,
+    currency: "DKK",
+    currencySymbol: "kr",
+    callingCode: "+45",
+    drivingSide: "right"
+  },
+  FI: {
+    code: "FI",
+    name: "Finland",
+    flag: "🇫🇮",
+    capital: "Helsinki",
+    capitalCoordinates: { lat: 60.1699, lng: 24.9384 },
+    continent: "Europe",
+    continentCode: "EU",
+    population: 5540720,
+    currency: "EUR",
+    currencySymbol: "€",
+    callingCode: "+358",
+    drivingSide: "right"
+  },
+  IL: {
+    code: "IL",
+    name: "Israel",
+    flag: "🇮🇱",
+    capital: "Jerusalem",
+    capitalCoordinates: { lat: 31.7683, lng: 35.2137 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 8655535,
+    currency: "ILS",
+    currencySymbol: "₪",
+    callingCode: "+972",
+    drivingSide: "right"
+  },
+  QA: {
+    code: "QA",
+    name: "Qatar",
+    flag: "🇶🇦",
+    capital: "Doha",
+    capitalCoordinates: { lat: 25.2854, lng: 51.5310 },
+    continent: "Asia",
+    continentCode: "AS",
+    population: 2881053,
+    currency: "QAR",
+    currencySymbol: "﷼",
+    callingCode: "+974",
+    drivingSide: "right"
+  }
+};
+
+// Get country metadata
+export function getCountryMetadata(countryCode: string): CountryMetadata | undefined {
+  return COUNTRY_METADATA[countryCode.toUpperCase()];
+}
 
 // Get administrative term for a country
 export function getAdministrativeTerm(countryCode: string): { singular: string; plural: string; subDivision?: string } {
