@@ -32,6 +32,7 @@ import { DistrictDrilldown } from "@/components/DistrictDrilldown";
 import { CityDrilldown } from "@/components/CityDrilldown";
 import { StateFlagBadge } from "@/components/StateFlagBadge";
 import { BreadcrumbNav, BreadcrumbItem } from "@/components/BreadcrumbNav";
+import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
 import { 
   getStateConfig, 
   getLanguageConfig, 
@@ -93,10 +94,24 @@ export default function StatePage() {
       const cutoff = new Date();
       cutoff.setHours(cutoff.getHours() - 72); // Last 72 hours
 
-      // Build query based on state name patterns
+      // Build proper OR filter for state matching
+      // State names in DB: "Delhi", "Odisha", "Karnataka", etc.
       const stateNameNormalized = stateName.toLowerCase();
       
-      let query = supabase
+      // Build combined OR filter for state AND city matching
+      const filters: string[] = [
+        `state.ilike.%${stateNameNormalized}%`,
+        `city.ilike.%${stateNameNormalized}%`
+      ];
+      
+      // Add city-specific filters from config
+      if (stateConfig?.cities) {
+        stateConfig.cities.forEach(city => {
+          filters.push(`city.ilike.%${city}%`);
+        });
+      }
+
+      const { data, error } = await supabase
         .from("stories")
         .select(`
           id,
@@ -116,21 +131,9 @@ export default function StatePage() {
         `)
         .eq("country_code", "IN")
         .gte("first_published_at", cutoff.toISOString())
+        .or(filters.join(","))
         .order("first_published_at", { ascending: false })
         .limit(100);
-
-      // Filter by state name
-      query = query.or(`state.ilike.%${stateNameNormalized}%,city.ilike.%${stateNameNormalized}%`);
-
-      // Also match cities if state config exists
-      if (stateConfig?.cities) {
-        const cityFilters = stateConfig.cities
-          .map(city => `city.ilike.%${city}%`)
-          .join(",");
-        query = query.or(cityFilters);
-      }
-
-      const { data, error } = await query;
 
       if (error) throw error;
       setStories(data || []);
@@ -309,6 +312,12 @@ export default function StatePage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <Header />
       
+      {/* Real-time news indicator */}
+      <RealtimeNewsIndicator 
+        onRefresh={fetchStories} 
+        variant="bar"
+      />
+      
       <main className="container mx-auto px-4 py-6">
         {/* Breadcrumb Navigation */}
         <BreadcrumbNav
@@ -343,11 +352,17 @@ export default function StatePage() {
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             <StateFlagBadge stateId={stateId || ""} size="xl" />
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">{stateName} News</h1>
-              <p className="text-muted-foreground flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                {stateConfig?.capital || "Capital"} • 
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl sm:text-3xl font-bold">{stateName} News</h1>
+                <RealtimeStatusDot />
+              </div>
+              <p className="text-muted-foreground flex items-center gap-2 flex-wrap">
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  {stateConfig?.capital || "Capital"}
+                </span>
+                <span>•</span>
                 <span className="flex items-center gap-1">
                   <Languages className="w-4 h-4" />
                   {langConfig?.native || "Regional"} first
