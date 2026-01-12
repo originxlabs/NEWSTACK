@@ -271,18 +271,29 @@ serve(async (req) => {
 
     // Apply geographic filters in order of specificity: locality > city > state > country > region
     // This implements the drill-down from World page: Continent → Country → State → City → Locality
+    // IMPORTANT: For state/city/locality, we include country-level fallback to ensure news is always shown
     
-    if (locality) {
-      // Locality filter - search in city field as localities are often stored as part of city
+    if (locality && country) {
+      // Locality filter - search in city field OR fall back to country news
+      // Use OR to include both locality-specific and country-level stories
+      query = query.or(`city.ilike.%${locality}%,and(country_code.eq.${country.toUpperCase()},city.is.null)`);
+      console.log(`Filtering by locality: ${locality} (with country fallback: ${country})`);
+    } else if (locality) {
       query = query.ilike("city", `%${locality}%`);
       console.log(`Filtering by locality: ${locality}`);
+    } else if (city && country) {
+      // City filter - include city matches OR country-level stories without city
+      query = query.or(`city.ilike.%${city}%,and(country_code.eq.${country.toUpperCase()},city.is.null)`);
+      console.log(`Filtering by city: ${city} (with country fallback: ${country})`);
     } else if (city) {
-      // City filter - exact or partial match
       query = query.ilike("city", `%${city}%`);
       console.log(`Filtering by city: ${city}`);
+    } else if (state && country) {
+      // State filter - search in city field (states often stored there) OR include country-level stories
+      const stateSearchTerm = state.replace(/-/g, ' ').replace(/_/g, ' ');
+      query = query.or(`city.ilike.%${stateSearchTerm}%,and(country_code.eq.${country.toUpperCase()},city.is.null)`);
+      console.log(`Filtering by state: ${state} (with country fallback: ${country})`);
     } else if (state) {
-      // State filter - search in city field as states might be mentioned there
-      // Many Indian stories have state names in the city field
       const stateSearchTerm = state.replace(/-/g, ' ').replace(/_/g, ' ');
       query = query.ilike("city", `%${stateSearchTerm}%`);
       console.log(`Filtering by state: ${state}`);

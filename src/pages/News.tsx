@@ -193,8 +193,11 @@ export default function News() {
   // Realtime subscription for live updates
   const { newStories, isConnected, refresh: realtimeRefresh, resetNewCount } = useRealtimeStories();
 
+  // Ensure country is always passed when filtering by state/city/locality for proper fallback
+  const effectiveCountry = countryFilter || country?.code;
+  
   const queryParams = useMemo(() => ({
-    country: countryFilter || country?.code,
+    country: effectiveCountry,
     language: language?.code === "en" ? "eng" : language?.code,
     topic: selectedCategory === "all" ? undefined : selectedCategory,
     region: regionFilter || undefined,
@@ -203,7 +206,7 @@ export default function News() {
     locality: localityFilter || undefined,
     pageSize: 500, // Load all available stories for comprehensive clustering
     feedType: "recent" as const,
-  }), [country?.code, language?.code, selectedCategory, regionFilter, countryFilter, stateFilter, cityFilter, localityFilter]);
+  }), [effectiveCountry, language?.code, selectedCategory, regionFilter, stateFilter, cityFilter, localityFilter]);
 
   const {
     data,
