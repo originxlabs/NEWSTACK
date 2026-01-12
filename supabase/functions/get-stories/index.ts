@@ -273,44 +273,78 @@ serve(async (req) => {
     // This implements the drill-down from World page: Continent → Country → State → City → Locality
     // IMPORTANT: Show ONLY location-specific stories first; if none exist, then show country-level
     
-    let locationFilter = null;
-    let locationName = "";
+    // Apply geographic filters with proper column mapping
+    // Hierarchy: locality > city > state > country > region
     
-    if (locality) {
-      locationFilter = locality;
-      locationName = `locality: ${locality}`;
-    } else if (city) {
-      locationFilter = city;
-      locationName = `city: ${city}`;
-    } else if (state) {
-      locationFilter = state.replace(/-/g, ' ').replace(/_/g, ' ');
-      locationName = `state: ${state}`;
-    }
-    
-    if (locationFilter && country) {
-      // First, try to get location-specific stories only
-      const { count: specificCount } = await supabase
+    if (locality && country) {
+      // Locality filter - check locality column first, fallback to city
+      const { count: localityCount } = await supabase
         .from("stories")
         .select("*", { count: "exact", head: true })
         .eq("country_code", country.toUpperCase())
-        .ilike("city", `%${locationFilter}%`)
+        .ilike("locality", `%${locality}%`)
         .gte("first_published_at", cutoffTime);
       
-      console.log(`Specific stories for ${locationName}: ${specificCount || 0}`);
-      
-      if (specificCount && specificCount > 0) {
-        // We have location-specific stories, show only those
-        query = query.eq("country_code", country.toUpperCase()).ilike("city", `%${locationFilter}%`);
-        console.log(`Showing ${specificCount} location-specific stories for ${locationName}`);
+      if (localityCount && localityCount > 0) {
+        query = query.eq("country_code", country.toUpperCase()).ilike("locality", `%${locality}%`);
+        console.log(`Showing ${localityCount} stories for locality: ${locality}`);
       } else {
-        // No specific stories, fall back to country-level news
-        query = query.eq("country_code", country.toUpperCase());
-        console.log(`No specific stories for ${locationName}, showing all ${country} news`);
+        // Fallback to city search
+        query = query.eq("country_code", country.toUpperCase()).ilike("city", `%${locality}%`);
+        console.log(`No locality match, searching city for: ${locality}`);
       }
-    } else if (locationFilter) {
-      // No country context, just filter by location
-      query = query.ilike("city", `%${locationFilter}%`);
-      console.log(`Filtering by ${locationName} (no country context)`);
+    } else if (city && country) {
+      // City filter - search in city column
+      const { count: cityCount } = await supabase
+        .from("stories")
+        .select("*", { count: "exact", head: true })
+        .eq("country_code", country.toUpperCase())
+        .ilike("city", `%${city}%`)
+        .gte("first_published_at", cutoffTime);
+      
+      if (cityCount && cityCount > 0) {
+        query = query.eq("country_code", country.toUpperCase()).ilike("city", `%${city}%`);
+        console.log(`Showing ${cityCount} stories for city: ${city}`);
+      } else {
+        query = query.eq("country_code", country.toUpperCase());
+        console.log(`No city-specific stories for ${city}, showing all ${country} news`);
+      }
+    } else if (state && country) {
+      // STATE filter - CRITICAL: search in the STATE column, not city!
+      const stateNormalized = state.replace(/-/g, ' ').replace(/_/g, ' ');
+      
+      // First try exact match on state column
+      const { count: stateCount } = await supabase
+        .from("stories")
+        .select("*", { count: "exact", head: true })
+        .eq("country_code", country.toUpperCase())
+        .ilike("state", `%${stateNormalized}%`)
+        .gte("first_published_at", cutoffTime);
+      
+      console.log(`State-specific stories for ${stateNormalized}: ${stateCount || 0}`);
+      
+      if (stateCount && stateCount > 0) {
+        // Filter by STATE column (not city!)
+        query = query.eq("country_code", country.toUpperCase()).ilike("state", `%${stateNormalized}%`);
+        console.log(`Showing ${stateCount} state-specific stories for ${stateNormalized}`);
+      } else {
+        // Also check city column for state name (some stories have state in city field)
+        const { count: cityStateCount } = await supabase
+          .from("stories")
+          .select("*", { count: "exact", head: true })
+          .eq("country_code", country.toUpperCase())
+          .ilike("city", `%${stateNormalized}%`)
+          .gte("first_published_at", cutoffTime);
+        
+        if (cityStateCount && cityStateCount > 0) {
+          query = query.eq("country_code", country.toUpperCase()).ilike("city", `%${stateNormalized}%`);
+          console.log(`Found ${cityStateCount} stories with state name in city field`);
+        } else {
+          // No state-specific stories, fall back to country-level news
+          query = query.eq("country_code", country.toUpperCase());
+          console.log(`No state-specific stories for ${stateNormalized}, showing all ${country} news`);
+        }
+      }
     } else if (country) {
       // Country filter - filter by country code
       query = query.eq("country_code", country.toUpperCase());
