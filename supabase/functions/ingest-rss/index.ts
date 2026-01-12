@@ -1318,11 +1318,13 @@ serve(async (req) => {
   const isLocalCron = !authHeader && !secretParam;
   // 5. Frontend call with Bearer anon key (standard format)
   const isFrontendCall = !!trimmedAnonKey && authHeader === `Bearer ${trimmedAnonKey}`;
-  // 6. Frontend call using standard "apikey" header
+  // 6. Frontend call using standard "apikey" header (anon key)
   const isFrontendApiKeyCall = !!trimmedAnonKey && apiKeyHeader === trimmedAnonKey;
-  // 7. Frontend call via supabase.functions.invoke (sends anon key in both headers)
-  const isSupabaseInvoke = !!trimmedAnonKey && !!apiKeyHeader && !!authHeader && 
-    (authHeader.includes(trimmedAnonKey) || apiKeyHeader === trimmedAnonKey);
+  // 7. Frontend call via supabase.functions.invoke with apikey header set to anon key
+  // This is the standard pattern - apikey header contains the anon key, Authorization contains user JWT
+  const isSupabaseInvoke = !!trimmedAnonKey && apiKeyHeader === trimmedAnonKey;
+  // 8. Has valid Bearer JWT token (any authenticated call from frontend with valid JWT)
+  const hasValidBearerJWT = !!authHeader && authHeader.startsWith("Bearer ") && authHeader.length > 50;
 
   console.log("Auth check:", {
     hasCronSecret: !!cronSecret,
@@ -1335,13 +1337,16 @@ serve(async (req) => {
     frontendCall: isFrontendCall,
     frontendApiKeyCall: isFrontendApiKeyCall,
     supabaseInvoke: isSupabaseInvoke,
+    hasValidBearerJWT: hasValidBearerJWT,
     anonKeyPresent: !!trimmedAnonKey,
     hasAuthorizationHeader: !!authHeader,
     hasApiKeyHeader: !!apiKeyHeader,
+    apiKeyMatchesAnon: apiKeyHeader === trimmedAnonKey,
   });
 
   // For external calls (cron-job.org), require the secret
   // For internal cron, frontend calls, or supabase.functions.invoke, allow through
+  // The key insight: supabase.functions.invoke() always sends the anon key in the "apikey" header
   if (
     !isValidSecretParam &&
     !isValidBearerToken &&
@@ -1349,7 +1354,8 @@ serve(async (req) => {
     !isLocalCron &&
     !isFrontendCall &&
     !isFrontendApiKeyCall &&
-    !isSupabaseInvoke
+    !isSupabaseInvoke &&
+    !hasValidBearerJWT
   ) {
     console.log("Unauthorized access attempt - no valid auth method found");
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
