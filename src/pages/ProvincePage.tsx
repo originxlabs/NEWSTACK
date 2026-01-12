@@ -43,6 +43,43 @@ const COUNTRY_INFO: Record<string, { name: string; flag: string; capital: string
   MX: { name: "Mexico", flag: "🇲🇽", capital: "Mexico City" },
   KR: { name: "South Korea", flag: "🇰🇷", capital: "Seoul" },
   PK: { name: "Pakistan", flag: "🇵🇰", capital: "Islamabad" },
+  // Middle East
+  IR: { name: "Iran", flag: "🇮🇷", capital: "Tehran" },
+  IQ: { name: "Iraq", flag: "🇮🇶", capital: "Baghdad" },
+  AF: { name: "Afghanistan", flag: "🇦🇫", capital: "Kabul" },
+  SA: { name: "Saudi Arabia", flag: "🇸🇦", capital: "Riyadh" },
+  AE: { name: "UAE", flag: "🇦🇪", capital: "Abu Dhabi" },
+  // Central Asia
+  KZ: { name: "Kazakhstan", flag: "🇰🇿", capital: "Astana" },
+  UZ: { name: "Uzbekistan", flag: "🇺🇿", capital: "Tashkent" },
+  TM: { name: "Turkmenistan", flag: "🇹🇲", capital: "Ashgabat" },
+  TJ: { name: "Tajikistan", flag: "🇹🇯", capital: "Dushanbe" },
+  KG: { name: "Kyrgyzstan", flag: "🇰🇬", capital: "Bishkek" },
+  // Africa
+  NG: { name: "Nigeria", flag: "🇳🇬", capital: "Abuja" },
+  EG: { name: "Egypt", flag: "🇪🇬", capital: "Cairo" },
+  ZA: { name: "South Africa", flag: "🇿🇦", capital: "Pretoria" },
+  // Southeast Asia
+  ID: { name: "Indonesia", flag: "🇮🇩", capital: "Jakarta" },
+  TH: { name: "Thailand", flag: "🇹🇭", capital: "Bangkok" },
+  VN: { name: "Vietnam", flag: "🇻🇳", capital: "Hanoi" },
+  MY: { name: "Malaysia", flag: "🇲🇾", capital: "Kuala Lumpur" },
+  PH: { name: "Philippines", flag: "🇵🇭", capital: "Manila" },
+  KH: { name: "Cambodia", flag: "🇰🇭", capital: "Phnom Penh" },
+  MM: { name: "Myanmar", flag: "🇲🇲", capital: "Naypyidaw" },
+  LA: { name: "Laos", flag: "🇱🇦", capital: "Vientiane" },
+  NP: { name: "Nepal", flag: "🇳🇵", capital: "Kathmandu" },
+  LK: { name: "Sri Lanka", flag: "🇱🇰", capital: "Colombo" },
+  BD: { name: "Bangladesh", flag: "🇧🇩", capital: "Dhaka" },
+  // Europe
+  PL: { name: "Poland", flag: "🇵🇱", capital: "Warsaw" },
+  UA: { name: "Ukraine", flag: "🇺🇦", capital: "Kyiv" },
+  TR: { name: "Turkey", flag: "🇹🇷", capital: "Ankara" },
+  NL: { name: "Netherlands", flag: "🇳🇱", capital: "Amsterdam" },
+  // South America
+  AR: { name: "Argentina", flag: "🇦🇷", capital: "Buenos Aires" },
+  SG: { name: "Singapore", flag: "🇸🇬", capital: "Singapore" },
+  QA: { name: "Qatar", flag: "🇶🇦", capital: "Doha" },
 };
 
 interface Story {

@@ -636,9 +636,23 @@ export const GEO_HIERARCHY: Continent[] = [
       ]},
       { id: "uz", name: "Uzbekistan", code: "UZ", flag: "🇺🇿", states: [
         { id: "tashkent-p", name: "Tashkent", cities: [{ id: "tashkent", name: "Tashkent", isCapital: true, localities: [] }] },
+        { id: "samarkand-p", name: "Samarkand", cities: [{ id: "samarkand", name: "Samarkand", localities: [] }] },
+      ]},
+      { id: "tj", name: "Tajikistan", code: "TJ", flag: "🇹🇯", states: [
+        { id: "dushanbe-c", name: "Dushanbe", cities: [{ id: "dushanbe", name: "Dushanbe", isCapital: true, localities: [] }] },
+        { id: "sughd-p", name: "Sughd", cities: [{ id: "khujand", name: "Khujand", localities: [] }] },
+      ]},
+      { id: "tm", name: "Turkmenistan", code: "TM", flag: "🇹🇲", states: [
+        { id: "ashgabat-c", name: "Ashgabat", cities: [{ id: "ashgabat", name: "Ashgabat", isCapital: true, localities: [] }] },
+      ]},
+      { id: "kg", name: "Kyrgyzstan", code: "KG", flag: "🇰🇬", states: [
+        { id: "bishkek-c", name: "Bishkek", cities: [{ id: "bishkek", name: "Bishkek", isCapital: true, localities: [] }] },
+        { id: "osh-p", name: "Osh", cities: [{ id: "osh", name: "Osh", localities: [] }] },
       ]},
       { id: "af", name: "Afghanistan", code: "AF", flag: "🇦🇫", states: [
         { id: "kabul-p", name: "Kabul", cities: [{ id: "kabul", name: "Kabul", isCapital: true, localities: [] }] },
+        { id: "herat-p", name: "Herat", cities: [{ id: "herat", name: "Herat", localities: [] }] },
+        { id: "balkh-p", name: "Balkh", cities: [{ id: "mazar-i-sharif", name: "Mazar-i-Sharif", localities: [] }] },
       ]},
       { id: "mm", name: "Myanmar", code: "MM", flag: "🇲🇲", states: [
         { id: "yangon-r", name: "Yangon", cities: [{ id: "yangon", name: "Yangon", localities: [] }] },
