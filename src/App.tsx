@@ -92,32 +92,26 @@ function SplashManager() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const previousPath = useRef<string | null>(null);
   const hasShownInitial = useRef(false);
+  const navigationCount = useRef(0);
 
-  // Show splash on initial page load
+  // Show splash on initial page load (page refresh)
   useEffect(() => {
     if (!hasShownInitial.current) {
       setShowSplash(true);
       hasShownInitial.current = true;
       setIsInitialLoad(true);
+      navigationCount.current = 0;
     }
   }, []);
 
-  // Show splash on route changes (navigation)
+  // Show splash on ALL route changes (navigation)
   useEffect(() => {
+    // Skip the first navigation since that's the initial load
     if (previousPath.current !== null && previousPath.current !== location.pathname) {
-      // Show splash for any navigation between different sections
-      const prevBase = previousPath.current.split('/')[1] || '';
-      const currBase = location.pathname.split('/')[1] || '';
-      
-      // Show splash when navigating between major sections
-      const majorSections = ['', 'news', 'world', 'india', 'places', 'topics', 'listen', 'features', 'api', 'newsroom'];
-      const isPrevMajor = majorSections.includes(prevBase);
-      const isCurrMajor = majorSections.includes(currBase);
-      
-      if ((isPrevMajor || isCurrMajor) && prevBase !== currBase) {
-        setShowSplash(true);
-        setIsInitialLoad(false);
-      }
+      navigationCount.current++;
+      // Show splash for ALL navigation events
+      setShowSplash(true);
+      setIsInitialLoad(false);
     }
     previousPath.current = location.pathname;
   }, [location.pathname]);
@@ -131,7 +125,7 @@ function SplashManager() {
       {showSplash && (
         <SplashScreen 
           onComplete={handleSplashComplete} 
-          duration={isInitialLoad ? 2000 : 1200} 
+          duration={isInitialLoad ? 2200 : 1400} 
         />
       )}
     </>

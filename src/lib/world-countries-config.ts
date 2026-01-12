@@ -1911,6 +1911,32 @@ export const COUNTRY_PROVINCES: Record<string, ProvinceConfig[]> = {
       majorCities: ["Islamabad"],
       population: 2006572,
       area: 906
+    },
+    {
+      id: "gilgit-baltistan",
+      name: "Gilgit-Baltistan",
+      capital: "Gilgit",
+      capitalCoordinates: { lat: 35.9208, lng: 74.3144 },
+      flag: "🏔️",
+      flagEmoji: "🏔️",
+      language: "ur",
+      languages: ["shi", "bal", "ur"],
+      majorCities: ["Gilgit", "Skardu", "Chilas", "Hunza", "Khaplu"],
+      population: 1800000,
+      area: 72971
+    },
+    {
+      id: "azad-kashmir",
+      name: "Azad Jammu & Kashmir",
+      capital: "Muzaffarabad",
+      capitalCoordinates: { lat: 34.3700, lng: 73.4700 },
+      flag: "🏔️",
+      flagEmoji: "🏔️",
+      language: "ur",
+      languages: ["ur", "hi", "pa"],
+      majorCities: ["Muzaffarabad", "Mirpur", "Bhimber", "Kotli", "Rawalakot"],
+      population: 4045366,
+      area: 13297
     }
   ],
 
