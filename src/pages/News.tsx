@@ -27,14 +27,23 @@ import { clusterStories, groupByTimeBlocks, StoryCluster, RawStory } from "@/lib
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
+import { 
+  GEO_HIERARCHY, 
+  getCountryByCode, 
+  getContinentById,
+  getContinentForCountry,
+} from "@/lib/geo-hierarchy";
+
 // Region name mapping
 const REGION_NAMES: Record<string, string> = {
   "north-america": "North America",
   "europe": "Europe",
+  "asia": "Asia",
   "asia-pacific": "Asia Pacific",
   "middle-east": "Middle East",
   "africa": "Africa",
   "south-america": "South America",
+  "oceania": "Oceania",
 };
 
 type SignalType = "all" | "breaking" | "developing" | "stabilized";
@@ -148,9 +157,25 @@ export default function News() {
   const isMobile = useIsMobile();
   const { markAsViewed, checkForUpdates, getLastSessionTime } = useLastViewed();
   
-  // Read region filter from URL
+  // Read filters from URL
   const regionFilter = searchParams.get("region") || null;
-  const regionName = regionFilter ? REGION_NAMES[regionFilter] : null;
+  const countryFilter = searchParams.get("country") || null;
+  const stateFilter = searchParams.get("state") || null;
+  const cityFilter = searchParams.get("city") || null;
+  const localityFilter = searchParams.get("locality") || null;
+  
+  // Build display name for filters
+  const filterDisplayName = useMemo(() => {
+    if (localityFilter) return `Locality: ${localityFilter}`;
+    if (cityFilter) return `City: ${cityFilter}`;
+    if (stateFilter) return `State: ${stateFilter}`;
+    if (countryFilter) {
+      const country = getCountryByCode(countryFilter);
+      return country ? `${country.flag} ${country.name}` : countryFilter;
+    }
+    if (regionFilter) return REGION_NAMES[regionFilter] || regionFilter;
+    return null;
+  }, [regionFilter, countryFilter, stateFilter, cityFilter, localityFilter]);
   
   const [signalFilter, setSignalFilter] = useState<SignalType>("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -395,15 +420,15 @@ export default function News() {
                 )}
               </div>
 
-              {/* Region Filter Badge */}
-              {regionName && (
+              {/* Location Filter Badge */}
+              {filterDisplayName && (
                 <div className="flex items-center gap-2 mt-3">
                   <Badge 
                     variant="secondary" 
                     className="gap-1.5 pr-1 bg-primary/10 text-primary border-primary/20"
                   >
                     <Globe className="w-3 h-3" />
-                    {regionName}
+                    {filterDisplayName}
                     <button 
                       onClick={clearRegionFilter}
                       className="ml-1 p-0.5 rounded hover:bg-primary/20 transition-colors"
@@ -415,11 +440,11 @@ export default function News() {
               )}
               
               <h1 className="font-display text-xl sm:text-2xl font-semibold text-foreground mb-1 mt-2">
-                {regionName ? `${regionName} Intelligence` : "Intelligence Stream"}
+                {filterDisplayName ? `${filterDisplayName} Intelligence` : "Intelligence Stream"}
               </h1>
               <p className="text-muted-foreground text-sm max-w-xl">
-                {regionName 
-                  ? `Stories from ${regionName} updated in the last 48 hours`
+                {filterDisplayName 
+                  ? `Stories from ${filterDisplayName} updated in the last 48 hours`
                   : "Stories updated in the last 48 hours from 170+ verified sources"
                 }
               </p>
