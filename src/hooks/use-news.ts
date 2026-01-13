@@ -46,6 +46,7 @@ interface FetchNewsParams {
   dateTo?: string;
   userCity?: string;
   userState?: string;
+  sortBy?: "latest" | "sources" | "discussed" | "relevance"; // Sort order
 }
 
 interface NewsResponse {
@@ -84,6 +85,7 @@ async function fetchNews(params: FetchNewsParams): Promise<NewsResponse> {
       source: params.source,
       dateFrom: params.dateFrom,
       dateTo: params.dateTo,
+      sortBy: params.sortBy || "latest", // Default to latest-first
     }),
   });
 

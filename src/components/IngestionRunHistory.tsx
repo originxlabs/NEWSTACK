@@ -42,7 +42,7 @@ interface IngestionRunHistoryProps {
 
 export function IngestionRunHistory({
   className,
-  defaultCollapsed = true,
+  defaultCollapsed = false, // Default to expanded to show data
   maxRuns = 10,
 }: IngestionRunHistoryProps) {
   const [runs, setRuns] = useState<IngestionRun[]>([]);
@@ -71,21 +71,35 @@ export function IngestionRunHistory({
     fetchRuns();
   }, [fetchRuns]);
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates with error handling
   useEffect(() => {
-    const channel = supabase
-      .channel("ingestion-runs-history")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "ingestion_runs" },
-        () => {
-          fetchRuns();
-        }
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const setupChannel = () => {
+      channel = supabase
+        .channel("ingestion-runs-history")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "ingestion_runs" },
+          () => {
+            fetchRuns();
+          }
+        )
+        .subscribe((status) => {
+          if (status === "CHANNEL_ERROR") {
+            console.warn("[IngestionRunHistory] Channel error, retrying...");
+            setTimeout(() => {
+              if (channel) supabase.removeChannel(channel);
+              setupChannel();
+            }, 3000);
+          }
+        });
+    };
+
+    setupChannel();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [fetchRuns]);
 
