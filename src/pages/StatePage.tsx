@@ -451,18 +451,21 @@ export default function StatePage() {
               size="sm"
               onClick={async () => {
                 setIsLoading(true);
-                toast.loading("Refreshing news...", { id: "refresh-news" });
+                toast.loading(`Refreshing ${stateName} news...`, { id: "refresh-news" });
                 try {
-                  // Trigger ingestion in the background (fire-and-forget)
+                  // Trigger ingestion for this specific state in the background
                   supabase.functions.invoke("ingest-rss", {
-                    body: { trigger: "manual" },
+                    body: { 
+                      trigger: "manual",
+                      stateId: stateId, // Filter ingestion to this state only
+                    },
                   }).then(() => {
-                    toast.success("Ingestion triggered in background", { id: "ingestion-bg" });
+                    toast.success(`Ingestion triggered for ${stateName}`, { id: "ingestion-bg" });
                   }).catch(console.error);
                   
                   // Immediately refresh stories from database
                   await fetchStories();
-                  toast.success("News feed refreshed!", { id: "refresh-news" });
+                  toast.success(`${stateName} news feed refreshed!`, { id: "refresh-news" });
                 } catch (error) {
                   toast.error("Failed to refresh news", { id: "refresh-news" });
                 } finally {
@@ -473,7 +476,7 @@ export default function StatePage() {
               className="gap-2 bg-primary hover:bg-primary/90"
             >
               <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
-              Refresh News
+              Refresh {stateName} News
             </Button>
             
             {/* Feed type toggle */}

@@ -1385,6 +1385,7 @@ serve(async (req) => {
   let provinceId: string | null = null;
   let userId: string | null = null;
   let userEmail: string | null = null;
+  let stateIdFilter: string | null = null;
   
   try {
     const body = await req.json().catch(() => ({}));
@@ -1392,6 +1393,7 @@ serve(async (req) => {
     provinceId = body.provinceId || null;
     userId = body.userId || null;
     userEmail = body.userEmail || null;
+    stateIdFilter = body.stateId || null; // Optional state filter
   } catch {
     // Body parsing failed, continue without context
   }
@@ -1440,15 +1442,23 @@ serve(async (req) => {
   };
 
   try {
-    console.log("Starting tier-based RSS ingestion...", { runId });
+    console.log("Starting tier-based RSS ingestion...", { runId, stateIdFilter });
 
-    // STEP 1: FETCH FEEDS
-    const { data: allFeeds, error: feedsError } = await supabase
+    // STEP 1: FETCH FEEDS - with optional state filter
+    let feedsQuery = supabase
       .from("rss_feeds")
       .select("*")
       .eq("is_active", true)
       .order("reliability_tier", { ascending: true })
       .order("priority", { ascending: false });
+
+    // Apply state filter if provided
+    if (stateIdFilter) {
+      feedsQuery = feedsQuery.eq("state_id", stateIdFilter);
+      console.log(`Filtering feeds for state: ${stateIdFilter}`);
+    }
+
+    const { data: allFeeds, error: feedsError } = await feedsQuery;
 
     if (feedsError || !allFeeds) {
       await updateRun({
@@ -1469,7 +1479,7 @@ serve(async (req) => {
     const tier2Feeds = feeds.filter((f: RSSFeed) => f.reliability_tier === "tier_2");
     const tier3Feeds = feeds.filter((f: RSSFeed) => f.reliability_tier === "tier_3");
     
-    console.log(`Found ${allFeeds.length} active feeds, ${feeds.length} due for fetch`);
+    console.log(`Found ${allFeeds.length} active feeds${stateIdFilter ? ` for state ${stateIdFilter}` : ''}, ${feeds.length} due for fetch`);
     console.log(`Tier distribution: T1=${tier1Feeds.length}, T2=${tier2Feeds.length}, T3=${tier3Feeds.length}`);
 
     await updateRun({

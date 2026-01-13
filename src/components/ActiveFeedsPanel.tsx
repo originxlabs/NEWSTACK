@@ -28,10 +28,11 @@ interface RssFeed {
   last_fetched_at: string | null;
   is_active: boolean;
   category: string | null;
+  state_id: string | null;
 }
 
 interface ActiveFeedsPanelProps {
-  state?: string;
+  state?: string; // Now expects state_id (e.g., "odisha", "west-bengal")
   className?: string;
 }
 
@@ -60,16 +61,15 @@ export function ActiveFeedsPanel({ state, className }: ActiveFeedsPanelProps) {
     try {
       let query = supabase
         .from("rss_feeds")
-        .select("id, name, url, language, last_fetched_at, is_active, category")
+        .select("id, name, url, language, last_fetched_at, is_active, category, state_id")
         .eq("country_code", "IN")
         .eq("is_active", true)
         .order("last_fetched_at", { ascending: false, nullsFirst: false })
         .limit(30);
 
-      // Filter by state if provided
+      // Filter by state_id if provided (now using proper state_id column)
       if (state) {
-        const stateLower = state.toLowerCase();
-        query = query.or(`name.ilike.%${stateLower}%,publisher.ilike.%${stateLower}%`);
+        query = query.eq("state_id", state);
       }
 
       const { data, error } = await query;
