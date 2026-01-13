@@ -88,7 +88,7 @@ export function IngestionPipelineViewer({
   onIngestionComplete,
   autoRefreshInterval = 15 * 60 * 1000, // Default 15 minutes
   showAutoRefreshControls = true,
-  defaultCollapsed = true,
+  defaultCollapsed = false, // Default to expanded to show pipeline
   className,
   countryCode,
   provinceId,

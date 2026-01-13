@@ -390,13 +390,16 @@ serve(async (req) => {
       query = query.eq("is_global", true);
     }
 
-    // IMPORTANT: For recent feed, prioritize multi-source stories first, then fresh news
-    if (feedType === "recent") {
-      // Primary sort: stories with 2+ sources first (more verified = higher priority)
-      // Secondary sort: by freshness
+    // Sorting strategies based on feed type and sortBy param
+    // For "latest" sortBy or recent feed, always prioritize freshness first
+    if (sortBy === "latest") {
+      // Pure chronological: newest stories first, regardless of source count
+      query = query.order("first_published_at", { ascending: false });
+    } else if (feedType === "recent") {
+      // Recent feed: prioritize freshness, then by source count for same-time stories
       query = query
-        .order("source_count", { ascending: false })
-        .order("first_published_at", { ascending: false });
+        .order("first_published_at", { ascending: false })
+        .order("source_count", { ascending: false });
     } else if (feedType === "trending" || sortBy === "sources") {
       query = query
         .gte("source_count", 2)

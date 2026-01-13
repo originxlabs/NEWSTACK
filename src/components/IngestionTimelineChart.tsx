@@ -62,7 +62,7 @@ interface IngestionTimelineChartProps {
 
 export function IngestionTimelineChart({ 
   className,
-  defaultExpanded = false,
+  defaultExpanded = true, // Default to expanded to show chart
 }: IngestionTimelineChartProps) {
   const [runs, setRuns] = useState<IngestionRun[]>([]);
   const [hourlyData, setHourlyData] = useState<HourlyData[]>([]);
@@ -190,21 +190,35 @@ export function IngestionTimelineChart({
     fetchRuns();
   }, [fetchRuns]);
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates with error handling
   useEffect(() => {
-    const channel = supabase
-      .channel("ingestion-timeline-chart")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "ingestion_runs" },
-        () => {
-          fetchRuns();
-        }
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const setupChannel = () => {
+      channel = supabase
+        .channel("ingestion-timeline-chart")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "ingestion_runs" },
+          () => {
+            fetchRuns();
+          }
+        )
+        .subscribe((status) => {
+          if (status === "CHANNEL_ERROR") {
+            console.warn("[IngestionTimelineChart] Channel error, retrying...");
+            setTimeout(() => {
+              if (channel) supabase.removeChannel(channel);
+              setupChannel();
+            }, 3000);
+          }
+        });
+    };
+
+    setupChannel();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [fetchRuns]);
 

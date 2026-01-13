@@ -1490,12 +1490,18 @@ serve(async (req) => {
     let totalClassified = 0;
 
     // ===== BATCHING + CONCURRENCY CONFIG =====
-    const MAX_FEEDS_PER_RUN = 50; // Limit feeds per run to prevent timeout
+    // Reduced limits to prevent Edge Function timeout (60 seconds max)
+    const MAX_FEEDS_PER_RUN = 25; // Process fewer feeds per run - cron will catch up
     const BATCH_SIZE = 5; // Process feeds in batches of 5 concurrently
-    const FEED_TIMEOUT_MS = 10000; // 10 second timeout per feed
+    const FEED_TIMEOUT_MS = 5000; // 5 second timeout per feed (reduced)
 
-    // Limit feeds to prevent timeout
-    const feedsToProcess = feeds.slice(0, MAX_FEEDS_PER_RUN);
+    // Limit feeds to prevent timeout - prioritize tier_1 first
+    const prioritizedFeeds = [
+      ...feeds.filter((f: RSSFeed) => f.reliability_tier === "tier_1"),
+      ...feeds.filter((f: RSSFeed) => f.reliability_tier === "tier_2"),
+      ...feeds.filter((f: RSSFeed) => f.reliability_tier !== "tier_1" && f.reliability_tier !== "tier_2"),
+    ];
+    const feedsToProcess = prioritizedFeeds.slice(0, MAX_FEEDS_PER_RUN);
     console.log(`Processing ${feedsToProcess.length} of ${feeds.length} feeds (max ${MAX_FEEDS_PER_RUN})`);
 
     // Helper: Process a single feed with timeout
