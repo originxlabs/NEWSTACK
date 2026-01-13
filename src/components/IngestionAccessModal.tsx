@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mail, Phone, Shield, Loader2, CheckCircle2, 
-  MapPin, AlertCircle, FileText, Cookie
+  MapPin, AlertCircle, FileText, Cookie, Clock
 } from "lucide-react";
 import {
   Dialog,
@@ -38,6 +38,26 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
   const [isLoading, setIsLoading] = useState(false);
   const [accessUserId, setAccessUserId] = useState<string | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isReturningUser, setIsReturningUser] = useState(false);
+  const [phoneRequired, setPhoneRequired] = useState(false);
+
+  // Check if user has previously verified (for re-verification flow)
+  useEffect(() => {
+    if (isOpen) {
+      const storedUserId = localStorage.getItem("ingestion_access_user_id");
+      const storedExpiry = localStorage.getItem("ingestion_access_expiry");
+      
+      // If there was a previous session that expired, require phone
+      if (storedUserId && storedExpiry) {
+        const expiry = new Date(storedExpiry);
+        if (expiry <= new Date()) {
+          // Session expired - this is a returning user
+          setIsReturningUser(true);
+          setPhoneRequired(true);
+        }
+      }
+    }
+  }, [isOpen]);
 
   // Get user location
   const getLocation = async (): Promise<{ lat: number; lng: number } | null> => {
@@ -60,6 +80,12 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
       return;
     }
 
+    // For returning users, phone is required
+    if (phoneRequired && !phone) {
+      toast.error("Mobile number is required for re-verification");
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Get location
@@ -79,18 +105,26 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
       // Create or update access user
       const { data: existingUser, error: checkErr } = await supabase
         .from("ingestion_access_users")
-        .select("id")
+        .select("id, is_verified, phone")
         .eq("email", email.toLowerCase())
         .maybeSingle();
 
       let userId: string;
 
       if (existingUser) {
+        // Returning user - require phone if they had one before or if session expired
+        if (isReturningUser && existingUser.phone && !phone) {
+          setPhoneRequired(true);
+          toast.error("Please enter your mobile number to re-verify");
+          setIsLoading(false);
+          return;
+        }
+
         // Update existing user
         const { error: updateErr } = await supabase
           .from("ingestion_access_users")
           .update({
-            phone: phone || null,
+            phone: phone || existingUser.phone || null,
             device_info: deviceInfo,
             location: loc,
             terms_accepted: true,
@@ -101,6 +135,7 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
 
         if (updateErr) throw updateErr;
         userId = existingUser.id;
+        setIsReturningUser(true);
       } else {
         // Create new user
         const { data: newUser, error: insertErr } = await supabase
@@ -123,7 +158,7 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
 
       setAccessUserId(userId);
 
-      // Send OTP
+      // Send OTP to email
       const { error: otpErr } = await supabase.functions.invoke("send-otp", {
         body: { email: email.toLowerCase(), purpose: "ingestion_access" },
       });
@@ -166,7 +201,7 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
         .eq("id", accessUserId);
 
       setStep("success");
-      toast.success("Verification successful!");
+      toast.success("Verification successful! Access valid for 30 minutes.");
 
       // Delay before closing
       setTimeout(() => {
@@ -192,6 +227,8 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
     setCookiesAccepted(false);
     setAccessUserId(null);
     setLocation(null);
+    setIsReturningUser(false);
+    setPhoneRequired(false);
     onClose();
   };
 
@@ -217,6 +254,12 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
+              {/* Session info */}
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600">
+                <Clock className="w-4 h-4 flex-shrink-0" />
+                <span>Access is valid for <strong>30 minutes</strong> after verification.</span>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address *</Label>
                 <div className="relative">
@@ -234,7 +277,9 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Mobile Number (Optional)</Label>
+                <Label htmlFor="phone">
+                  Mobile Number {phoneRequired ? "*" : "(Optional)"}
+                </Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -243,9 +288,15 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
                     placeholder="+91 9876543210"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="pl-10"
+                    className={cn("pl-10", phoneRequired && "border-amber-500")}
+                    required={phoneRequired}
                   />
                 </div>
+                {phoneRequired && (
+                  <p className="text-xs text-amber-600">
+                    Mobile number is required for re-verification
+                  </p>
+                )}
               </div>
 
               <div className="space-y-3 pt-2">
@@ -291,7 +342,7 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
 
               <Button
                 onClick={handleSubmitForm}
-                disabled={isLoading || !email || !termsAccepted || !cookiesAccepted}
+                disabled={isLoading || !email || !termsAccepted || !cookiesAccepted || (phoneRequired && !phone)}
                 className="w-full"
               >
                 {isLoading ? (
@@ -370,7 +421,7 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
               <div>
                 <h3 className="font-semibold text-lg">Verification Complete!</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  You now have access to the ingestion pipeline.
+                  You now have access to the ingestion pipeline for 30 minutes.
                 </p>
               </div>
             </motion.div>
