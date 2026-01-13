@@ -68,7 +68,7 @@ const pricingPlans = [
       { name: "Priority Support", included: false },
       { name: "SLA Guarantee", included: false },
     ],
-    cta: "Get Free Key",
+    cta: "Get Sandbox Key",
     highlighted: false,
   },
   {
@@ -156,8 +156,8 @@ const faqs = [
     answer: "We accept all major credit cards via Razorpay, including Visa, Mastercard, American Express, and UPI for Indian customers.",
   },
   {
-    question: "Is there a free trial for paid plans?",
-    answer: "The Sandbox plan serves as a free trial with 100 requests per month. For extended trials on paid plans, contact our sales team.",
+    question: "Is there a trial for paid plans?",
+    answer: "The Sandbox plan serves as a trial with 100 requests per month. For extended trials on paid plans, contact our sales team.",
   },
   {
     question: "What happens if I exceed my request limit?",
@@ -281,7 +281,7 @@ export default function ApiPricing() {
               Simple, Transparent <span className="text-primary">Pricing</span>
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-8">
-              Choose the plan that fits your needs. Start free, scale as you grow.
+              Choose the plan that fits your needs. Start with Sandbox, scale as you grow.
             </p>
 
             {/* Billing Toggle */}

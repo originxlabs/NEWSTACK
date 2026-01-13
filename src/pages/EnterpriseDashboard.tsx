@@ -206,7 +206,7 @@ export default function EnterpriseDashboard() {
                           Sandbox API Key
                         </CardTitle>
                         <CardDescription>
-                          Free sandbox access with {SANDBOX_MONTHLY_LIMIT} requests/month
+                          Sandbox access with {SANDBOX_MONTHLY_LIMIT} requests/month
                         </CardDescription>
                       </div>
                       <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">

@@ -1,4 +1,4 @@
-# NEWSTACK - Free AI News App
+# NEWSTACK - AI News Intelligence Platform
 # https://newstack.live
 
 # Default rules for all crawlers

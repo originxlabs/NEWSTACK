@@ -369,7 +369,7 @@ function ApiTester({ onRequireAuth }: ApiTesterProps) {
           <Key className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-semibold text-lg mb-2">Generate Your Sandbox Key</h3>
           <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-            Get a free sandbox API key with 100 requests/month to test all endpoints.
+            Get a sandbox API key with 100 requests/month to test all endpoints.
           </p>
           <Button onClick={generateSandboxKey} disabled={isLoadingKey} className="gap-2">
             {isLoadingKey ? (
@@ -1455,7 +1455,7 @@ data: {"story_id":"def456","confidence":"High","sources":6,"state":"confirmed"}`
                 <section id="pricing" className="py-8">
                   <h2 className="font-display text-2xl font-bold mb-4">Pricing</h2>
                   <p className="text-muted-foreground mb-8">
-                    Transparent pricing with no hidden fees. Start with Sandbox for free.
+                    Transparent pricing with no hidden fees. Start with Sandbox to explore.
                   </p>
 
                   <div className="grid md:grid-cols-3 gap-6">

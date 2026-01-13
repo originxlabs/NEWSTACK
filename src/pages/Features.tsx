@@ -31,9 +31,9 @@ const features = [
   },
   {
     icon: Headphones,
-    title: "Free Audio News (TTS)",
-    description: "Listen to news summaries with our text-to-speech player. 50 free plays per day for all users.",
-    highlight: "50 Free/Day",
+    title: "Audio News (TTS)",
+    description: "Listen to news summaries with our text-to-speech player. Enjoy 50 plays per day for all users.",
+    highlight: "50 Plays/Day",
   },
   {
     icon: Shield,
@@ -44,7 +44,7 @@ const features = [
   {
     icon: TrendingUp,
     title: "Trending Topics Algorithm",
-    description: "Our multi-signal algorithm ranks stories by freshness, source coverage, and engagement — no bias, no paywall.",
+    description: "Our multi-signal algorithm ranks stories by freshness, source coverage, and engagement — unbiased and reliable.",
     highlight: "Real-Time",
   },
   {
@@ -68,11 +68,10 @@ const features = [
 ];
 
 const comparisonData = [
-  { feature: "Free Forever", newstack: true, google: true, inshorts: true, dailyhunt: true, apple: "partial", perplexity: "partial" },
+  { feature: "Accessible to All", newstack: true, google: true, inshorts: true, dailyhunt: true, apple: "partial", perplexity: "partial" },
   { feature: "AI Summaries & Explanations", newstack: true, google: false, inshorts: false, dailyhunt: false, apple: false, perplexity: true },
   { feature: "Trusted Source Citations", newstack: true, google: true, inshorts: false, dailyhunt: false, apple: true, perplexity: "partial" },
   { feature: "Audio News (TTS)", newstack: true, google: false, inshorts: false, dailyhunt: false, apple: true, perplexity: false },
-  { feature: "Place Intelligence + AQI", newstack: true, google: false, inshorts: false, dailyhunt: false, apple: false, perplexity: false },
   { feature: "Place Intelligence + AQI", newstack: true, google: false, inshorts: false, dailyhunt: false, apple: false, perplexity: false },
   { feature: "Installable PWA", newstack: true, google: false, inshorts: true, dailyhunt: true, apple: false, perplexity: false },
   { feature: "Multi-Language AI Translation", newstack: true, google: true, inshorts: "partial", dailyhunt: true, apple: "partial", perplexity: false },
@@ -100,17 +99,17 @@ export default function Features() {
             >
               <Badge className="mb-4 bg-primary/10 text-primary">Why NEWSTACK?</Badge>
               <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-                Free AI News, Summaries & Local Intelligence
+                AI News Intelligence, Summaries & Local Insights
               </h1>
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-8">
-                NEWSTACK is the best free AI news app with trusted sources, audio listening, trending topics, 
-                and place-based intelligence. No paywalls, no ads pressure, just quality journalism.
+                NEWSTACK is the best AI news intelligence platform with trusted sources, audio listening, trending topics, 
+                and place-based intelligence. Quality journalism with verified citations.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link to="/">
                   <Button size="lg" className="gap-2">
                     <Zap className="w-5 h-5" />
-                    Start Reading Free
+                    Start Reading Now
                   </Button>
                 </Link>
                 <Link to="/support">
@@ -232,14 +231,14 @@ export default function Features() {
                   <Volume2 className="w-6 h-6 text-primary" />
                 </div>
                 <div className="font-display text-3xl font-bold">50</div>
-                <div className="text-sm text-muted-foreground">Free Audio/Day</div>
+                <div className="text-sm text-muted-foreground">Audio Plays/Day</div>
               </div>
               <div>
                 <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mx-auto mb-3">
                   <Users className="w-6 h-6 text-primary" />
                 </div>
                 <div className="font-display text-3xl font-bold">∞</div>
-                <div className="text-sm text-muted-foreground">Free Reading</div>
+                <div className="text-sm text-muted-foreground">Unlimited Reading</div>
               </div>
             </div>
           </div>
@@ -284,7 +283,7 @@ export default function Features() {
             <Link to="/">
               <Button size="lg" className="gap-2">
                 <Sparkles className="w-5 h-5" />
-                Start Reading Now — It's Free
+                Start Reading Now
               </Button>
             </Link>
           </div>
