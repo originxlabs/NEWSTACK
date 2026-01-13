@@ -630,6 +630,103 @@ function calculateSimilarity(text1: string, text2: string): number {
   return intersection / union;
 }
 
+// ===== LANGUAGE DETECTION AND VALIDATION =====
+
+// Unicode ranges for Indian scripts
+const SCRIPT_PATTERNS: Record<string, RegExp> = {
+  or: /[\u0B00-\u0B7F]/,  // Odia script
+  hi: /[\u0900-\u097F]/,  // Devanagari (Hindi)
+  bn: /[\u0980-\u09FF]/,  // Bengali
+  ta: /[\u0B80-\u0BFF]/,  // Tamil
+  te: /[\u0C00-\u0C7F]/,  // Telugu
+  kn: /[\u0C80-\u0CFF]/,  // Kannada
+  ml: /[\u0D00-\u0D7F]/,  // Malayalam
+  gu: /[\u0A80-\u0AFF]/,  // Gujarati
+  pa: /[\u0A00-\u0A7F]/,  // Gurmukhi (Punjabi)
+  mr: /[\u0900-\u097F]/,  // Marathi uses Devanagari
+  as: /[\u0980-\u09FF]/,  // Assamese uses Bengali script
+  ur: /[\u0600-\u06FF]/,  // Arabic script (Urdu)
+};
+
+// State to expected language(s) mapping
+const STATE_LANGUAGES: Record<string, string[]> = {
+  "Odisha": ["or"],
+  "Karnataka": ["kn"],
+  "Tamil Nadu": ["ta"],
+  "Andhra Pradesh": ["te"],
+  "Telangana": ["te"],
+  "Kerala": ["ml"],
+  "Maharashtra": ["mr", "hi"],
+  "Gujarat": ["gu"],
+  "West Bengal": ["bn"],
+  "Punjab": ["pa"],
+  "Assam": ["as"],
+  "Bihar": ["hi"],
+  "Uttar Pradesh": ["hi"],
+  "Madhya Pradesh": ["hi"],
+  "Rajasthan": ["hi"],
+  "Jharkhand": ["hi"],
+  "Chhattisgarh": ["hi"],
+  "Uttarakhand": ["hi"],
+  "Haryana": ["hi"],
+  "Himachal Pradesh": ["hi"],
+  "Delhi": ["hi"],
+};
+
+/**
+ * Detect the actual language of content by checking for non-Latin scripts
+ * Returns the detected language code or 'en' if content is in Latin script
+ */
+function detectContentLanguage(text: string, feedLanguage: string | null): string {
+  if (!text) return 'en';
+  
+  // Check for each script pattern
+  for (const [langCode, pattern] of Object.entries(SCRIPT_PATTERNS)) {
+    if (pattern.test(text)) {
+      // If feed language matches the detected script, use it
+      if (feedLanguage === langCode) {
+        return langCode;
+      }
+      // If detected script is Devanagari, could be Hindi or Marathi
+      if (langCode === 'hi' && (feedLanguage === 'mr' || feedLanguage === 'hi')) {
+        return feedLanguage;
+      }
+      // If detected script is Bengali, could be Bengali or Assamese
+      if (langCode === 'bn' && (feedLanguage === 'as' || feedLanguage === 'bn')) {
+        return feedLanguage;
+      }
+      return langCode;
+    }
+  }
+  
+  // No non-Latin script detected - content is in English (or romanized)
+  return 'en';
+}
+
+/**
+ * Check if the detected language is valid for the detected state
+ * Returns true if:
+ * - No state detected
+ * - Language matches state's expected languages
+ * - Language is Hindi (widely understood across India)
+ */
+function isStateLanguageMatch(state: string | null, language: string | null): boolean {
+  if (!state || !language || language === 'en') return true;
+  
+  const expectedLanguages = STATE_LANGUAGES[state];
+  if (!expectedLanguages) return true;
+  
+  // Check if language matches expected languages for the state
+  if (expectedLanguages.includes(language)) return true;
+  
+  // Hindi is acceptable for most states as it's widely understood
+  if (language === 'hi') return true;
+  
+  // Mismatch: e.g., Odia content tagged with Karnataka state
+  console.warn(`Language mismatch: ${language} content detected for ${state} state`);
+  return false;
+}
+
 // ===== WEIGHTED CONFIDENCE CALCULATION =====
 
 interface ConfidenceInput {
@@ -1218,6 +1315,20 @@ async function processItems(
           hasContradictions: false,
         });
         
+        // Determine if content is actually in the feed's language
+        // Only store original_language if content contains non-Latin script
+        // This prevents English content from Odia feeds being tagged as Odia
+        const detectedLanguage = detectContentLanguage(item.title, feed.language);
+        const isNonEnglish = detectedLanguage && detectedLanguage !== 'en';
+        
+        // Also validate: if story state doesn't match feed's expected state,
+        // and content is in English, don't tag with regional language
+        const feedStateId = (feed as any).state_id;
+        const stateLanguageMatch = !feedStateId || !classification.state || 
+          isStateLanguageMatch(classification.state, detectedLanguage);
+        
+        const shouldStoreOriginal = isNonEnglish && stateLanguageMatch;
+        
         const { data: newStory, error: storyError } = await supabase
           .from("stories")
           .insert({
@@ -1225,13 +1336,11 @@ async function processItems(
             headline: cleanTitle,
             normalized_headline: normalizedHeadline,
             summary: finalDescription,
-            // Store original language content - use feed.language as canonical source
-            // Even if language is 'en', store it so we know it was explicitly English
-            original_headline: feed.language && feed.language !== 'en' && feed.language !== 'eng' ? item.title : null,
-            original_summary: feed.language && feed.language !== 'en' && feed.language !== 'eng' ? item.description : null,
-            // CRITICAL: Always store original_language from feed if available
-            // This fixes the issue where most stories had null original_language
-            original_language: feed.language || 'en',
+            // Only store original content if detected as non-English
+            original_headline: shouldStoreOriginal ? normalizeRSSContent(item.title) : null,
+            original_summary: shouldStoreOriginal ? normalizeRSSContent(item.description) : null,
+            // Only set original_language if content is actually in that language
+            original_language: shouldStoreOriginal ? detectedLanguage : null,
             category: classification.primary_category,
             country_code: feed.country_code,
             city: classification.city,
