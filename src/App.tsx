@@ -56,6 +56,7 @@ import NewsroomAuditLogs from "./pages/newsroom/NewsroomAuditLogs";
 import NewsroomIngestionStatus from "./pages/newsroom/NewsroomIngestionStatus";
 import NewsroomIngestionLogs from "./pages/newsroom/NewsroomIngestionLogs";
 import NewsroomIngestionMonitor from "./pages/newsroom/NewsroomIngestionMonitor";
+import NewsroomAccessUsers from "./pages/newsroom/NewsroomAccessUsers";
 import IngestionPortal from "./pages/IngestionPortal";
 import { AdminRouteGuard } from "./components/newsroom/AdminRouteGuard";
 
@@ -174,6 +175,7 @@ function AppContent() {
             <Route path="ingestion" element={<AdminRouteGuard pageName="Ingestion"><NewsroomIngestion /></AdminRouteGuard>} />
             <Route path="ingestion-status" element={<NewsroomIngestionStatus />} />
             <Route path="ingestion-monitor" element={<AdminRouteGuard pageName="Ingestion Monitor"><NewsroomIngestionMonitor /></AdminRouteGuard>} />
+            <Route path="access-users" element={<AdminRouteGuard pageName="Access Users"><NewsroomAccessUsers /></AdminRouteGuard>} />
             <Route path="feeds" element={<AdminRouteGuard pageName="RSS Feeds"><NewsroomFeeds /></AdminRouteGuard>} />
             <Route path="sources" element={<Sources />} />
             <Route path="audit-logs" element={<NewsroomAuditLogs />} />

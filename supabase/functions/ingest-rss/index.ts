@@ -1504,8 +1504,11 @@ serve(async (req) => {
     const feedsToProcess = prioritizedFeeds.slice(0, MAX_FEEDS_PER_RUN);
     console.log(`Processing ${feedsToProcess.length} of ${feeds.length} feeds (max ${MAX_FEEDS_PER_RUN})`);
 
-    // Helper: Process a single feed with timeout
-    const processSingleFeed = async (feed: RSSFeed): Promise<{ created: number; merged: number; normalized: number }> => {
+    // Helper: Process a single feed with timeout and record results
+    const processSingleFeed = async (feed: RSSFeed): Promise<{ created: number; merged: number; normalized: number; error?: string }> => {
+      const startTime = Date.now();
+      let feedResult = { created: 0, merged: 0, normalized: 0, error: undefined as string | undefined };
+      
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
@@ -1514,21 +1517,100 @@ serve(async (req) => {
         clearTimeout(timeoutId);
         
         if (items.length === 0) {
-          return { created: 0, merged: 0, normalized: 0 };
+          // Record successful fetch with no items
+          if (runId) {
+            await supabase.from("feed_fetch_results").insert({
+              ingestion_run_id: runId,
+              feed_id: feed.id,
+              feed_name: feed.name,
+              status: "success",
+              stories_fetched: 0,
+              stories_inserted: 0,
+              duration_ms: Date.now() - startTime,
+            });
+          }
+          return feedResult;
         }
 
         const { created, merged } = await processItems(supabase, items, feed);
+        feedResult = { created, merged, normalized: items.length, error: undefined };
         
-        // Update last fetched timestamp
+        // Update last fetched timestamp and health metrics
+        const currentFetch = await supabase
+          .from("rss_feeds")
+          .select("total_fetch_count, avg_stories_per_fetch")
+          .eq("id", feed.id)
+          .single();
+        
+        const totalFetches = (currentFetch.data?.total_fetch_count || 0) + 1;
+        const prevAvg = currentFetch.data?.avg_stories_per_fetch || 0;
+        const newAvg = totalFetches === 1 ? items.length : (prevAvg * (totalFetches - 1) + items.length) / totalFetches;
+        
         await supabase
           .from("rss_feeds")
-          .update({ last_fetched_at: new Date().toISOString() })
+          .update({ 
+            last_fetched_at: new Date().toISOString(),
+            total_fetch_count: totalFetches,
+            avg_stories_per_fetch: newAvg,
+            health_score: Math.min(100, 80 + Math.min(20, created * 2)), // Boost health on success
+          })
           .eq("id", feed.id);
 
-        return { created, merged, normalized: items.length };
+        // Record per-feed fetch result
+        if (runId) {
+          await supabase.from("feed_fetch_results").insert({
+            ingestion_run_id: runId,
+            feed_id: feed.id,
+            feed_name: feed.name,
+            status: "success",
+            stories_fetched: items.length,
+            stories_inserted: created,
+            duration_ms: Date.now() - startTime,
+          });
+        }
+
+        return feedResult;
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "Unknown error";
         console.error(`Error processing feed ${feed.name}:`, error);
-        return { created: 0, merged: 0, normalized: 0 };
+        
+        // Update error tracking on feed
+        const { data: feedData } = await supabase
+          .from("rss_feeds")
+          .select("error_count, health_score")
+          .eq("id", feed.id)
+          .single();
+        
+        const newErrorCount = (feedData?.error_count || 0) + 1;
+        const newHealthScore = Math.max(0, (feedData?.health_score || 100) - 10); // Decrease health on error
+        
+        await supabase
+          .from("rss_feeds")
+          .update({ 
+            error_count: newErrorCount,
+            health_score: newHealthScore,
+            last_error_at: new Date().toISOString(),
+            last_error_message: errorMsg.substring(0, 500),
+            // Auto-pause feeds with too many errors
+            is_active: newErrorCount < 10,
+          })
+          .eq("id", feed.id);
+
+        // Record per-feed fetch error
+        if (runId) {
+          await supabase.from("feed_fetch_results").insert({
+            ingestion_run_id: runId,
+            feed_id: feed.id,
+            feed_name: feed.name,
+            status: "failed",
+            stories_fetched: 0,
+            stories_inserted: 0,
+            error_message: errorMsg.substring(0, 500),
+            duration_ms: Date.now() - startTime,
+          });
+        }
+
+        return { created: 0, merged: 0, normalized: 0, error: errorMsg };
       }
     };
 
