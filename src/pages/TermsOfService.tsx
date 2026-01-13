@@ -57,7 +57,7 @@ export default function TermsOfService() {
                 <p>NEWSTACK provides:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>AI-powered news aggregation from verified sources</li>
-                  <li>Text-to-speech audio news playback (50 free plays/day)</li>
+                  <li>Text-to-speech audio news playback (50 plays/day)</li>
                   <li>Place-based intelligence and local news</li>
                   <li>Community discussions on news articles</li>
                   <li>Personalized news recommendations</li>
@@ -122,17 +122,17 @@ export default function TermsOfService() {
               </section>
 
               <section className="mb-8">
-                <h2 className="text-2xl font-bold mb-4">6. Free Service</h2>
+                <h2 className="text-2xl font-bold mb-4">6. Service Access</h2>
                 <p>
-                  NEWSTACK is free to use. We offer:
+                  NEWSTACK provides accessible news for everyone. We offer:
                 </p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Unlimited news reading</li>
-                  <li>50 free audio plays per day</li>
+                  <li>50 audio plays per day</li>
                   <li>Full access to all features</li>
                 </ul>
                 <p className="mt-4">
-                  We may introduce premium features in the future, but core functionality will remain free.
+                  We may introduce premium features in the future, but core functionality will remain accessible to all.
                 </p>
               </section>
 

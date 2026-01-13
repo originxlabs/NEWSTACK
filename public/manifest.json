@@ -1,7 +1,7 @@
 {
-  "name": "NEWSTACK — Global News App",
+  "name": "NEWSTACK — AI News Intelligence Platform",
   "short_name": "NEWSTACK",
-  "description": "Real-time global news app with trusted sources, audio listening, trending topics, and local intelligence. Quality journalism without paywalls.",
+  "description": "AI-powered news intelligence platform with trusted sources, audio listening, trending topics, and local insights. Quality journalism with verified citations.",
   "start_url": "/?source=pwa",
   "id": "/",
   "display": "standalone",

@@ -9,6 +9,7 @@ const footerLinks = {
     { name: "India", href: "/india" },
     { name: "World", href: "/world" },
     { name: "Places", href: "/places" },
+    { name: "Compare", href: "/compare" },
   ],
   Developers: [
     { name: "API Overview", href: "/api" },
@@ -18,7 +19,8 @@ const footerLinks = {
   Company: [
     { name: "Contact", href: "/contact" },
     { name: "Newsroom", href: "/newsroom" },
-    { name: "Ingestion", href: "/ingestion" },
+    { name: "RSS Sources", href: "/newsroom/sources" },
+    { name: "Ingestion Portal", href: "/ingestion" },
   ],
   Legal: [
     { name: "Privacy Policy", href: "/privacy" },

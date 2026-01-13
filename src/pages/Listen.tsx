@@ -206,7 +206,7 @@ const Listen = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm">Sign in to listen</h3>
-                    <p className="text-xs text-muted-foreground">Create a free account to enjoy audio news</p>
+                    <p className="text-xs text-muted-foreground">Create an account to enjoy audio news</p>
                   </div>
                 </div>
                 <Button onClick={() => setShowAuthModal(true)} size="sm">

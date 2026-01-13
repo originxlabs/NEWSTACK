@@ -31,14 +31,14 @@ export default function RefundPolicy() {
               <section className="mb-8">
                 <h2 className="flex items-center gap-2 text-2xl font-bold mb-4">
                   <CheckCircle2 className="w-6 h-6 text-green-500" />
-                  Free Service Notice
+                  Service Notice
                 </h2>
                 <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-6 not-prose">
                   <p className="text-lg font-medium text-green-600 dark:text-green-400 mb-2">
-                    NEWSTACK is 100% Free
+                    NEWSTACK is Accessible to All
                   </p>
                   <p className="text-muted-foreground">
-                    NEWSTACK is a free news aggregation platform. We do not charge any subscription fees or require payment for accessing our core features. Since there are no paid services, refunds are generally not applicable.
+                    NEWSTACK is a news intelligence platform accessible to everyone. We do not charge subscription fees for core features. Since there are no mandatory paid services, refunds are generally not applicable.
                   </p>
                 </div>
               </section>
@@ -55,7 +55,7 @@ export default function RefundPolicy() {
                 <h3 className="text-xl font-semibold mt-6 mb-3">Donation Refund Policy</h3>
                 <ul className="list-disc pl-6 space-y-2">
                   <li><strong>Donations are voluntary:</strong> All donations are made voluntarily to support NEWSTACK's operations.</li>
-                  <li><strong>Non-refundable by default:</strong> Donations are generally non-refundable as they represent support for our free service.</li>
+                  <li><strong>Non-refundable by default:</strong> Donations are generally non-refundable as they represent support for our service.</li>
                   <li><strong>Exceptions:</strong> We may consider refunds in cases of:
                     <ul className="list-disc pl-6 mt-2 space-y-1">
                       <li>Duplicate charges</li>
