@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Rss, Play, RefreshCw, CheckCircle2, Clock, 
   AlertTriangle, Loader2, Shield, Radio, BarChart3,
-  Activity, TrendingUp, Layers
+  Activity, TrendingUp, Layers, MapPin
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { IngestionRunHistory } from "@/components/IngestionRunHistory";
 import { IngestionTimelineChart } from "@/components/IngestionTimelineChart";
 import { IngestionAccessModal } from "@/components/IngestionAccessModal";
@@ -18,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getStateName, getStatesForDropdown } from "@/hooks/use-feed-states";
 
 interface IngestionRun {
   id: string;
@@ -37,6 +39,9 @@ export default function IngestionPortal() {
   const [isLoading, setIsLoading] = useState(true);
   const [isTriggering, setIsTriggering] = useState(false);
   const [isRealtime, setIsRealtime] = useState(false);
+  const [selectedState, setSelectedState] = useState<string>("");
+
+  const stateOptions = getStatesForDropdown();
 
   // Check for existing verified session
   useEffect(() => {
@@ -125,14 +130,19 @@ export default function IngestionPortal() {
         })
         .eq("id", accessUserId);
 
-      // Trigger ingestion
+      // Trigger ingestion with optional state filter
       const { data, error } = await supabase.functions.invoke("ingest-rss", {
-        body: { trigger: "manual", accessUserId },
+        body: { 
+          trigger: "manual", 
+          accessUserId,
+          stateId: selectedState || undefined,
+        },
       });
 
       if (error) throw error;
 
-      toast.success("Ingestion pipeline started!", {
+      const stateLabel = selectedState ? getStateName(selectedState) : "All India";
+      toast.success(`Ingestion pipeline started for ${stateLabel}!`, {
         description: `Run ID: ${data?.runId || "unknown"}`,
       });
 
@@ -262,6 +272,32 @@ export default function IngestionPortal() {
                 </div>
               )}
 
+              {/* State Selection */}
+              <div className="mb-4">
+                <label className="text-sm font-medium mb-2 block">Select State/Region</label>
+                <Select value={selectedState} onValueChange={setSelectedState}>
+                  <SelectTrigger className="w-full">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <SelectValue placeholder="All India (National feeds)" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border shadow-lg z-50 max-h-[300px]">
+                    <SelectItem value="">All India (National feeds)</SelectItem>
+                    {stateOptions.slice(1).map((state) => (
+                      <SelectItem key={state.id} value={state.id}>
+                        {state.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedState && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Will ingest feeds mapped to {getStateName(selectedState)}
+                  </p>
+                )}
+              </div>
+
               <Button
                 onClick={triggerIngestion}
                 disabled={isTriggering || latestRun.status === "running"}
@@ -272,7 +308,9 @@ export default function IngestionPortal() {
                 ) : (
                   <Play className="w-4 h-4 mr-2" />
                 )}
-                {accessUserId ? "Trigger Ingestion" : "Verify & Trigger Ingestion"}
+                {accessUserId 
+                  ? `Trigger Ingestion${selectedState ? ` for ${getStateName(selectedState)}` : ''}`
+                  : "Verify & Trigger Ingestion"}
               </Button>
             </CardContent>
           </Card>

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Activity, RefreshCw, CheckCircle2, XCircle, Clock, 
   AlertTriangle, Rss, Play, RotateCcw, Filter,
-  Loader2, Shield, Radio, ExternalLink, ChevronDown, ChevronUp
+  Loader2, Shield, Radio, ExternalLink, ChevronDown, ChevronUp, MapPin
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,11 +12,13 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNewsroomRole } from "@/hooks/use-newsroom-role";
+import { getStateName, getStatesForDropdown } from "@/hooks/use-feed-states";
 
 interface IngestionRun {
   id: string;
@@ -69,6 +71,9 @@ export default function NewsroomIngestionMonitor() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showErrors, setShowErrors] = useState(false);
   const [errorsExpanded, setErrorsExpanded] = useState(true);
+  const [selectedState, setSelectedState] = useState<string>("");
+
+  const stateOptions = getStatesForDropdown();
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -160,7 +165,8 @@ export default function NewsroomIngestionMonitor() {
       f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       f.url.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesErrors = !showErrors || (f.error_count || 0) > 0;
-    return matchesSearch && matchesErrors;
+    const matchesState = !selectedState || f.state_id === selectedState;
+    return matchesSearch && matchesErrors && matchesState;
   });
 
   const errorFeeds = feeds.filter((f) => (f.error_count || 0) > 0);
@@ -343,7 +349,20 @@ export default function NewsroomIngestionMonitor() {
               <Rss className="w-4 h-4 text-primary" />
               All Feeds ({filteredFeeds.length})
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={selectedState} onValueChange={setSelectedState}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="All States" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-lg z-50">
+                  <SelectItem value="">All States</SelectItem>
+                  {stateOptions.slice(1).map((state) => (
+                    <SelectItem key={state.id} value={state.id}>
+                      {state.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 placeholder="Search feeds..."
                 value={searchQuery}
@@ -389,8 +408,9 @@ export default function NewsroomIngestionMonitor() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium truncate">{feed.name}</span>
                           {feed.state_id && (
-                            <Badge variant="outline" className="text-[10px]">
-                              {feed.state_id}
+                            <Badge variant="secondary" className="text-[10px] flex items-center gap-1">
+                              <MapPin className="w-2.5 h-2.5" />
+                              {getStateName(feed.state_id)}
                             </Badge>
                           )}
                           <Badge variant="outline" className="text-[10px]">
