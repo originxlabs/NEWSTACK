@@ -1,8 +1,18 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  Plus, Edit2, Trash2, RefreshCw, Search, Filter,
-  CheckCircle2, XCircle, Globe, Rss, Shield, Clock
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  RefreshCw,
+  Search,
+  Filter,
+  CheckCircle2,
+  XCircle,
+  Globe,
+  Rss,
+  Shield,
+  Clock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,21 +20,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { 
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNewsroomRole } from "@/hooks/use-newsroom-role";
+import { SourceQualityDashboard } from "@/components/newsroom/SourceQualityDashboard";
 
 interface RSSFeed {
   id: string;
@@ -331,6 +357,11 @@ export default function NewsroomFeeds() {
         </div>
       </div>
 
+      {/* Quality dashboard */}
+      <div className="mb-6">
+        <SourceQualityDashboard />
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         <Card>
@@ -342,7 +373,7 @@ export default function NewsroomFeeds() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-2xl font-bold text-emerald-500">
-              {feeds.filter(f => f.is_active).length}
+              {feeds.filter((f) => f.is_active).length}
             </p>
             <p className="text-xs text-muted-foreground">Active</p>
           </CardContent>
@@ -350,7 +381,7 @@ export default function NewsroomFeeds() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-2xl font-bold text-blue-500">
-              {feeds.filter(f => f.reliability_tier === "tier_1").length}
+              {feeds.filter((f) => f.reliability_tier === "tier_1").length}
             </p>
             <p className="text-xs text-muted-foreground">Tier 1 Sources</p>
           </CardContent>
@@ -358,7 +389,7 @@ export default function NewsroomFeeds() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-2xl font-bold text-amber-500">
-              {feeds.filter(f => f.reliability_tier === "tier_3").length}
+              {feeds.filter((f) => f.reliability_tier === "tier_3").length}
             </p>
             <p className="text-xs text-muted-foreground">Tier 3 Sources</p>
           </CardContent>
