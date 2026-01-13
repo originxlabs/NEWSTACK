@@ -176,13 +176,14 @@ function useStateStats() {
       const cutoff = new Date();
       cutoff.setHours(cutoff.getHours() - 48);
 
-      // Fetch stories from India
+      // Fetch stories from India (last 48h)
+      // IMPORTANT: Use both state + city so state cards show real counts.
       const { data: stories, error } = await supabase
         .from("stories")
-        .select("id, headline, city, category, created_at")
+        .select("id, headline, city, state, category, first_published_at")
         .eq("country_code", "IN")
-        .gte("created_at", cutoff.toISOString())
-        .order("created_at", { ascending: false });
+        .gte("first_published_at", cutoff.toISOString())
+        .order("first_published_at", { ascending: false });
 
       if (error) throw error;
 
@@ -238,30 +239,49 @@ function useStateStats() {
 
       // Process stories
       for (const story of stories || []) {
-        // Match story to state based on city field
+        const stateLower = story.state?.toLowerCase()?.trim() || "";
         const cityLower = story.city?.toLowerCase()?.trim() || "";
-        
-        if (!cityLower) continue; // Skip stories without city info
-        
+
         let matchedStateId: string | null = null;
-        
-        // First try direct city-to-state mapping
-        if (CITY_TO_STATE[cityLower]) {
-          matchedStateId = CITY_TO_STATE[cityLower];
-        } else {
-          // Try matching against state names
-          for (const state of ALL_REGIONS) {
-            const stateName = state.name.toLowerCase();
-            const capitalName = state.capital.toLowerCase();
-            
-            if (cityLower === stateName || cityLower === capitalName || 
-                cityLower.includes(stateName) || stateName.includes(cityLower)) {
-              matchedStateId = state.id;
+
+        // 1) Prefer the explicit state column (most reliable)
+        if (stateLower) {
+          // Try to match against our canonical region ids (e.g. "tamil-nadu")
+          for (const region of ALL_REGIONS) {
+            const regionName = region.name.toLowerCase();
+            if (
+              stateLower === regionName ||
+              stateLower.includes(regionName) ||
+              regionName.includes(stateLower)
+            ) {
+              matchedStateId = region.id;
               break;
             }
           }
         }
-        
+
+        // 2) Fallback: derive state from city
+        if (!matchedStateId && cityLower) {
+          if (CITY_TO_STATE[cityLower]) {
+            matchedStateId = CITY_TO_STATE[cityLower];
+          } else {
+            for (const region of ALL_REGIONS) {
+              const regionName = region.name.toLowerCase();
+              const capitalName = region.capital.toLowerCase();
+
+              if (
+                cityLower === regionName ||
+                cityLower === capitalName ||
+                cityLower.includes(regionName) ||
+                regionName.includes(cityLower)
+              ) {
+                matchedStateId = region.id;
+                break;
+              }
+            }
+          }
+        }
+
         if (matchedStateId) {
           if (!stateStatsMap[matchedStateId]) {
             stateStatsMap[matchedStateId] = {
@@ -274,35 +294,41 @@ function useStateStats() {
               localFeedCount: 0,
             };
           }
-          
+
           stateStatsMap[matchedStateId].storyCount++;
-          
+
           if (stateStatsMap[matchedStateId].recentHeadlines.length < 5) {
             stateStatsMap[matchedStateId].recentHeadlines.push(story.headline);
           }
-          
+
           // Track category for this state
           if (story.category) {
-            const existing = stateStatsMap[matchedStateId].trendingTopics.find(t => t.topic === story.category);
+            const existing = stateStatsMap[matchedStateId].trendingTopics.find(
+              (t) => t.topic === story.category
+            );
             if (existing) {
               existing.count++;
             } else {
-              stateStatsMap[matchedStateId].trendingTopics.push({ topic: story.category, count: 1 });
+              stateStatsMap[matchedStateId].trendingTopics.push({
+                topic: story.category,
+                count: 1,
+              });
             }
           }
-          
-          const stateName = ALL_REGIONS.find(s => s.id === matchedStateId)?.name || matchedStateId;
+
+          const stateName =
+            ALL_REGIONS.find((s) => s.id === matchedStateId)?.name || matchedStateId;
           stateCount[stateName] = (stateCount[stateName] || 0) + 1;
         }
-        
+
         // Track overall category
         if (story.category) {
           categoryCount[story.category] = (categoryCount[story.category] || 0) + 1;
         }
-        
-        // Track hourly trend
-        const hour = new Date(story.created_at).getHours();
-        const hourKey = `${hour.toString().padStart(2, '0')}:00`;
+
+        // Track hourly trend using publish time
+        const hour = new Date(story.first_published_at).getHours();
+        const hourKey = `${hour.toString().padStart(2, "0")}:00`;
         hourlyCount[hourKey] = (hourlyCount[hourKey] || 0) + 1;
       }
 
