@@ -55,6 +55,8 @@ import NewsroomOwnerLogin from "./pages/newsroom/NewsroomOwnerLogin";
 import NewsroomAuditLogs from "./pages/newsroom/NewsroomAuditLogs";
 import NewsroomIngestionStatus from "./pages/newsroom/NewsroomIngestionStatus";
 import NewsroomIngestionLogs from "./pages/newsroom/NewsroomIngestionLogs";
+import NewsroomIngestionMonitor from "./pages/newsroom/NewsroomIngestionMonitor";
+import IngestionPortal from "./pages/IngestionPortal";
 import { AdminRouteGuard } from "./components/newsroom/AdminRouteGuard";
 
 const queryClient = new QueryClient({
@@ -158,6 +160,7 @@ function AppContent() {
           <Route path="/api/dashboard" element={<ApiDashboard />} />
           <Route path="/enterprise/dashboard" element={<EnterpriseDashboard />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/ingestion" element={<IngestionPortal />} />
           {/* Enterprise Newsroom - separate from public */}
           <Route path="/newsroom/login" element={<NewsroomLogin />} />
           <Route path="/newsroom/owner-init" element={<NewsroomOwnerSetup />} />
@@ -170,6 +173,7 @@ function AppContent() {
             <Route path="analytics" element={<AdminRouteGuard pageName="Analytics"><NewsroomAnalytics /></AdminRouteGuard>} />
             <Route path="ingestion" element={<AdminRouteGuard pageName="Ingestion"><NewsroomIngestion /></AdminRouteGuard>} />
             <Route path="ingestion-status" element={<NewsroomIngestionStatus />} />
+            <Route path="ingestion-monitor" element={<AdminRouteGuard pageName="Ingestion Monitor"><NewsroomIngestionMonitor /></AdminRouteGuard>} />
             <Route path="feeds" element={<AdminRouteGuard pageName="RSS Feeds"><NewsroomFeeds /></AdminRouteGuard>} />
             <Route path="sources" element={<Sources />} />
             <Route path="audit-logs" element={<NewsroomAuditLogs />} />

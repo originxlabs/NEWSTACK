@@ -563,6 +563,114 @@ export type Database = {
           },
         ]
       }
+      feed_fetch_results: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          feed_id: string | null
+          feed_name: string
+          id: string
+          ingestion_run_id: string | null
+          status: string
+          stories_fetched: number | null
+          stories_inserted: number | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          feed_id?: string | null
+          feed_name: string
+          id?: string
+          ingestion_run_id?: string | null
+          status?: string
+          stories_fetched?: number | null
+          stories_inserted?: number | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          feed_id?: string | null
+          feed_name?: string
+          id?: string
+          ingestion_run_id?: string | null
+          status?: string
+          stories_fetched?: number | null
+          stories_inserted?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_fetch_results_feed_id_fkey"
+            columns: ["feed_id"]
+            isOneToOne: false
+            referencedRelation: "rss_feeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_fetch_results_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingestion_access_users: {
+        Row: {
+          cookie_policy_accepted: boolean | null
+          created_at: string
+          device_info: Json | null
+          email: string
+          id: string
+          ip_address: string | null
+          is_verified: boolean | null
+          last_ingestion_at: string | null
+          location: Json | null
+          otp_verified_at: string | null
+          phone: string | null
+          terms_accepted: boolean | null
+          total_ingestions: number | null
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          cookie_policy_accepted?: boolean | null
+          created_at?: string
+          device_info?: Json | null
+          email: string
+          id?: string
+          ip_address?: string | null
+          is_verified?: boolean | null
+          last_ingestion_at?: string | null
+          location?: Json | null
+          otp_verified_at?: string | null
+          phone?: string | null
+          terms_accepted?: boolean | null
+          total_ingestions?: number | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          cookie_policy_accepted?: boolean | null
+          created_at?: string
+          device_info?: Json | null
+          email?: string
+          id?: string
+          ip_address?: string | null
+          is_verified?: boolean | null
+          last_ingestion_at?: string | null
+          location?: Json | null
+          otp_verified_at?: string | null
+          phone?: string | null
+          terms_accepted?: boolean | null
+          total_ingestions?: number | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       ingestion_runs: {
         Row: {
           completed_at: string | null
@@ -655,6 +763,7 @@ export type Database = {
       }
       ingestion_user_logs: {
         Row: {
+          access_user_id: string | null
           country_code: string | null
           created_at: string
           id: string
@@ -668,6 +777,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          access_user_id?: string | null
           country_code?: string | null
           created_at?: string
           id?: string
@@ -681,6 +791,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          access_user_id?: string | null
           country_code?: string | null
           created_at?: string
           id?: string
@@ -694,6 +805,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ingestion_user_logs_access_user_id_fkey"
+            columns: ["access_user_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_access_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ingestion_user_logs_ingestion_run_id_fkey"
             columns: ["ingestion_run_id"]
@@ -999,51 +1117,72 @@ export type Database = {
       }
       rss_feeds: {
         Row: {
+          avg_stories_per_fetch: number | null
           category: string | null
           country_code: string | null
           created_at: string
+          error_count: number | null
           fetch_interval_minutes: number | null
+          health_score: number | null
           id: string
           is_active: boolean | null
           language: string | null
+          last_error_at: string | null
+          last_error_message: string | null
           last_fetched_at: string | null
           name: string
           priority: number | null
           publisher: string | null
           reliability_tier: string | null
           source_type: string | null
+          state_id: string | null
+          total_fetch_count: number | null
           url: string
         }
         Insert: {
+          avg_stories_per_fetch?: number | null
           category?: string | null
           country_code?: string | null
           created_at?: string
+          error_count?: number | null
           fetch_interval_minutes?: number | null
+          health_score?: number | null
           id?: string
           is_active?: boolean | null
           language?: string | null
+          last_error_at?: string | null
+          last_error_message?: string | null
           last_fetched_at?: string | null
           name: string
           priority?: number | null
           publisher?: string | null
           reliability_tier?: string | null
           source_type?: string | null
+          state_id?: string | null
+          total_fetch_count?: number | null
           url: string
         }
         Update: {
+          avg_stories_per_fetch?: number | null
           category?: string | null
           country_code?: string | null
           created_at?: string
+          error_count?: number | null
           fetch_interval_minutes?: number | null
+          health_score?: number | null
           id?: string
           is_active?: boolean | null
           language?: string | null
+          last_error_at?: string | null
+          last_error_message?: string | null
           last_fetched_at?: string | null
           name?: string
           priority?: number | null
           publisher?: string | null
           reliability_tier?: string | null
           source_type?: string | null
+          state_id?: string | null
+          total_fetch_count?: number | null
           url?: string
         }
         Relationships: []
