@@ -46,6 +46,7 @@ const navItems: NavItem[] = [
   { icon: Webhook, label: "Webhooks", href: "/newsroom/webhooks", restricted: true },
   { icon: BarChart3, label: "Analytics", href: "/newsroom/analytics", restricted: true },
   { icon: Rss, label: "Ingestion", href: "/newsroom/ingestion", restricted: true },
+  { icon: Activity, label: "Ingestion Monitor", href: "/newsroom/ingestion-monitor", ownerOnly: true },
   { icon: Database, label: "Ingestion Status", href: "/newsroom/ingestion-status", ownerOnly: true },
   { icon: Rss, label: "RSS Feeds", href: "/newsroom/feeds", restricted: true },
   { icon: Rss, label: "Source Explorer", href: "/newsroom/sources", ownerOnly: true },
