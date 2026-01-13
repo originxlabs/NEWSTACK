@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   MapPin, TrendingUp, Globe2, Newspaper, Radio, 
@@ -7,7 +7,7 @@ import {
   Search, Filter, BarChart3, ArrowLeft, Clock,
   Users, Zap, ChevronDown, Volume2, Globe, Layers,
   CheckCircle2, AlertCircle, Loader2, ExternalLink, Home,
-  Sparkles
+  Sparkles, Shield, Lock
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -24,6 +24,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { WeatherAQIWidget } from "@/components/weather/WeatherAQIWidget";
 import { cn } from "@/lib/utils";
@@ -37,6 +43,7 @@ import { StateFlagBadge } from "@/components/StateFlagBadge";
 import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
 import { AutoRefreshTimer } from "@/components/AutoRefreshTimer";
+import { IngestionAccessModal } from "@/components/IngestionAccessModal";
 import { 
   getStateConfig, 
   LANGUAGE_CONFIG,
@@ -91,10 +98,37 @@ export default function StatePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [feedType, setFeedType] = useState<"all" | "foryou">("all");
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
+  const [accessUserId, setAccessUserId] = useState<string | null>(null);
   
   const { trackRead, personalizeStories, topCategories, topStates } = usePersonalizedFeed();
   // Get state config from centralized config
   const stateConfig = stateId ? getStateConfig(stateId) : undefined;
+  
+  // Check for existing verified session for ingestion access
+  useEffect(() => {
+    const storedUserId = localStorage.getItem("ingestion_access_user_id");
+    const storedExpiry = localStorage.getItem("ingestion_access_expiry");
+    
+    if (storedUserId && storedExpiry) {
+      const expiry = new Date(storedExpiry);
+      if (expiry > new Date()) {
+        setAccessUserId(storedUserId);
+      } else {
+        localStorage.removeItem("ingestion_access_user_id");
+        localStorage.removeItem("ingestion_access_expiry");
+      }
+    }
+  }, []);
+
+  const handleAccessSuccess = (userId: string) => {
+    setAccessUserId(userId);
+    const expiry = new Date();
+    expiry.setHours(expiry.getHours() + 24);
+    localStorage.setItem("ingestion_access_user_id", userId);
+    localStorage.setItem("ingestion_access_expiry", expiry.toISOString());
+    toast.success("Access verified! You can now trigger news refresh.");
+  };
   const stateName = stateConfig?.name || stateId?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "State";
 
   // Fetch stories for this state
@@ -445,39 +479,78 @@ export default function StatePage() {
               className="flex-1"
             />
             
-            {/* Refresh News Button - Triggers async ingestion */}
-            <Button
-              variant="default"
-              size="sm"
-              onClick={async () => {
-                setIsLoading(true);
-                toast.loading(`Refreshing ${stateName} news...`, { id: "refresh-news" });
-                try {
-                  // Trigger ingestion for this specific state in the background
-                  supabase.functions.invoke("ingest-rss", {
-                    body: { 
-                      trigger: "manual",
-                      stateId: stateId, // Filter ingestion to this state only
-                    },
-                  }).then(() => {
-                    toast.success(`Ingestion triggered for ${stateName}`, { id: "ingestion-bg" });
-                  }).catch(console.error);
-                  
-                  // Immediately refresh stories from database
-                  await fetchStories();
-                  toast.success(`${stateName} news feed refreshed!`, { id: "refresh-news" });
-                } catch (error) {
-                  toast.error("Failed to refresh news", { id: "refresh-news" });
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
-              disabled={isLoading}
-              className="gap-2 bg-primary hover:bg-primary/90"
-            >
-              <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
-              Refresh {stateName} News
-            </Button>
+            {/* Refresh News Button - Requires OTP auth to trigger ingestion */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={accessUserId ? "default" : "outline"}
+                    size="sm"
+                    onClick={async () => {
+                      if (!accessUserId) {
+                        setIsAccessModalOpen(true);
+                        return;
+                      }
+                      
+                      setIsLoading(true);
+                      toast.loading(`Refreshing ${stateName} news...`, { id: "refresh-news" });
+                      try {
+                        // Log the user trigger
+                        await supabase.from("ingestion_user_logs").insert({
+                          access_user_id: accessUserId,
+                          trigger_type: "manual",
+                          user_agent: navigator.userAgent,
+                          province_id: stateId,
+                          country_code: "IN",
+                        });
+
+                        // Trigger ingestion for this specific state
+                        supabase.functions.invoke("ingest-rss", {
+                          body: { 
+                            trigger: "manual",
+                            stateId: stateId,
+                            accessUserId,
+                          },
+                        }).then(() => {
+                          toast.success(`Ingestion triggered for ${stateName}`, { id: "ingestion-bg" });
+                        }).catch(console.error);
+                        
+                        // Immediately refresh stories from database
+                        await fetchStories();
+                        toast.success(`${stateName} news feed refreshed!`, { id: "refresh-news" });
+                      } catch (error) {
+                        toast.error("Failed to refresh news", { id: "refresh-news" });
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
+                    disabled={isLoading}
+                    className={cn(
+                      "gap-2",
+                      accessUserId 
+                        ? "bg-primary hover:bg-primary/90" 
+                        : "border-dashed"
+                    )}
+                  >
+                    {accessUserId ? (
+                      <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
+                    ) : (
+                      <Lock className="w-4 h-4" />
+                    )}
+                    {accessUserId 
+                      ? `Refresh ${stateName} News`
+                      : "Verify to Refresh News"
+                    }
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {accessUserId 
+                    ? "Trigger RSS ingestion for fresh news"
+                    : "Email OTP verification required to trigger manual ingestion"
+                  }
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             
             {/* Feed type toggle */}
             <div className="flex items-center gap-2">
@@ -530,25 +603,58 @@ export default function StatePage() {
               </div>
             </div>
 
+            {/* Enhanced Language Filter with native scripts */}
             <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Language" />
+              <SelectTrigger className="w-[180px]">
+                <div className="flex items-center gap-2">
+                  <Languages className="w-4 h-4 text-muted-foreground" />
+                  <SelectValue placeholder="Language" />
+                </div>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Languages</SelectItem>
-                <SelectItem value="regional">
+              <SelectContent className="bg-background border shadow-lg z-50">
+                <SelectItem value="all">
                   <span className="flex items-center gap-2">
-                    🌐 Regional First
+                    <Globe className="w-4 h-4" />
+                    All Languages
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      {stories.length}
+                    </Badge>
                   </span>
                 </SelectItem>
-                {stateConfig?.languages.map(lang => (
-                  <SelectItem key={lang} value={lang}>
-                    <span className="flex items-center gap-2">
-                      <span className={cn("w-2 h-2 rounded-full", LANGUAGE_CONFIG[lang]?.color)} />
-                      {LANGUAGE_CONFIG[lang]?.native || lang}
-                    </span>
-                  </SelectItem>
-                ))}
+                <SelectItem value="regional">
+                  <span className="flex items-center gap-2">
+                    <Languages className="w-4 h-4" />
+                    Regional First
+                    <Badge variant="secondary" className="ml-2 text-xs bg-emerald-500/10 text-emerald-600">
+                      {Object.entries(languageStats).filter(([lang]) => lang !== "en").reduce((sum, [, count]) => sum + count, 0)}
+                    </Badge>
+                  </span>
+                </SelectItem>
+                <SelectItem value="en">
+                  <span className="flex items-center gap-2">
+                    <span className={cn("w-3 h-3 rounded-full", LANGUAGE_CONFIG["en"]?.color || "bg-blue-500")} />
+                    <span>English</span>
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      {languageStats["en"] || 0}
+                    </Badge>
+                  </span>
+                </SelectItem>
+                {stateConfig?.languages.filter(l => l !== "en").map(lang => {
+                  const langConfig = LANGUAGE_CONFIG[lang];
+                  const count = languageStats[lang] || 0;
+                  return (
+                    <SelectItem key={lang} value={lang}>
+                      <span className="flex items-center gap-2">
+                        <span className={cn("w-3 h-3 rounded-full", langConfig?.color || "bg-gray-500")} />
+                        <span className="font-medium">{langConfig?.native || lang}</span>
+                        <span className="text-muted-foreground text-xs">({langConfig?.name || lang})</span>
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          {count}
+                        </Badge>
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
 
@@ -556,7 +662,7 @@ export default function StatePage() {
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="City" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border shadow-lg z-50">
                 <SelectItem value="all">All Cities</SelectItem>
                 {uniqueCities.map(city => (
                   <SelectItem key={city} value={city}>{city}</SelectItem>
@@ -568,7 +674,7 @@ export default function StatePage() {
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border shadow-lg z-50">
                 <SelectItem value="all">All Categories</SelectItem>
                 {uniqueCategories.map(cat => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
@@ -583,11 +689,6 @@ export default function StatePage() {
                 setIsLoading(true);
                 toast.loading("Refreshing...", { id: "filter-refresh" });
                 try {
-                  // Trigger ingestion in background
-                  supabase.functions.invoke("ingest-rss", {
-                    body: { trigger: "manual" },
-                  }).catch(console.error);
-                  // Refresh stories immediately
                   await fetchStories();
                   toast.success("Refreshed!", { id: "filter-refresh" });
                 } catch (error) {
@@ -604,26 +705,51 @@ export default function StatePage() {
             </Button>
           </div>
 
-          {/* Language pills */}
+          {/* Language pills with native scripts */}
           <div className="flex flex-wrap gap-2 mt-4">
-            {Object.entries(languageStats).map(([lang, count]) => {
-              const config = LANGUAGE_CONFIG[lang];
-              return (
-                <Badge
-                  key={lang}
-                  variant="outline"
-                  className={cn(
-                    "cursor-pointer transition-colors",
-                    selectedLanguage === lang 
-                      ? `${config?.color} text-white border-transparent` 
-                      : "hover:bg-muted"
-                  )}
-                  onClick={() => setSelectedLanguage(selectedLanguage === lang ? "all" : lang)}
-                >
-                  {config?.native || lang} ({count})
-                </Badge>
-              );
-            })}
+            {Object.entries(languageStats)
+              .sort(([, a], [, b]) => b - a) // Sort by count descending
+              .map(([lang, count]) => {
+                const config = LANGUAGE_CONFIG[lang];
+                const isSelected = selectedLanguage === lang;
+                const isRegional = lang !== "en";
+                
+                return (
+                  <Badge
+                    key={lang}
+                    variant="outline"
+                    className={cn(
+                      "cursor-pointer transition-all duration-200 px-3 py-1.5",
+                      isSelected 
+                        ? `${config?.color || "bg-primary"} text-white border-transparent shadow-sm` 
+                        : "hover:bg-muted hover:scale-105",
+                      isRegional && !isSelected && "border-dashed"
+                    )}
+                    onClick={() => setSelectedLanguage(selectedLanguage === lang ? "all" : lang)}
+                  >
+                    <span className="flex items-center gap-2">
+                      {!isSelected && (
+                        <span className={cn("w-2 h-2 rounded-full", config?.color || "bg-gray-500")} />
+                      )}
+                      <span className="font-medium">{config?.native || lang}</span>
+                      {isRegional && config?.name && (
+                        <span className={cn(
+                          "text-xs",
+                          isSelected ? "text-white/70" : "text-muted-foreground"
+                        )}>
+                          ({config.name})
+                        </span>
+                      )}
+                      <span className={cn(
+                        "ml-1 px-1.5 py-0.5 rounded text-xs",
+                        isSelected ? "bg-white/20" : "bg-muted"
+                      )}>
+                        {count}
+                      </span>
+                    </span>
+                  </Badge>
+                );
+              })}
           </div>
         </Card>
 
@@ -790,6 +916,13 @@ export default function StatePage() {
       </main>
 
       <Footer />
+
+      {/* Ingestion Access Modal for OTP verification */}
+      <IngestionAccessModal
+        isOpen={isAccessModalOpen}
+        onClose={() => setIsAccessModalOpen(false)}
+        onSuccess={handleAccessSuccess}
+      />
     </div>
   );
 }
