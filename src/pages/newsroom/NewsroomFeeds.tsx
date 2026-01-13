@@ -45,12 +45,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNewsroomRole } from "@/hooks/use-newsroom-role";
 import { SourceQualityDashboard } from "@/components/newsroom/SourceQualityDashboard";
+import { LatestStoriesVerification } from "@/components/newsroom/LatestStoriesVerification";
+import { FeedHealthScorer } from "@/components/newsroom/FeedHealthScorer";
 
 interface RSSFeed {
   id: string;
@@ -357,10 +360,23 @@ export default function NewsroomFeeds() {
         </div>
       </div>
 
-      {/* Quality dashboard */}
-      <div className="mb-6">
-        <SourceQualityDashboard />
-      </div>
+      {/* Quality dashboard and Health panels */}
+      <Tabs defaultValue="quality" className="mb-6">
+        <TabsList>
+          <TabsTrigger value="quality">Source Quality</TabsTrigger>
+          <TabsTrigger value="health">Feed Health</TabsTrigger>
+          <TabsTrigger value="verification">Story Verification</TabsTrigger>
+        </TabsList>
+        <TabsContent value="quality" className="mt-4">
+          <SourceQualityDashboard />
+        </TabsContent>
+        <TabsContent value="health" className="mt-4">
+          <FeedHealthScorer />
+        </TabsContent>
+        <TabsContent value="verification" className="mt-4">
+          <LatestStoriesVerification />
+        </TabsContent>
+      </Tabs>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
