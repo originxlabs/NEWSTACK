@@ -39,7 +39,7 @@ export default function IngestionPortal() {
   const [isLoading, setIsLoading] = useState(true);
   const [isTriggering, setIsTriggering] = useState(false);
   const [isRealtime, setIsRealtime] = useState(false);
-  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("all");
 
   const stateOptions = getStatesForDropdown();
 
@@ -135,13 +135,13 @@ export default function IngestionPortal() {
         body: { 
           trigger: "manual", 
           accessUserId,
-          stateId: selectedState || undefined,
+          stateId: selectedState === "all" ? undefined : selectedState,
         },
       });
 
       if (error) throw error;
 
-      const stateLabel = selectedState ? getStateName(selectedState) : "All India";
+      const stateLabel = selectedState === "all" ? "All India" : getStateName(selectedState);
       toast.success(`Ingestion pipeline started for ${stateLabel}!`, {
         description: `Run ID: ${data?.runId || "unknown"}`,
       });
@@ -283,7 +283,7 @@ export default function IngestionPortal() {
                     </div>
                   </SelectTrigger>
                   <SelectContent className="bg-background border shadow-lg z-50 max-h-[300px]">
-                    <SelectItem value="">All India (National feeds)</SelectItem>
+                    <SelectItem value="all">All India (National feeds)</SelectItem>
                     {stateOptions.slice(1).map((state) => (
                       <SelectItem key={state.id} value={state.id}>
                         {state.name}
@@ -291,7 +291,7 @@ export default function IngestionPortal() {
                     ))}
                   </SelectContent>
                 </Select>
-                {selectedState && (
+                {selectedState && selectedState !== "all" && (
                   <p className="text-xs text-muted-foreground mt-1">
                     Will ingest feeds mapped to {getStateName(selectedState)}
                   </p>
@@ -309,7 +309,7 @@ export default function IngestionPortal() {
                   <Play className="w-4 h-4 mr-2" />
                 )}
                 {accessUserId 
-                  ? `Trigger Ingestion${selectedState ? ` for ${getStateName(selectedState)}` : ''}`
+                  ? `Trigger Ingestion${selectedState && selectedState !== "all" ? ` for ${getStateName(selectedState)}` : ''}`
                   : "Verify & Trigger Ingestion"}
               </Button>
             </CardContent>
