@@ -40,23 +40,44 @@ export default function IngestionPortal() {
   const [isTriggering, setIsTriggering] = useState(false);
   const [isRealtime, setIsRealtime] = useState(false);
   const [selectedState, setSelectedState] = useState<string>("all");
+  const [sessionTimeLeft, setSessionTimeLeft] = useState<number | null>(null);
 
   const stateOptions = getStatesForDropdown();
 
   // Check for existing verified session
   useEffect(() => {
-    const storedUserId = localStorage.getItem("ingestion_access_user_id");
-    const storedExpiry = localStorage.getItem("ingestion_access_expiry");
-    
-    if (storedUserId && storedExpiry) {
-      const expiry = new Date(storedExpiry);
-      if (expiry > new Date()) {
-        setAccessUserId(storedUserId);
+    const checkSession = () => {
+      const storedUserId = localStorage.getItem("ingestion_access_user_id");
+      const storedExpiry = localStorage.getItem("ingestion_access_expiry");
+      
+      if (storedUserId && storedExpiry) {
+        const expiry = new Date(storedExpiry);
+        const now = new Date();
+        if (expiry > now) {
+          setAccessUserId(storedUserId);
+          // Calculate time left in seconds
+          const timeLeftMs = expiry.getTime() - now.getTime();
+          setSessionTimeLeft(Math.floor(timeLeftMs / 1000));
+        } else {
+          // Session expired - clear it
+          localStorage.removeItem("ingestion_access_user_id");
+          localStorage.removeItem("ingestion_access_expiry");
+          setAccessUserId(null);
+          setSessionTimeLeft(null);
+        }
       } else {
-        localStorage.removeItem("ingestion_access_user_id");
-        localStorage.removeItem("ingestion_access_expiry");
+        setAccessUserId(null);
+        setSessionTimeLeft(null);
       }
-    }
+    };
+
+    // Check immediately
+    checkSession();
+
+    // Update every second to show countdown
+    const interval = setInterval(checkSession, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchLatestRun = useCallback(async () => {
@@ -99,9 +120,9 @@ export default function IngestionPortal() {
 
   const handleAccessSuccess = (userId: string) => {
     setAccessUserId(userId);
-    // Store with 24h expiry
+    // Store with 30-minute expiry
     const expiry = new Date();
-    expiry.setHours(expiry.getHours() + 24);
+    expiry.setMinutes(expiry.getMinutes() + 30);
     localStorage.setItem("ingestion_access_user_id", userId);
     localStorage.setItem("ingestion_access_expiry", expiry.toISOString());
   };
@@ -139,7 +160,22 @@ export default function IngestionPortal() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's an auth/session error
+        const errorMessage = error.message || "";
+        if (errorMessage.includes("expired") || errorMessage.includes("401") || errorMessage.includes("Session")) {
+          // Clear expired session
+          localStorage.removeItem("ingestion_access_user_id");
+          localStorage.removeItem("ingestion_access_expiry");
+          setAccessUserId(null);
+          toast.error("Session expired (30 min limit). Please re-verify.", {
+            description: "Your access has expired. Click 'Verify Access' to continue.",
+          });
+          setIsAccessModalOpen(true);
+          return;
+        }
+        throw error;
+      }
 
       const stateLabel = selectedState === "all" ? "All India" : getStateName(selectedState);
       toast.success(`Ingestion pipeline started for ${stateLabel}!`, {
@@ -147,8 +183,22 @@ export default function IngestionPortal() {
       });
 
       await fetchLatestRun();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to trigger ingestion:", err);
+      // Handle session expiry from response body
+      if (err?.context?.body) {
+        try {
+          const body = JSON.parse(err.context.body);
+          if (body.error === "Session expired" || body.error === "Authentication required") {
+            localStorage.removeItem("ingestion_access_user_id");
+            localStorage.removeItem("ingestion_access_expiry");
+            setAccessUserId(null);
+            toast.error(body.message || "Session expired. Please re-verify.");
+            setIsAccessModalOpen(true);
+            return;
+          }
+        } catch {}
+      }
       toast.error("Failed to trigger ingestion");
     } finally {
       setIsTriggering(false);
@@ -196,7 +246,7 @@ export default function IngestionPortal() {
         {/* Access Status */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-3">
                 <Shield className={cn("w-5 h-5", accessUserId ? "text-emerald-500" : "text-muted-foreground")} />
                 <div>
@@ -205,8 +255,10 @@ export default function IngestionPortal() {
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {accessUserId 
-                      ? "You can trigger ingestion runs" 
-                      : "Verify your email to run the pipeline"}
+                      ? sessionTimeLeft !== null 
+                        ? `Session expires in ${Math.floor(sessionTimeLeft / 60)}:${String(sessionTimeLeft % 60).padStart(2, '0')}`
+                        : "You can trigger ingestion runs"
+                      : "Verify your email to run the pipeline (30 min access)"}
                   </p>
                 </div>
               </div>
@@ -214,6 +266,12 @@ export default function IngestionPortal() {
                 <Button onClick={() => setIsAccessModalOpen(true)}>
                   <Shield className="w-4 h-4 mr-2" />
                   Verify Access
+                </Button>
+              )}
+              {accessUserId && sessionTimeLeft !== null && sessionTimeLeft < 300 && (
+                <Button variant="outline" size="sm" onClick={() => setIsAccessModalOpen(true)}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Extend Session
                 </Button>
               )}
             </div>

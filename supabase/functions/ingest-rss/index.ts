@@ -1495,6 +1495,8 @@ serve(async (req) => {
   let userId: string | null = null;
   let userEmail: string | null = null;
   let stateIdFilter: string | null = null;
+  let accessUserId: string | null = null;
+  let triggerType: string = "cron";
   
   try {
     const body = await req.json().catch(() => ({}));
@@ -1503,8 +1505,80 @@ serve(async (req) => {
     userId = body.userId || null;
     userEmail = body.userEmail || null;
     stateIdFilter = body.stateId || null; // Optional state filter
+    accessUserId = body.accessUserId || null;
+    triggerType = body.trigger || "cron";
   } catch {
     // Body parsing failed, continue without context
+  }
+
+  // For manual triggers, verify the accessUserId is valid and recently verified
+  if (triggerType === "manual" && !isInternalCron && !isLocalCron) {
+    if (!accessUserId) {
+      console.log("Manual trigger without accessUserId - rejecting");
+      return new Response(
+        JSON.stringify({ 
+          error: "Authentication required", 
+          message: "Please verify your identity to trigger manual ingestion" 
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Verify the accessUserId exists and was verified within the last 30 minutes
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const { data: accessUser, error: accessError } = await supabase
+      .from("ingestion_access_users")
+      .select("id, is_verified, otp_verified_at")
+      .eq("id", accessUserId)
+      .single();
+
+    if (accessError || !accessUser) {
+      console.log("Invalid accessUserId:", accessUserId);
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid access token", 
+          message: "Your access token is invalid. Please re-verify." 
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!accessUser.is_verified) {
+      console.log("Unverified accessUserId:", accessUserId);
+      return new Response(
+        JSON.stringify({ 
+          error: "Verification required", 
+          message: "Please complete OTP verification to trigger ingestion." 
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Check if verification is within 30 minutes
+    if (!accessUser.otp_verified_at || accessUser.otp_verified_at < thirtyMinutesAgo) {
+      console.log("Expired accessUserId (>30min):", accessUserId, "verified at:", accessUser.otp_verified_at);
+      return new Response(
+        JSON.stringify({ 
+          error: "Session expired", 
+          message: "Your access has expired (30 min limit). Please re-verify with OTP." 
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("Access verified for user:", accessUserId, "verified at:", accessUser.otp_verified_at);
   }
 
   // Create ingestion run record for tracking
@@ -1526,9 +1600,10 @@ serve(async (req) => {
         ingestion_run_id: runId,
         user_id: userId,
         user_email: userEmail,
+        access_user_id: accessUserId,
         ip_address: ipAddress,
         user_agent: userAgent,
-        trigger_type: isInternalCron ? "cron" : "manual",
+        trigger_type: triggerType,
         country_code: countryCode,
         province_id: provinceId,
         metadata: {
@@ -1537,6 +1612,7 @@ serve(async (req) => {
                                isSupabaseInvoke ? "supabase_invoke" : 
                                isFrontendCall ? "frontend" : "other",
           timestamp: new Date().toISOString(),
+          state_filter: stateIdFilter,
         }
       });
     } catch (logError) {

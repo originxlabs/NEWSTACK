@@ -107,27 +107,41 @@ export default function StatePage() {
   
   // Check for existing verified session for ingestion access
   useEffect(() => {
-    const storedUserId = localStorage.getItem("ingestion_access_user_id");
-    const storedExpiry = localStorage.getItem("ingestion_access_expiry");
-    
-    if (storedUserId && storedExpiry) {
-      const expiry = new Date(storedExpiry);
-      if (expiry > new Date()) {
-        setAccessUserId(storedUserId);
+    const checkSession = () => {
+      const storedUserId = localStorage.getItem("ingestion_access_user_id");
+      const storedExpiry = localStorage.getItem("ingestion_access_expiry");
+      
+      if (storedUserId && storedExpiry) {
+        const expiry = new Date(storedExpiry);
+        if (expiry > new Date()) {
+          setAccessUserId(storedUserId);
+        } else {
+          // Session expired - clear it
+          localStorage.removeItem("ingestion_access_user_id");
+          localStorage.removeItem("ingestion_access_expiry");
+          setAccessUserId(null);
+        }
       } else {
-        localStorage.removeItem("ingestion_access_user_id");
-        localStorage.removeItem("ingestion_access_expiry");
+        setAccessUserId(null);
       }
-    }
+    };
+
+    // Check immediately
+    checkSession();
+
+    // Check every 30 seconds for session expiry
+    const interval = setInterval(checkSession, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleAccessSuccess = (userId: string) => {
     setAccessUserId(userId);
     const expiry = new Date();
-    expiry.setHours(expiry.getHours() + 24);
+    expiry.setMinutes(expiry.getMinutes() + 30); // 30 minutes expiry
     localStorage.setItem("ingestion_access_user_id", userId);
     localStorage.setItem("ingestion_access_expiry", expiry.toISOString());
-    toast.success("Access verified! You can now trigger news refresh.");
+    toast.success("Access verified! You can now trigger news refresh for 30 minutes.");
   };
   const stateName = stateConfig?.name || stateId?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "State";
 
@@ -505,20 +519,49 @@ export default function StatePage() {
                         });
 
                         // Trigger ingestion for this specific state
-                        supabase.functions.invoke("ingest-rss", {
+                        const { data, error } = await supabase.functions.invoke("ingest-rss", {
                           body: { 
                             trigger: "manual",
                             stateId: stateId,
                             accessUserId,
                           },
-                        }).then(() => {
-                          toast.success(`Ingestion triggered for ${stateName}`, { id: "ingestion-bg" });
-                        }).catch(console.error);
+                        });
                         
-                        // Immediately refresh stories from database
+                        if (error) {
+                          // Check if it's an auth error (session expired)
+                          const errorMessage = error.message || "";
+                          if (errorMessage.includes("expired") || errorMessage.includes("401")) {
+                            // Clear expired session
+                            localStorage.removeItem("ingestion_access_user_id");
+                            localStorage.removeItem("ingestion_access_expiry");
+                            setAccessUserId(null);
+                            toast.error("Session expired. Please re-verify to continue.", { id: "refresh-news" });
+                            setIsAccessModalOpen(true);
+                            return;
+                          }
+                          throw error;
+                        }
+                        
+                        toast.success(`Ingestion triggered for ${stateName}`, { id: "refresh-news" });
+                        
+                        // Refresh stories from database
                         await fetchStories();
-                        toast.success(`${stateName} news feed refreshed!`, { id: "refresh-news" });
-                      } catch (error) {
+                      } catch (error: any) {
+                        console.error("Ingestion error:", error);
+                        // Handle session expiry from response body
+                        if (error?.context?.body) {
+                          try {
+                            const body = JSON.parse(error.context.body);
+                            if (body.error === "Session expired") {
+                              localStorage.removeItem("ingestion_access_user_id");
+                              localStorage.removeItem("ingestion_access_expiry");
+                              setAccessUserId(null);
+                              toast.error("Session expired (30 min). Please re-verify.", { id: "refresh-news" });
+                              setIsAccessModalOpen(true);
+                              return;
+                            }
+                          } catch {}
+                        }
                         toast.error("Failed to refresh news", { id: "refresh-news" });
                       } finally {
                         setIsLoading(false);
