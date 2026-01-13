@@ -27,6 +27,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { WeatherAQIWidget } from "@/components/weather/WeatherAQIWidget";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { NewsCard, NewsItem } from "@/components/NewsCard";
 import { IngestionPipelineViewer } from "@/components/IngestionPipelineViewer";
 import { ActiveFeedsPanel } from "@/components/ActiveFeedsPanel";
@@ -434,8 +435,8 @@ export default function StatePage() {
             </Card>
           </div>
 
-          {/* Auto-refresh timer */}
-          <div className="flex items-center justify-between mb-4">
+          {/* Auto-refresh timer and Refresh News button */}
+          <div className="flex items-center justify-between mb-4 gap-3">
             <AutoRefreshTimer
               intervalMinutes={5}
               onRefresh={async () => {
@@ -444,8 +445,39 @@ export default function StatePage() {
               className="flex-1"
             />
             
+            {/* Refresh News Button - Triggers async ingestion */}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={async () => {
+                setIsLoading(true);
+                toast.loading("Refreshing news...", { id: "refresh-news" });
+                try {
+                  // Trigger ingestion in the background (fire-and-forget)
+                  supabase.functions.invoke("ingest-rss", {
+                    body: { trigger: "manual" },
+                  }).then(() => {
+                    toast.success("Ingestion triggered in background", { id: "ingestion-bg" });
+                  }).catch(console.error);
+                  
+                  // Immediately refresh stories from database
+                  await fetchStories();
+                  toast.success("News feed refreshed!", { id: "refresh-news" });
+                } catch (error) {
+                  toast.error("Failed to refresh news", { id: "refresh-news" });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              disabled={isLoading}
+              className="gap-2 bg-primary hover:bg-primary/90"
+            >
+              <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
+              Refresh News
+            </Button>
+            
             {/* Feed type toggle */}
-            <div className="flex items-center gap-2 ml-4">
+            <div className="flex items-center gap-2">
               <Button
                 variant={feedType === "all" ? "secondary" : "ghost"}
                 size="sm"
@@ -544,7 +576,23 @@ export default function StatePage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchStories}
+              onClick={async () => {
+                setIsLoading(true);
+                toast.loading("Refreshing...", { id: "filter-refresh" });
+                try {
+                  // Trigger ingestion in background
+                  supabase.functions.invoke("ingest-rss", {
+                    body: { trigger: "manual" },
+                  }).catch(console.error);
+                  // Refresh stories immediately
+                  await fetchStories();
+                  toast.success("Refreshed!", { id: "filter-refresh" });
+                } catch (error) {
+                  toast.error("Failed to refresh", { id: "filter-refresh" });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
               disabled={isLoading}
               className="gap-2"
             >
