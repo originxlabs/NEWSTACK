@@ -64,13 +64,15 @@ verify_jwt = false
 verify_jwt = false
 
 # Schedule RSS ingestion every 15 minutes for fresher news
+# This runs automatically without manual intervention - fetches from all global + India RSS sources
 [[cron]]
 name = "ingest-rss-cron"
 schedule = "*/15 * * * *"
 function = "ingest-rss"
 
-# Schedule daily email digest at 8 AM UTC
+# Schedule daily email digest at 8 AM IST (2:30 AM UTC)
+# IST = UTC + 5:30, so 8:00 AM IST = 02:30 UTC
 [[cron]]
 name = "daily-digest-cron"
-schedule = "0 8 * * *"
+schedule = "30 2 * * *"
 function = "send-daily-digest"

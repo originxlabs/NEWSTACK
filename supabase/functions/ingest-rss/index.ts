@@ -1511,8 +1511,23 @@ serve(async (req) => {
     // Body parsing failed, continue without context
   }
 
-  // For manual triggers, verify the accessUserId is valid and recently verified
-  if (triggerType === "manual" && !isInternalCron && !isLocalCron) {
+  // Determine if this is a cron-triggered call (automated)
+  // Cron jobs: isInternalCron, isLocalCron, isValidSecretParam, isValidBearerToken with cron secret
+  const isCronTrigger = isInternalCron || isLocalCron || isValidSecretParam || isValidBearerToken;
+  
+  console.log("Trigger analysis:", {
+    triggerType,
+    isCronTrigger,
+    isInternalCron,
+    isLocalCron,
+    isValidSecretParam,
+    isValidBearerToken,
+    accessUserId: accessUserId || "none",
+  });
+
+  // For MANUAL triggers only (user-initiated via UI), verify OTP auth
+  // Cron jobs bypass this check entirely
+  if (triggerType === "manual" && !isCronTrigger) {
     if (!accessUserId) {
       console.log("Manual trigger without accessUserId - rejecting");
       return new Response(
@@ -1579,6 +1594,9 @@ serve(async (req) => {
     }
 
     console.log("Access verified for user:", accessUserId, "verified at:", accessUser.otp_verified_at);
+  } else if (isCronTrigger) {
+    console.log("Cron-triggered ingestion - bypassing manual auth check");
+    triggerType = "cron"; // Ensure proper logging
   }
 
   // Create ingestion run record for tracking
