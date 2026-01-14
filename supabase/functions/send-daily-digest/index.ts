@@ -79,16 +79,15 @@ serve(async (req) => {
     const resend = new Resend(resendApiKey);
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get top multi-source stories from the last 24 hours
+    // Get top 20 multi-source stories from the last 24 hours (from all categories)
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     
     const { data: stories, error: storiesError } = await supabase
       .from("stories")
       .select("id, headline, summary, ai_summary, category, source_count, first_published_at, image_url, confidence_level")
       .gte("first_published_at", yesterday)
-      .gte("source_count", 2)
-      .order("source_count", { ascending: false })
-      .limit(10);
+      .order("first_published_at", { ascending: false })
+      .limit(20);
 
     if (storiesError) {
       throw storiesError;
@@ -152,44 +151,37 @@ serve(async (req) => {
     const storiesHtml = storiesWithSources.map((story, idx) => {
       const catColor = getCategoryColor(story.category);
       const summary = story.ai_summary || story.summary || "";
+      // Create link to story on NEWStack
+      const storyLink = `https://newstack.live/news?story=${story.id}`;
       
       return `
-      <div style="margin-bottom: 24px; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div style="padding: 20px;">
+      <div style="margin-bottom: 16px; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="padding: 16px;">
           <!-- Header -->
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-            <span style="background: #18181b; color: white; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 700;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+            <span style="background: #18181b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">
               #${idx + 1}
             </span>
-            <span style="background: ${catColor.bg}; color: ${catColor.text}; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
+            <span style="background: ${catColor.bg}; color: ${catColor.text}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase;">
               ${story.category || 'News'}
             </span>
-            ${getConfidenceBadge(story.confidence_level, story.verifiedCount)}
+            ${story.source_count > 1 ? `<span style="font-size: 10px; color: #16a34a;">📰 ${story.source_count} sources</span>` : ''}
           </div>
           
-          <!-- Headline -->
-          <h3 style="margin: 0 0 12px 0; font-size: 18px; color: #18181b; line-height: 1.4; font-weight: 600;">
-            ${story.headline}
-          </h3>
+          <!-- Headline with Link -->
+          <a href="${storyLink}" target="_blank" style="text-decoration: none;">
+            <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #18181b; line-height: 1.4; font-weight: 600;">
+              ${story.headline}
+            </h3>
+          </a>
           
           <!-- Summary -->
-          ${summary ? `<p style="margin: 0 0 16px 0; color: #52525b; font-size: 14px; line-height: 1.6;">${summary.substring(0, 200)}${summary.length > 200 ? '...' : ''}</p>` : ''}
+          ${summary ? `<p style="margin: 0 0 12px 0; color: #52525b; font-size: 13px; line-height: 1.5;">${summary.substring(0, 150)}${summary.length > 150 ? '...' : ''}</p>` : ''}
           
-          <!-- Sources -->
-          <div style="border-top: 1px solid #e4e4e7; padding-top: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-              <span style="font-size: 12px; color: #71717a; font-weight: 500;">
-                📰 ${story.source_count} sources (${story.verifiedCount} verified)
-              </span>
-            </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-              ${story.sources.slice(0, 4).map((s: StorySource) => `
-                <a href="${s.source_url}" target="_blank" style="background: #f4f4f5; border: 1px solid #e4e4e7; padding: 4px 10px; border-radius: 6px; font-size: 12px; color: #374151; text-decoration: none;">
-                  ${isVerifiedSource(s.source_name) ? '✓ ' : ''}${s.source_name}
-                </a>
-              `).join('')}
-            </div>
-          </div>
+          <!-- Read on NEWStack link -->
+          <a href="${storyLink}" target="_blank" style="display: inline-block; background: #18181b; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 12px;">
+            Read on NEWStack →
+          </a>
         </div>
       </div>
     `;
