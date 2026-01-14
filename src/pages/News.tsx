@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -33,6 +33,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ActiveFeedsPanel } from "@/components/ActiveFeedsPanel";
 import { RegionQuickNav, LocationBreadcrumb } from "@/components/RegionQuickNav";
+import { useInView } from "react-intersection-observer";
 
 import { 
   GEO_HIERARCHY, 
@@ -74,13 +75,19 @@ const tierFilters: { id: TierFilter; name: string; icon: React.ReactNode }[] = [
 
 const categories = [
   { slug: "all", name: "All" },
-  { slug: "politics", name: "Politics" },
-  { slug: "business", name: "Business" },
-  { slug: "tech", name: "Technology" },
-  { slug: "world", name: "World" },
-  { slug: "health", name: "Health" },
-  { slug: "climate", name: "Climate" },
-  { slug: "science", name: "Science" },
+  { slug: "AI", name: "AI" },
+  { slug: "Politics", name: "Politics" },
+  { slug: "Business", name: "Business" },
+  { slug: "Finance", name: "Finance" },
+  { slug: "Technology", name: "Technology" },
+  { slug: "Startups", name: "Startups" },
+  { slug: "World", name: "World" },
+  { slug: "India", name: "India" },
+  { slug: "Health", name: "Health" },
+  { slug: "Climate", name: "Climate" },
+  { slug: "Science", name: "Science" },
+  { slug: "Sports", name: "Sports" },
+  { slug: "Entertainment", name: "Entertainment" },
 ];
 
 // REMOVED: These functions are no longer used - story state comes from API/cluster
@@ -204,7 +211,6 @@ export default function News() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [loadedBlocks, setLoadedBlocks] = useState(1);
   const [showPlaylist, setShowPlaylist] = useState(false);
   
   const lastSession = getLastSessionTime();
@@ -212,26 +218,45 @@ export default function News() {
   // Realtime subscription for live updates
   const { newStories, isConnected, refresh: realtimeRefresh, resetNewCount } = useRealtimeStories();
 
-  // Ensure country is always passed when filtering by state/city/locality for proper fallback
-  const effectiveCountry = countryFilter || country?.code;
+  // Infinite scroll intersection observer
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: 0,
+    rootMargin: "200px",
+  });
+
+  // Determine filter mode: when no geographic filters, show ALL news (India + Global)
+  // When geographic filters applied, use them
+  const hasGeoFilter = !!(regionFilter || countryFilter || stateFilter || cityFilter || localityFilter);
   
   const queryParams = useMemo(() => ({
-    country: effectiveCountry,
+    // Only pass country filter when explicitly set in URL, otherwise show all news
+    country: hasGeoFilter ? (countryFilter || undefined) : undefined,
     language: language?.code === "en" ? "eng" : language?.code,
     topic: selectedCategory === "all" ? undefined : selectedCategory,
     region: regionFilter || undefined,
     state: stateFilter || undefined,
     city: cityFilter || undefined,
     locality: localityFilter || undefined,
-    pageSize: 500, // Load all available stories for comprehensive clustering
+    pageSize: 30, // Load 30 items per page for infinite scroll
     feedType: "recent" as const,
-  }), [effectiveCountry, language?.code, selectedCategory, regionFilter, stateFilter, cityFilter, localityFilter]);
+    sortBy: "latest" as const, // Always sort by latest first
+  }), [hasGeoFilter, countryFilter, language?.code, selectedCategory, regionFilter, stateFilter, cityFilter, localityFilter]);
 
   const {
     data,
     isLoading,
     refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   } = useInfiniteNews(queryParams);
+
+  // Trigger infinite scroll when load more element comes into view
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Handle refresh with realtime reset
   const handleFullRefresh = useCallback(async () => {
@@ -261,7 +286,7 @@ export default function News() {
     setSearchParams(newParams);
   }, [searchParams, setSearchParams]);
 
-  // Transform stories with consistent data from API
+  // Transform stories with consistent data from API - flatten all pages
   const allStoriesRaw = useMemo(() => {
     if (!data?.pages) return [];
     return data.pages.flatMap(page => page.articles.map(transformArticle));
@@ -474,8 +499,8 @@ export default function News() {
               </h1>
               <p className="text-muted-foreground text-sm max-w-xl">
                 {filterDisplayName 
-                  ? `Stories from ${filterDisplayName} updated in the last 48 hours`
-                  : "Stories updated in the last 48 hours from 170+ verified sources"
+                  ? `Stories from ${filterDisplayName} • Sorted by latest first`
+                  : "All stories from India & World • Sorted by latest first • 170+ verified sources"
                 }
               </p>
 
@@ -593,7 +618,7 @@ export default function News() {
         {/* 3-Column Layout */}
         <section className="py-4 sm:py-6">
           <div className="container mx-auto max-w-7xl px-4">
-            {isLoading ? (
+            {isLoading && allStoriesRaw.length === 0 ? (
               <NewsPageSkeleton />
             ) : (
               <div className="flex gap-6">
@@ -649,10 +674,10 @@ export default function News() {
                     </div>
                   </div>
 
-                  {/* Time-based paginated content (NO INFINITE SCROLL) */}
+                  {/* Infinite scroll content */}
                   {viewMode === "clusters" ? (
                     <div className="space-y-2">
-                      {timeBlocks.slice(0, loadedBlocks).map((block, blockIndex) => (
+                      {timeBlocks.map((block, blockIndex) => (
                         <TimeBlockSection
                           key={block.id}
                           label={block.label}
@@ -673,24 +698,24 @@ export default function News() {
                         </TimeBlockSection>
                       ))}
                       
-                      {/* Load older updates button */}
-                      {loadedBlocks < timeBlocks.length && (
-                        <div className="pt-4 flex justify-center">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            onClick={() => setLoadedBlocks(prev => prev + 1)}
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                            Load older updates
-                          </Button>
-                        </div>
-                      )}
+                      {/* Infinite scroll trigger */}
+                      <div ref={loadMoreRef} className="py-4 flex justify-center">
+                        {isFetchingNextPage && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">Loading more stories...</span>
+                          </div>
+                        )}
+                        {!hasNextPage && allStories.length > 0 && (
+                          <span className="text-sm text-muted-foreground">
+                            You've seen all {allStories.length} stories
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {timeBlocks.slice(0, loadedBlocks).map((block, blockIndex) => (
+                      {timeBlocks.map((block, blockIndex) => (
                         <TimeBlockSection
                           key={block.id}
                           label={block.label}
@@ -730,20 +755,20 @@ export default function News() {
                         </TimeBlockSection>
                       ))}
                       
-                      {/* Load older updates button */}
-                      {loadedBlocks < timeBlocks.length && (
-                        <div className="pt-4 flex justify-center">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            onClick={() => setLoadedBlocks(prev => prev + 1)}
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                            Load older updates
-                          </Button>
-                        </div>
-                      )}
+                      {/* Infinite scroll trigger */}
+                      <div ref={loadMoreRef} className="py-4 flex justify-center">
+                        {isFetchingNextPage && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">Loading more stories...</span>
+                          </div>
+                        )}
+                        {!hasNextPage && allStories.length > 0 && (
+                          <span className="text-sm text-muted-foreground">
+                            You've seen all {allStories.length} stories
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
 
