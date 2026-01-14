@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Newspaper, Clock, 
-  ChevronDown, ChevronUp, Radio, Loader2, RefreshCw,
-  AlertCircle, Shield, FileText
+  Radio, Loader2, RefreshCw,
+  AlertCircle, Shield, FileText, Zap, TrendingUp, Globe, MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +20,11 @@ interface LatestStory {
   source_count: number | null;
   first_published_at: string;
   category: string | null;
+  confidence_level: string | null;
+  story_state: string | null;
+  state: string | null;
+  country_code: string | null;
+  is_global: boolean | null;
 }
 
 interface LatestSource {
@@ -26,28 +32,29 @@ interface LatestSource {
   source_name: string;
   published_at: string;
   story_headline?: string;
+  reliability_tier?: string | null;
 }
 
 // Determine confidence from source count
 function getConfidence(sourceCount: number | null): { level: "low" | "medium" | "high"; label: string } {
-  if (!sourceCount || sourceCount < 2) return { level: "low", label: "Low" };
-  if (sourceCount < 4) return { level: "medium", label: "Medium" };
-  return { level: "high", label: "High" };
+  if (!sourceCount || sourceCount < 2) return { level: "low", label: "Unverified" };
+  if (sourceCount < 4) return { level: "medium", label: "Developing" };
+  return { level: "high", label: "Verified" };
 }
 
 const confidenceColors = {
-  low: "text-amber-600 bg-amber-500/10",
-  medium: "text-blue-600 bg-blue-500/10",
-  high: "text-emerald-600 bg-emerald-500/10",
+  low: "text-amber-600 bg-amber-500/10 border-amber-500/20",
+  medium: "text-blue-600 bg-blue-500/10 border-blue-500/20",
+  high: "text-emerald-600 bg-emerald-500/10 border-emerald-500/20",
 };
 
 export function StackBot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"stories" | "sources">("stories");
+  const [activeTab, setActiveTab] = useState<"breaking" | "verified" | "sources">("breaking");
   const [stories, setStories] = useState<LatestStory[]>([]);
   const [sources, setSources] = useState<LatestSource[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [expandedStory, setExpandedStory] = useState<string | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const navigate = useNavigate();
 
   // Check if on mobile PWA - hide StackBot on mobile to avoid clutter
@@ -57,31 +64,61 @@ export function StackBot() {
     (window.navigator as any).standalone === true
   );
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch latest stories
+      // Fetch latest stories - prioritize verified (3+ sources) and breaking news
       const { data: storiesData } = await supabase
         .from("stories")
-        .select("id, headline, summary, source_count, first_published_at, category")
+        .select("id, headline, summary, source_count, first_published_at, category, confidence_level, story_state, state, country_code, is_global")
+        .order("source_count", { ascending: false })
         .order("first_published_at", { ascending: false })
-        .limit(10);
+        .limit(30);
 
       if (storiesData) {
-        setStories(storiesData);
+        // Sort: Breaking first, then verified (3+ sources), then by time
+        const sorted = [...storiesData].sort((a, b) => {
+          const aPublished = new Date(a.first_published_at);
+          const bPublished = new Date(b.first_published_at);
+          const now = new Date();
+          const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+          
+          // Breaking = published within 2 hours AND has 2+ sources
+          const aIsBreaking = aPublished >= twoHoursAgo && (a.source_count || 1) >= 2;
+          const bIsBreaking = bPublished >= twoHoursAgo && (b.source_count || 1) >= 2;
+          
+          // Verified = 3+ sources
+          const aIsVerified = (a.source_count || 1) >= 3;
+          const bIsVerified = (b.source_count || 1) >= 3;
+          
+          // Priority: Breaking > Verified > Others
+          if (aIsBreaking && !bIsBreaking) return -1;
+          if (bIsBreaking && !aIsBreaking) return 1;
+          if (aIsVerified && !bIsVerified) return -1;
+          if (bIsVerified && !aIsVerified) return 1;
+          
+          // Then by source count, then by time
+          if ((b.source_count || 1) !== (a.source_count || 1)) {
+            return (b.source_count || 1) - (a.source_count || 1);
+          }
+          return bPublished.getTime() - aPublished.getTime();
+        });
+        
+        setStories(sorted);
       }
 
-      // Fetch latest sources with story info
+      // Fetch latest sources with story info and reliability tier
       const { data: sourcesData } = await supabase
         .from("story_sources")
         .select(`
           id,
           source_name,
           published_at,
+          reliability_tier,
           stories:story_id (headline)
         `)
         .order("published_at", { ascending: false })
-        .limit(15);
+        .limit(20);
 
       if (sourcesData) {
         setSources(sourcesData.map((s: any) => ({
@@ -89,23 +126,41 @@ export function StackBot() {
           story_headline: s.stories?.headline
         })));
       }
+      
+      setLastRefreshed(new Date());
     } catch (error) {
       console.error("Error fetching StackBot data:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
       fetchData();
     }
-  }, [isOpen]);
+  }, [isOpen, fetchData]);
+
+  // Auto-refresh every minute when open
+  useEffect(() => {
+    if (!isOpen) return;
+    const interval = setInterval(fetchData, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [isOpen, fetchData]);
 
   const handleStoryClick = (storyId: string) => {
     setIsOpen(false);
     navigate(`/news/${storyId}`);
   };
+
+  // Filter stories by tab
+  const breakingStories = stories.filter(s => {
+    const published = new Date(s.first_published_at);
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    return published >= twoHoursAgo;
+  }).slice(0, 10);
+
+  const verifiedStories = stories.filter(s => (s.source_count || 1) >= 3).slice(0, 10);
 
   // Don't render on mobile PWA to avoid overlap with bottom nav
   if (isMobileView && isPWA) {
@@ -114,7 +169,7 @@ export function StackBot() {
 
   return (
     <>
-      {/* Floating Button - Simple, not draggable */}
+      {/* Floating Button - Pulsing when there are breaking stories */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
@@ -144,9 +199,9 @@ export function StackBot() {
             >
               <Radio className="w-6 h-6" />
               <motion.span
-                className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full"
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full"
+                animate={{ scale: [1, 1.3, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
               />
             </motion.div>
           )}
@@ -161,14 +216,19 @@ export function StackBot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25 }}
-            className="fixed bottom-24 right-6 z-50 w-[360px] max-w-[calc(100vw-3rem)] bg-card border border-border rounded-xl shadow-2xl overflow-hidden"
+            className="fixed bottom-24 right-6 z-50 w-[380px] max-w-[calc(100vw-3rem)] bg-card border border-border rounded-xl shadow-2xl overflow-hidden"
           >
-            {/* Header - Clean, minimal */}
-            <div className="p-4 border-b border-border">
+            {/* Header */}
+            <div className="p-4 border-b border-border bg-muted/30">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <h3 className="font-display font-semibold text-base">Live Intelligence</h3>
-                  <p className="text-xs text-muted-foreground">Updates from verified sources</p>
+                  <h3 className="font-display font-semibold text-base flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-red-500" />
+                    Live Intelligence
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Breaking & verified news from 170+ sources
+                  </p>
                 </div>
                 <Button
                   variant="ghost"
@@ -181,95 +241,103 @@ export function StackBot() {
                 </Button>
               </div>
 
-              {/* Tabs */}
-              <div className="flex gap-2 mt-3">
-                <Button
-                  variant={activeTab === "stories" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setActiveTab("stories")}
-                  className="flex-1 gap-1.5 h-8 text-xs"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  Stories
-                </Button>
-                <Button
-                  variant={activeTab === "sources" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setActiveTab("sources")}
-                  className="flex-1 gap-1.5 h-8 text-xs"
-                >
-                  <Newspaper className="w-3.5 h-3.5" />
-                  Sources
-                </Button>
-              </div>
+              {/* Last updated */}
+              <p className="text-[10px] text-muted-foreground">
+                Updated {formatDistanceToNow(lastRefreshed, { addSuffix: true })}
+              </p>
             </div>
 
-            {/* Content */}
-            <ScrollArea className="h-[380px]">
-              <div className="p-3">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                  </div>
-                ) : activeTab === "stories" ? (
-                  <div className="space-y-2">
-                    {stories.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Newspaper className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No stories available yet</p>
-                      </div>
-                    ) : (
-                      stories.map((story) => {
-                        const confidence = getConfidence(story.source_count);
-                        const isSingleSource = !story.source_count || story.source_count === 1;
-                        
-                        return (
-                          <motion.div
-                            key={story.id}
-                            className="p-3 rounded-lg bg-muted/30 border border-border/50 cursor-pointer hover:bg-muted/50 transition-colors"
-                            onClick={() => handleStoryClick(story.id)}
-                            whileHover={{ scale: 1.01 }}
-                          >
-                            {/* Single source badge */}
-                            {isSingleSource && (
-                              <Badge variant="outline" className="text-[10px] h-4 mb-2 gap-1 text-amber-600 border-amber-500/30 bg-amber-500/10">
-                                <AlertCircle className="w-2.5 h-2.5" />
-                                Single source
-                              </Badge>
-                            )}
-                            
-                            {/* Headline */}
-                            <h4 className="font-medium text-sm line-clamp-2 text-foreground mb-2">
-                              {story.headline}
-                            </h4>
-                            
-                            {/* Metadata line: Confidence · Sources · Time */}
-                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
-                              <span className={`font-medium ${confidenceColors[confidence.level].split(' ')[0]}`}>
-                                {confidence.label} confidence
-                              </span>
-                              <span>·</span>
-                              <span>{story.source_count || 1} {(story.source_count || 1) === 1 ? 'source' : 'sources'}</span>
-                              <span>·</span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {formatDistanceToNow(new Date(story.first_published_at), { addSuffix: false })}
-                              </span>
-                            </div>
-                          </motion.div>
-                        );
-                      })
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {sources.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Newspaper className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No sources available yet</p>
-                      </div>
-                    ) : (
-                      sources.map((source) => (
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+              <TabsList className="grid grid-cols-3 mx-3 mt-3">
+                <TabsTrigger value="breaking" className="text-xs gap-1">
+                  <Zap className="w-3 h-3" />
+                  Breaking
+                  {breakingStories.length > 0 && (
+                    <Badge variant="destructive" className="h-4 px-1 text-[10px]">
+                      {breakingStories.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="verified" className="text-xs gap-1">
+                  <Shield className="w-3 h-3" />
+                  Verified
+                  {verifiedStories.length > 0 && (
+                    <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      {verifiedStories.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="sources" className="text-xs gap-1">
+                  <Newspaper className="w-3 h-3" />
+                  Sources
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Content */}
+              <ScrollArea className="h-[350px]">
+                <TabsContent value="breaking" className="p-3 mt-0">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : breakingStories.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Zap className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No breaking news right now</p>
+                      <p className="text-xs mt-1">Check back soon for updates</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {breakingStories.map((story) => (
+                        <StoryCard 
+                          key={story.id} 
+                          story={story} 
+                          onClick={() => handleStoryClick(story.id)}
+                          isBreaking
+                        />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="verified" className="p-3 mt-0">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : verifiedStories.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Shield className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No verified stories yet</p>
+                      <p className="text-xs mt-1">Verified = 3+ independent sources</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {verifiedStories.map((story) => (
+                        <StoryCard 
+                          key={story.id} 
+                          story={story} 
+                          onClick={() => handleStoryClick(story.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="sources" className="p-3 mt-0">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : sources.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Newspaper className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No sources available yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {sources.map((source) => (
                         <div
                           key={source.id}
                           className="p-3 rounded-lg bg-muted/30 border border-border/50"
@@ -278,12 +346,14 @@ export function StackBot() {
                             <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0">
                               {source.source_name.charAt(0)}
                             </div>
-                            <span className="font-medium text-sm text-foreground">
+                            <span className="font-medium text-sm text-foreground truncate flex-1">
                               {source.source_name}
                             </span>
-                            <Badge variant="outline" className="text-[10px] h-4 ml-auto">
-                              Primary
-                            </Badge>
+                            {source.reliability_tier === "tier1" && (
+                              <Badge variant="outline" className="text-[10px] h-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                                Tier 1
+                              </Badge>
+                            )}
                           </div>
                           {source.story_headline && (
                             <p className="text-xs text-muted-foreground line-clamp-1 pl-8">
@@ -295,22 +365,97 @@ export function StackBot() {
                             {formatDistanceToNow(new Date(source.published_at), { addSuffix: true })}
                           </div>
                         </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </ScrollArea>
+            </Tabs>
 
-            {/* Footer - Clean, trust-focused */}
+            {/* Footer */}
             <div className="p-3 border-t border-border bg-muted/20">
-              <p className="text-[11px] text-muted-foreground text-center">
-                Live intelligence from verified public sources
-              </p>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full text-xs gap-2"
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate("/news");
+                }}
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                View all news on NEWStack
+              </Button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+// Story card component for StackBot
+function StoryCard({ 
+  story, 
+  onClick, 
+  isBreaking = false 
+}: { 
+  story: LatestStory; 
+  onClick: () => void;
+  isBreaking?: boolean;
+}) {
+  const confidence = getConfidence(story.source_count);
+  const isVerified = (story.source_count || 1) >= 3;
+  
+  // Location display
+  const location = story.state || (story.is_global ? "Global" : story.country_code || null);
+
+  return (
+    <motion.div
+      className="p-3 rounded-lg bg-muted/30 border border-border/50 cursor-pointer hover:bg-muted/50 transition-colors"
+      onClick={onClick}
+      whileHover={{ scale: 1.01 }}
+    >
+      {/* Badges row */}
+      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+        {isBreaking && (
+          <Badge variant="destructive" className="text-[10px] h-4 gap-0.5">
+            <Zap className="w-2.5 h-2.5" />
+            Breaking
+          </Badge>
+        )}
+        {isVerified && (
+          <Badge className={`text-[10px] h-4 gap-0.5 ${confidenceColors.high}`}>
+            <Shield className="w-2.5 h-2.5" />
+            Verified
+          </Badge>
+        )}
+        {location && (
+          <Badge variant="outline" className="text-[10px] h-4 gap-0.5">
+            {story.is_global ? <Globe className="w-2.5 h-2.5" /> : <MapPin className="w-2.5 h-2.5" />}
+            {location}
+          </Badge>
+        )}
+      </div>
+      
+      {/* Headline */}
+      <h4 className="font-medium text-sm line-clamp-2 text-foreground mb-2">
+        {story.headline}
+      </h4>
+      
+      {/* Metadata line */}
+      <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
+        <span className={`font-medium ${confidenceColors[confidence.level].split(' ')[0]}`}>
+          {confidence.label}
+        </span>
+        <span>·</span>
+        <span>{story.source_count || 1} {(story.source_count || 1) === 1 ? 'source' : 'sources'}</span>
+        <span>·</span>
+        <span className="flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          {formatDistanceToNow(new Date(story.first_published_at), { addSuffix: false })}
+        </span>
+      </div>
+    </motion.div>
   );
 }

@@ -5,7 +5,7 @@ import {
   Loader2, Radio, RefreshCw, 
   Layers, Zap, Shield, 
   Grid3X3, List, Bell, ChevronDown, X, Globe, Wifi, WifiOff, Rss, MapPin,
-  Headphones, Filter, LayoutGrid
+  Headphones, Filter, LayoutGrid, Sparkles, User
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -17,6 +17,8 @@ import { useInfiniteNews, NewsArticle } from "@/hooks/use-news";
 import { useRealtimeStories } from "@/hooks/use-realtime-stories";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useUserLocation } from "@/hooks/use-user-location";
+import { usePersonalizedFeed } from "@/hooks/use-personalized-feed";
+import { useAuth } from "@/contexts/AuthContext";
 import { StoryIntelligencePanel, StoryIntelligenceItem } from "@/components/news/StoryIntelligencePanel";
 import { LeftContextPanel } from "@/components/news/LeftContextPanel";
 import { RightTrustPanel } from "@/components/news/RightTrustPanel";
@@ -57,6 +59,7 @@ const REGION_NAMES: Record<string, string> = {
 type SignalType = "all" | "breaking" | "developing" | "stabilized";
 type ViewMode = "stream" | "clusters" | "grid";
 type TierFilter = "all" | "local" | "state" | "country" | "global";
+type FeedMode = "all" | "foryou";
 
 const signalFilters: { id: SignalType; name: string; icon: React.ReactNode }[] = [
   { id: "all", name: "All", icon: <Radio className="w-3 h-3" /> },
@@ -177,9 +180,11 @@ export default function News() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { country, language } = usePreferences();
+  const { user } = useAuth();
   const userLocation = useUserLocation();
   const isMobile = useIsMobile();
   const { markAsViewed, checkForUpdates, getLastSessionTime } = useLastViewed();
+  const { trackRead, personalizeStories, topCategories, topStates, getReasons } = usePersonalizedFeed();
   
   // Read filters from URL
   const regionFilter = searchParams.get("region") || null;
@@ -187,6 +192,9 @@ export default function News() {
   const stateFilter = searchParams.get("state") || null;
   const cityFilter = searchParams.get("city") || null;
   const localityFilter = searchParams.get("locality") || null;
+  
+  // Feed mode - All news vs For You (personalized)
+  const [feedMode, setFeedMode] = useState<FeedMode>("all");
   
   // Build display name for filters
   const filterDisplayName = useMemo(() => {
@@ -292,10 +300,27 @@ export default function News() {
     return data.pages.flatMap(page => page.articles.map(transformArticle));
   }, [data]);
 
+  // Apply personalization if in "For You" mode
+  const personalizedStoriesRaw = useMemo(() => {
+    if (feedMode !== "foryou") return allStoriesRaw;
+    
+    // Transform for personalization scoring
+    const storiesForScoring = allStoriesRaw.map(s => ({
+      ...s,
+      category: s.topic,
+      state: (s as any).state,
+      original_language: (s as any).original_language,
+      source: s.source,
+      first_published_at: s.publishedAt,
+    }));
+    
+    return personalizeStories(storiesForScoring);
+  }, [allStoriesRaw, feedMode, personalizeStories]);
+
   // Cluster stories FIRST, then filter
   const allClusters = useMemo(() => {
-    return clusterStories(allStoriesRaw, 0.45);
-  }, [allStoriesRaw]);
+    return clusterStories(personalizedStoriesRaw, 0.45);
+  }, [personalizedStoriesRaw]);
 
   // DATA-DRIVEN FILTERING: Apply filters to clusters, not UI state
   const filteredClusters = useMemo(() => {
@@ -382,6 +407,7 @@ export default function News() {
     setTimeFilter("latest");
     setViewMode("stream");
     setSignalFilter("all");
+    setFeedMode("all");
     setMultiSourceOnly(false);
   }, []);
 
@@ -393,6 +419,16 @@ export default function News() {
       sourceCount: item.sourceCount || 1,
       signal,
     });
+    
+    // Track for personalization
+    trackRead({
+      id: item.id,
+      category: item.topic,
+      state: (item as any).state,
+      original_language: (item as any).original_language,
+      source: item.source,
+    });
+    
     setSelectedStory({
       id: item.id,
       headline: item.headline,
@@ -409,7 +445,7 @@ export default function News() {
       sources: item.sources,
     });
     setIsPanelOpen(true);
-  }, [markAsViewed]);
+  }, [markAsViewed, trackRead]);
 
   const handleClusterClick = useCallback((cluster: StoryCluster) => {
     handleArticleClick(cluster.representativeStory);
@@ -494,13 +530,68 @@ export default function News() {
                 </div>
               )}
               
+              {/* Feed Mode Toggle */}
+              <div className="flex items-center gap-2 mt-3">
+                <Button
+                  variant={feedMode === "all" ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={() => setFeedMode("all")}
+                >
+                  <Globe className="w-3 h-3" />
+                  All News
+                </Button>
+                <Button
+                  variant={feedMode === "foryou" ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={() => setFeedMode("foryou")}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  For You
+                  {topCategories.length > 0 && (
+                    <Badge variant="secondary" className="h-4 px-1 text-[10px] ml-1">
+                      AI
+                    </Badge>
+                  )}
+                </Button>
+              </div>
+
+              {/* For You personalization info */}
+              {feedMode === "foryou" && (
+                <div className="mt-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
+                  <div className="flex items-start gap-2">
+                    <User className="w-3.5 h-3.5 text-primary mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs text-primary font-medium">Personalized for you</p>
+                      {topCategories.length > 0 ? (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Based on: {topCategories.slice(0, 3).join(", ")}
+                          {topStates.length > 0 && ` • ${topStates.slice(0, 2).join(", ")}`}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Read more stories to personalize your feed
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <h1 className="font-display text-xl sm:text-2xl font-semibold text-foreground mb-1 mt-2">
-                {filterDisplayName ? `${filterDisplayName} Intelligence` : "Intelligence Stream"}
+                {feedMode === "foryou" 
+                  ? "For You" 
+                  : filterDisplayName 
+                    ? `${filterDisplayName} Intelligence` 
+                    : "Intelligence Stream"}
               </h1>
               <p className="text-muted-foreground text-sm max-w-xl">
-                {filterDisplayName 
-                  ? `Stories from ${filterDisplayName} • Sorted by latest first`
-                  : "All stories from India & World • Sorted by latest first • 170+ verified sources"
+                {feedMode === "foryou"
+                  ? "Personalized stories based on your reading history"
+                  : filterDisplayName 
+                    ? `Stories from ${filterDisplayName} • Sorted by latest first`
+                    : "All stories from India & World • Sorted by latest first • 170+ verified sources"
                 }
               </p>
 
