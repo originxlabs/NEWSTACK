@@ -45,7 +45,7 @@ export default function PrivacyPolicy() {
                   Introduction
                 </h2>
                 <p>
-                  NEWSTACK ("we," "our," or "us"), a product of <strong>CROPXON INNOVATIONS PVT LTD</strong>, is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our news aggregation platform available at newstack.live (the "Service").
+                  NEWSTACK ("we," "our," or "us"), a product of <strong>ORIGINX LABS</strong>, is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our news aggregation platform available at newstack.live (the "Service").
                 </p>
                 <p>
                   By using NEWSTACK, you agree to the collection and use of information in accordance with this policy. We will not use or share your information with anyone except as described in this Privacy Policy.
@@ -175,8 +175,8 @@ export default function PrivacyPolicy() {
                 </p>
                 <ul className="list-none pl-0 mt-4 space-y-2">
                   <li><strong>Email:</strong> privacy@newstack.live</li>
-                  <li><strong>Parent Company:</strong> CROPXON INNOVATIONS PVT LTD</li>
-                  <li><strong>Website:</strong> <a href="https://cropxon.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">cropxon.com</a></li>
+                  <li><strong>Parent Company:</strong> ORIGINX LABS</li>
+                  <li><strong>Website:</strong> <a href="https://originxlabs.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">originxlabs.com</a></li>
                 </ul>
               </section>
 
@@ -186,7 +186,7 @@ export default function PrivacyPolicy() {
                   © 2026 NEWSTACK. All Rights Reserved.
                 </p>
                 <p className="text-sm font-semibold mt-2">
-                  A Product of CROPXON INNOVATIONS PVT LTD
+                  A Product of ORIGINX LABS
                 </p>
               </section>
             </div>

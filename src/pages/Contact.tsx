@@ -157,7 +157,7 @@ const Contact = () => {
                     NEWSTACK
                   </CardTitle>
                   <CardDescription>
-                    Intelligence Platform by Cropxon
+                    Intelligence Platform by ORIGINX Labs
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -191,12 +191,12 @@ const Contact = () => {
                 </CardContent>
               </Card>
 
-              {/* Cropxon Company Info */}
+              {/* ORIGINX Labs Company Info */}
               <Card className="border-primary/20 bg-primary/5">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Building2 className="w-5 h-5 text-primary" />
-                    Cropxon Innovations Private Limited
+                    ORIGINX LABS
                   </CardTitle>
                   <CardDescription>
                     Parent Company
@@ -252,8 +252,8 @@ const Contact = () => {
                     <Mail className="w-5 h-5 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="font-medium">General Inquiries</p>
-                      <a href="mailto:contact@cropxon.com" className="text-sm text-primary hover:underline">
-                        contact@cropxon.com
+                      <a href="mailto:contact@originxlabs.com" className="text-sm text-primary hover:underline">
+                        contact@originxlabs.com
                       </a>
                     </div>
                   </div>
@@ -262,12 +262,12 @@ const Contact = () => {
                     <div>
                       <p className="font-medium">Website</p>
                       <a 
-                        href="https://cropxon.com" 
+                        href="https://originxlabs.com" 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-sm text-primary hover:underline flex items-center gap-1"
                       >
-                        www.cropxon.com
+                        www.originxlabs.com
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>

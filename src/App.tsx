@@ -11,6 +11,7 @@ import { StackBot } from "@/components/StackBot";
 import { NewsletterPopup } from "@/components/NewsletterPopup";
 import { MobileAppWrapper } from "@/components/mobile/MobileAppWrapper";
 import { SplashScreen } from "@/components/SplashScreen";
+import { useBreakingPush } from "@/hooks/use-breaking-push";
 import { useEffect, useState, useRef } from "react";
 import Index from "./pages/Index";
 import News from "./pages/News";
@@ -133,6 +134,9 @@ function SplashManager() {
 }
 
 function AppContent() {
+  // Initialize breaking news push notifications
+  useBreakingPush();
+  
   return (
     <>
       <ScrollToTop />
