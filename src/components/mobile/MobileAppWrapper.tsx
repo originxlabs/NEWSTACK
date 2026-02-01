@@ -113,7 +113,7 @@ export function MobileAppWrapper({ children }: MobileAppWrapperProps) {
                 transition={{ delay: 0.9 }}
                 className="text-sm font-semibold text-foreground/70"
               >
-                CROPXON INNOVATIONS PVT LTD
+                ORIGINX LABS
               </motion.p>
             </motion.div>
           </motion.div>

@@ -29,8 +29,8 @@ const footerLinks = {
 };
 
 const socialLinks = [
-  { icon: Github, href: "https://github.com/cropxon", label: "GitHub" },
-  { icon: Linkedin, href: "https://linkedin.com/company/cropxon", label: "LinkedIn" },
+  { icon: Github, href: "https://github.com/originxlabs", label: "GitHub" },
+  { icon: Linkedin, href: "https://linkedin.com/company/originxlabs", label: "LinkedIn" },
 ];
 
 export function Footer() {
@@ -84,12 +84,12 @@ export function Footer() {
             </p>
             <span className="hidden sm:inline text-muted-foreground">·</span>
             <a 
-              href="https://cropxon.com" 
+              href="https://originxlabs.com" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
             >
-              A product of <span className="font-medium">CROPXON INNOVATIONS PVT LTD</span>
+              A product of <span className="font-medium">ORIGINX LABS</span>
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>

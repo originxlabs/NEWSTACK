@@ -45,7 +45,7 @@ export default function TermsOfService() {
                   Welcome to NEWSTACK. By accessing or using our Service at newstack.live, you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.
                 </p>
                 <p>
-                  NEWSTACK is owned and operated by <strong>CROPXON INNOVATIONS PVT LTD</strong> (hereinafter referred to as "CROPXON", "we", "us", or "our"). These Terms govern your use of our AI-powered news aggregation platform.
+                  NEWSTACK is owned and operated by <strong>ORIGINX LABS</strong> (hereinafter referred to as "ORIGINX", "we", "us", or "our"). These Terms govern your use of our AI-powered news aggregation platform.
                 </p>
               </section>
 
@@ -107,7 +107,7 @@ export default function TermsOfService() {
                 <h2 className="text-2xl font-bold mb-4">5. Intellectual Property</h2>
                 <h3 className="text-xl font-semibold mt-6 mb-3">Our Content</h3>
                 <p>
-                  The NEWSTACK name, logo, and platform design are owned by CROPXON INNOVATIONS PVT LTD. All rights reserved. You may not use our branding without written permission from CROPXON.
+                  The NEWSTACK name, logo, and platform design are owned by ORIGINX LABS. All rights reserved. You may not use our branding without written permission from ORIGINX.
                 </p>
                 
                 <h3 className="text-xl font-semibold mt-6 mb-3">News Content</h3>
@@ -155,7 +155,7 @@ export default function TermsOfService() {
                   8. Limitation of Liability
                 </h2>
                 <p>
-                  To the maximum extent permitted by law, NEWSTACK and CROPXON INNOVATIONS PVT LTD shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service.
+                  To the maximum extent permitted by law, NEWSTACK and ORIGINX LABS shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service.
                 </p>
               </section>
 
@@ -190,8 +190,8 @@ export default function TermsOfService() {
                 </p>
                 <ul className="list-none pl-0 mt-4 space-y-2">
                   <li><strong>Email:</strong> legal@newstack.live</li>
-                  <li><strong>Parent Company:</strong> CROPXON INNOVATIONS PVT LTD</li>
-                  <li><strong>Website:</strong> <a href="https://cropxon.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">cropxon.com</a></li>
+                  <li><strong>Parent Company:</strong> ORIGINX LABS</li>
+                  <li><strong>Website:</strong> <a href="https://originxlabs.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">originxlabs.com</a></li>
                 </ul>
               </section>
 
@@ -201,7 +201,7 @@ export default function TermsOfService() {
                   © 2026 NEWSTACK. All Rights Reserved.
                 </p>
                 <p className="text-sm font-semibold mt-2">
-                  A Product of CROPXON INNOVATIONS PVT LTD
+                  A Product of ORIGINX LABS
                 </p>
               </section>
             </div>

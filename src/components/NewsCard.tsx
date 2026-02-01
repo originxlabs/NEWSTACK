@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Headphones, Bookmark, Heart, Share2, Shield, ChevronRight, Pause, Loader2, Clock, ExternalLink, MapPin, Globe, Building2, Layers, Languages } from "lucide-react";
+import { Headphones, Bookmark, Heart, Shield, ChevronRight, Pause, Loader2, Clock, ExternalLink, MapPin, Globe, Building2, Layers, Languages } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { toast } from "sonner";
 import { TTSLimitModal } from "@/components/TTSLimitModal";
 import { SourcesPopover } from "@/components/SourcesPopover";
+import { SocialShareMenu } from "@/components/SocialShareMenu";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -467,9 +468,12 @@ export function NewsCard({ news, index, onClick, onReadMore, isActive, compact =
                       <Heart className={`w-3.5 h-3.5 ${isLiked ? "fill-current" : ""}`} />
                     </Button>
 
-                    <Button variant="ghost" size="icon" onClick={handleShare} className="w-8 h-8">
-                      <Share2 className="w-3.5 h-3.5" />
-                    </Button>
+                    <SocialShareMenu
+                      title={news.headline}
+                      summary={news.summary}
+                      url={`${window.location.origin}/news/${news.id}`}
+                      className="w-8 h-8"
+                    />
                   </div>
 
                   <Button
