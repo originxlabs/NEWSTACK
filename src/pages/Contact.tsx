@@ -292,7 +292,7 @@ const Contact = () => {
                 <CardContent>
                   <div className="flex items-center gap-3">
                     <Button variant="outline" size="icon" asChild>
-                      <a href="https://linkedin.com/company/cropxon" target="_blank" rel="noopener noreferrer">
+                      <a href="https://linkedin.com/company/originxlabs" target="_blank" rel="noopener noreferrer">
                         <Linkedin className="w-4 h-4" />
                       </a>
                     </Button>
@@ -302,7 +302,7 @@ const Contact = () => {
                       </a>
                     </Button>
                     <Button variant="outline" size="icon" asChild>
-                      <a href="https://github.com/cropxon" target="_blank" rel="noopener noreferrer">
+                      <a href="https://github.com/originxlabs" target="_blank" rel="noopener noreferrer">
                         <Github className="w-4 h-4" />
                       </a>
                     </Button>

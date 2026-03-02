@@ -14,6 +14,7 @@ import { LocationPermission } from "@/components/LocationPermission";
 import { InterestsOnboarding, useInterestsOnboarding } from "@/components/InterestsOnboarding";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { WhatChangedToday, StoryCluster } from "@/components/intelligence";
+import { LatestNewsCards } from "@/components/LatestNewsCards";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,7 +40,7 @@ const Index = () => {
   const navigate = useNavigate();
   
   // Fetch trending stories
-  const { data: newsData, isLoading } = useNews({ feedType: "trending", pageSize: 12 });
+  const { data: newsData, isLoading } = useNews({ feedType: "trending", pageSize: 20 });
   
   const trendingStories = useMemo(() => 
     (newsData?.articles || []).map(a => ({
@@ -145,6 +146,19 @@ const Index = () => {
         {trendingStories.length > 0 && (
           <WhatChangedToday stories={trendingStories} />
         )}
+
+        {/* Latest 20 News Cards - GSAP animated */}
+        <LatestNewsCards
+          articles={(newsData?.articles || []).map(a => ({
+            id: a.id,
+            headline: a.headline,
+            topic: a.topic_slug,
+            sourceCount: a.source_count,
+            publishedAt: a.published_at,
+            summary: a.summary || a.ai_analysis || "",
+          }))}
+          isLoading={isLoading}
+        />
 
         {/* Major Story Clusters */}
         <section className="py-12 px-4">

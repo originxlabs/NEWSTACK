@@ -160,7 +160,7 @@ const NotFound = () => {
           transition={{ delay: 1 }}
           className="text-xs text-muted-foreground/60 mt-12"
         >
-          © 2026 NEWSTACK. All Rights Reserved by CROPXON INNOVATIONS PVT LTD
+          © 2026 NEWSTACK. All Rights Reserved by ORIGINX LABS
         </motion.p>
       </motion.div>
     </div>

@@ -40,7 +40,7 @@ export function Header() {
         <div className="bg-background/80 backdrop-blur-xl border-b border-border/40">
           <div className="container mx-auto max-w-6xl px-4">
             <div className="flex items-center justify-between h-14">
-              {/* Logo - NEWSTACK BY CROPXON */}
+              {/* Logo - NEWSTACK BY ORIGINX LABS */}
               <Link to="/" className="flex items-center gap-2">
                 <div className="flex items-center justify-center text-foreground">
                   <NLogoSquare size={28} />
@@ -50,7 +50,7 @@ export function Header() {
                     NEW<span className="text-primary">STACK</span>
                   </span>
                   <span className="text-[8px] text-muted-foreground tracking-widest uppercase leading-none">
-                    by Cropxon
+                    by OriginX Labs
                   </span>
                 </div>
               </Link>
