@@ -4,8 +4,22 @@ import { ArrowRight, Activity, Clock, Shield, Layers, ExternalLink } from "lucid
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, Link } from "react-router-dom";
+import { HeroNewsStack } from "@/components/HeroNewsStack";
 
-export function HeroSection() {
+interface HeroSectionProps {
+  worldNews?: Array<{
+    id: string;
+    headline: string;
+    summary?: string;
+    topic?: string;
+    imageUrl?: string | null;
+    publishedAt?: string;
+    sourceCount?: number;
+  }>;
+  isLoadingNews?: boolean;
+}
+
+export function HeroSection({ worldNews = [], isLoadingNews }: HeroSectionProps) {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLElement>(null);
   const headlineRef = useRef<HTMLHeadingElement>(null);
@@ -116,9 +130,9 @@ export function HeroSection() {
         <div ref={badgeRef} className="flex justify-center mb-5">
           <Badge
             variant="outline"
-            className="text-[11px] h-6 gap-1.5 px-3 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-mono tracking-widest uppercase"
+            className="text-[11px] h-6 gap-1.5 px-3 bg-primary/10 text-primary border-primary/20 font-mono tracking-widest uppercase"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block" />
             Live Intelligence Feed
           </Badge>
         </div>
@@ -212,6 +226,9 @@ export function HeroSection() {
           Stories are clustered from multiple independent sources, scored for credibility,
           and presented without editorial interpretation.
         </p>
+
+        {/* World Top 20 News Card Stack */}
+        <HeroNewsStack articles={worldNews} isLoading={isLoadingNews} />
       </div>
     </section>
   );
