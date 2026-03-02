@@ -41,6 +41,26 @@ const Index = () => {
   
   // Fetch trending stories
   const { data: newsData, isLoading } = useNews({ feedType: "trending", pageSize: 20 });
+
+  // Fetch top 20 global/world stories for Hero card stack (refreshes every 4 hours)
+  const { data: worldNewsData, isLoading: isLoadingWorldNews } = useNews({
+    feedType: "trending",
+    pageSize: 20,
+    sortBy: "sources",
+  });
+
+  const worldNewsArticles = useMemo(() =>
+    (worldNewsData?.articles || []).map(a => ({
+      id: a.id,
+      headline: a.headline,
+      summary: a.summary || a.ai_analysis || "",
+      topic: a.topic_slug,
+      imageUrl: a.image_url,
+      publishedAt: a.published_at,
+      sourceCount: a.source_count,
+    })),
+    [worldNewsData]
+  );
   
   const trendingStories = useMemo(() => 
     (newsData?.articles || []).map(a => ({
@@ -139,7 +159,7 @@ const Index = () => {
             </div>
           </section>
         ) : (
-          <HeroSection />
+          <HeroSection worldNews={worldNewsArticles} isLoadingNews={isLoadingWorldNews} />
         )}
 
         {/* What Changed Today Strip */}

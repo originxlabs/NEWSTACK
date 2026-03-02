@@ -93,6 +93,22 @@ export function Footer() {
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>
+
+          {/* Made with love — animated flash */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>Made with</span>
+            <span className="inline-block animate-[pulse_1.2s_ease-in-out_infinite] text-destructive text-sm">♥</span>
+            <span>by</span>
+            <a
+              href="https://www.abhishekpanda.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground hover:text-primary transition-colors underline underline-offset-2"
+            >
+              Abhishek Panda
+            </a>
+          </div>
+
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <button className="flex items-center gap-1 hover:text-foreground transition-colors">
               <Globe className="w-4 h-4" />
