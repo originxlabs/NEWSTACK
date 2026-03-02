@@ -439,7 +439,7 @@ export function SplashScreen({ onComplete, duration = 2500, countryCode }: Splas
             >
               <p className="text-xs text-muted-foreground/60">
                 Powered by{" "}
-                <span className="font-medium text-muted-foreground/80">Cropxon Innovations</span>
+                <span className="font-medium text-muted-foreground/80">OriginX Labs</span>
               </p>
             </motion.div>
           </motion.div>

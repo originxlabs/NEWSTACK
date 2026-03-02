@@ -122,7 +122,7 @@ export default function RefundPolicy() {
                 <ul className="list-none pl-0 mt-4 space-y-2">
                   <li><strong>Email:</strong> support@newstack.live</li>
                   <li><strong>Subject Line:</strong> "Refund Request - [Your Transaction ID]"</li>
-                  <li><strong>Company:</strong> Cropxon Innovations Pvt Ltd</li>
+                  <li><strong>Company:</strong> OriginX Labs</li>
                 </ul>
               </section>
             </div>
