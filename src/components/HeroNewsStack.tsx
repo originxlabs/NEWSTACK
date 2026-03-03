@@ -156,11 +156,30 @@ export function HeroNewsStack({ articles, isLoading }: HeroNewsStackProps) {
     return `${h}h ${m.toString().padStart(2, "0")}m ${sec.toString().padStart(2, "0")}s`;
   };
 
-  if (isLoading) {
+  if (isLoading && total === 0) {
+    // Show 5 skeleton cards stacked while waiting for data
     return (
-      <div className="relative w-full max-w-sm mx-auto mt-6 lg:mt-0 h-[360px] flex items-center justify-center">
-        <div className="absolute inset-0 rounded-2xl border border-border/50 bg-card animate-pulse" />
-        <div className="text-muted-foreground text-sm font-mono">Loading world news…</div>
+      <div className="relative w-full max-w-sm mx-auto mt-6 lg:mt-0 h-[360px]">
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute inset-x-0 rounded-2xl border border-border/50 bg-card overflow-hidden"
+            style={{
+              top: `${i * 14}px`,
+              opacity: 1 - i * 0.2,
+              transform: `scale(${1 - i * 0.04})`,
+              zIndex: 5 - i,
+              height: "300px",
+            }}
+          >
+            <div className="h-36 bg-muted animate-pulse" />
+            <div className="p-4 space-y-3">
+              <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
+              <div className="h-3 bg-muted animate-pulse rounded w-full" />
+              <div className="h-3 bg-muted animate-pulse rounded w-2/3" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

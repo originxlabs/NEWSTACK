@@ -28,10 +28,10 @@ const navLinks = [
   { name: "India", href: "/india", icon: Flag },
   { name: "World", href: "/world", icon: Globe2 },
   { name: "Places", href: "/places", icon: MapPin },
-  { name: "Open Politics", href: "/open-politics", icon: Building2 },
-  { name: "Public Grievances", href: "/public-grievances", icon: MessageSquareWarning },
+  { name: "Politics", href: "/open-politics", icon: Building2 },
+  { name: "Grievances", href: "/public-grievances", icon: MessageSquareWarning },
   { name: "Developers", href: "/api", icon: Code2 },
-  { name: "Trending Pulse", href: "/trending", icon: Flame },
+  { name: "Trending", href: "/trending", icon: Flame },
 ];
 
 export function Header() {
@@ -93,17 +93,17 @@ export function Header() {
                         key={link.name}
                         to={link.href}
                         onClick={() => {
-                          if (link.name === "Trending Pulse" && isTouchDevice) {
+                          if (link.name === "Trending" && isTouchDevice) {
                             setShowTrendingPanel(true);
                           }
                         }}
                         onMouseEnter={() => {
-                          if (link.name === "Trending Pulse") {
+                          if (link.name === "Trending") {
                             setShowTrendingPanel(true);
                           }
                         }}
                         onFocus={() => {
-                          if (link.name === "Trending Pulse") {
+                          if (link.name === "Trending") {
                             setShowTrendingPanel(true);
                           }
                         }}
@@ -113,7 +113,7 @@ export function Header() {
                             : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                         }`}
                       >
-                        <Icon className={`w-3.5 h-3.5 ${link.name === "Trending Pulse" ? "text-orange-500" : ""}`} />
+                        <Icon className={`w-3.5 h-3.5 ${link.name === "Trending" ? "text-orange-500" : ""}`} />
                         {link.name}
                       </Link>
                     );

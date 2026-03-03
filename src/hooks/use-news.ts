@@ -3,6 +3,49 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase-env";
 
 const SUPABASE_KEY = SUPABASE_ANON_KEY;
 
+// ── Bridge localStorage prefetch cache → React Query initial data ──
+const PREFETCH_CACHE_KEY = "newstack_prefetch_cache";
+const PREFETCH_CACHE_EXPIRY = 15 * 60 * 1000; // 15 min (same as splash prefetch)
+
+function getInitialDataFromLocalStorage(): NewsResponse | undefined {
+  try {
+    const raw = localStorage.getItem(PREFETCH_CACHE_KEY);
+    if (!raw) return undefined;
+    const cache = JSON.parse(raw) as { stories: any[]; timestamp: number };
+    if (Date.now() - cache.timestamp > PREFETCH_CACHE_EXPIRY || !cache.stories?.length) {
+      return undefined;
+    }
+    // Map splash-prefetch NewsItem → NewsArticle shape
+    const articles: NewsArticle[] = cache.stories.map((s: any) => ({
+      id: s.id,
+      headline: s.headline || "",
+      summary: s.summary || "",
+      content: "",
+      ai_analysis: "",
+      why_matters: "",
+      perspectives: [],
+      source_name: s.source || "Local Sources",
+      source_url: "",
+      source_logo: null,
+      image_url: s.imageUrl || null,
+      topic_slug: s.topic || "news",
+      sentiment: (s.sentiment as any) || "neutral",
+      trust_score: s.trustScore ?? 80,
+      published_at: s.publishedAt || new Date().toISOString(),
+      is_global: s.isGlobal ?? false,
+      country_code: s.countryCode || null,
+      source_count: s.sourceCount ?? 1,
+      location_relevance: s.locationRelevance || "Local",
+      original_headline: s.original_headline ?? null,
+      original_summary: s.original_summary ?? null,
+      original_language: s.original_language ?? null,
+    }));
+    return { articles, total: articles.length };
+  } catch {
+    return undefined;
+  }
+}
+
 export interface NewsArticle {
   id: string;
   headline: string;
@@ -99,6 +142,9 @@ async function fetchNews(params: FetchNewsParams): Promise<NewsResponse> {
 }
 
 export function useNews(params: FetchNewsParams = {}) {
+  // On first cold load, seed from localStorage prefetch cache so cards show instantly
+  const cachedInitial = getInitialDataFromLocalStorage();
+
   return useQuery({
     queryKey: ["news", params],
     queryFn: () => fetchNews(params),
@@ -107,7 +153,9 @@ export function useNews(params: FetchNewsParams = {}) {
     retry: 2,
     refetchOnWindowFocus: false, // Don't refetch on every tab focus (cache handles freshness)
     refetchInterval: params.refetchIntervalMs || false,
-    placeholderData: (previousData) => previousData, // Show previous data while fetching new
+    placeholderData: (previousData) => previousData || cachedInitial, // Show cached/previous data while fetching new
+    initialData: cachedInitial, // Instant first render from localStorage cache
+    initialDataUpdatedAt: cachedInitial ? Date.now() - 60_000 : undefined, // Mark as slightly stale so background refetch still happens
   });
 }
 
