@@ -1,0 +1,90 @@
+name	url	publisher	country_code	language	category	reliability_tier	source_type	fetch_interval_minutes	priority	state_id
+Indian Express	https://indianexpress.com/section/india/feed/		IN	en	World	tier_2	secondary	30	80	
+Indian Express World	https://indianexpress.com/section/world/feed/		IN	en	World	tier_2	secondary	30	70	
+LiveMint	https://www.livemint.com/rss/news		IN	en	Business	tier_2	secondary	30	75	
+NDTV	https://feeds.feedburner.com/ndtvnews-top-stories		IN	en	World	tier_2	secondary	30	80	
+The Hindu	https://www.thehindu.com/news/feeder/default.rss		IN	en	World	tier_2	secondary	30	80	
+The Hindu Business	https://www.thehindu.com/business/feeder/default.rss		IN	en	Business	tier_2	secondary	30	75	
+The Hindu National	https://www.thehindu.com/news/national/feeder/default.rss		IN	en	Politics	tier_2	secondary	30	85	
+Amar Ujala Hindi	https://www.amarujala.com/rss/india-news.xml	Amar Ujala	IN	hi	World	tier_2	secondary	30	5	
+BBC Hindi	https://feeds.bbci.co.uk/hindi/india/rss.xml	BBC	IN	hi	World	tier_1	secondary	15	8	
+EastMojo	https://www.eastmojo.com/feed/	EastMojo	IN	en	Local	tier_2	secondary	25	74	
+Economic Times	https://economictimes.indiatimes.com/rssfeedsdefault.cms	Economic Times	IN	en	Business	tier_1	primary	15	90	
+Firstpost	https://www.firstpost.com/commonfeeds/v1/mfp/rss/india.xml	Firstpost	IN	en	India	tier_2	secondary	20	84	
+Hindustan Hindi	https://feed.livehindustan.com/rss/3127	HT Media	IN	hi	Politics	tier_2	secondary	30	5	
+Hindustan Times	https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml	Hindustan Times	IN	en	India	tier_1	primary	15	90	
+India Today	https://www.indiatoday.in/rss/home	India Today	IN	en	India	tier_2	secondary	15	88	
+Nagpur Today	https://www.nagpurtoday.in/feed/	Nagpur Today	IN	en	Local	tier_3	secondary	30	3	
+New Indian Express AP	https://www.newindianexpress.com/states/andhra-pradesh/rssfeed	New Indian Express	IN	en	Local	tier_1	primary	30	1	
+New Indian Express Odisha	https://www.newindianexpress.com/states/odisha/rssfeed	New Indian Express	IN	en	Local	tier_1	primary	30	1	
+New Indian Express TN	https://www.newindianexpress.com/states/tamil-nadu/rssfeed	New Indian Express	IN	en	Local	tier_1	primary	30	1	
+TOI India	https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms	Times of India	IN	en	India	tier_1	primary	15	90	
+Times of India Top	https://timesofindia.indiatimes.com/rssfeedstopstories.cms	Times of India	IN	en	India	tier_1	primary	15	90	
+Google News Andaman & Nicobar	https://news.google.com/rss/search?q=Andaman+and+Nicobar+Islands+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	andaman-nicobar
+Google News Arunachal Pradesh	https://news.google.com/rss/search?q=Arunachal+Pradesh+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	arunachal-pradesh
+Dainik Agradoot Assamese	https://www.dainikagradoot.in/feed/	Dainik Agradoot	IN	as	Politics	tier_2	primary	30	3	assam
+Guwahati Plus Assamese	https://www.guwahatiplus.com/feed/	Guwahati Plus	IN	as	Local	tier_2	secondary	30	2	assam
+Niyomiya Barta Assamese	https://www.niyomiyabarta.com/feed/	Niyomiya Barta	IN	as	World	tier_2	primary	30	2	assam
+Sangbad Pratidin Bengali	https://www.sangbadpratidin.in/feed/	Sangbad Pratidin	IN	bn	World	tier_2	primary	30	2	assam
+Prabhat Khabar Hindi Bihar	https://www.prabhatkhabar.com/feed/	Prabhat Khabar	IN	hi	Politics	tier_2	primary	30	2	bihar
+Google News Chandigarh	https://news.google.com/rss/search?q=Chandigarh+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	chandigarh
+Chandigarh TOI	https://timesofindia.indiatimes.com/rssfeeds/-2128769355.cms	Times of India	IN	en	Local	tier_1	primary	30	1	chandigarh
+Google News Chhattisgarh	https://news.google.com/rss/search?q=Chhattisgarh+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	chhattisgarh
+Google News DNHDD	https://news.google.com/rss/search?q=Dadra+Nagar+Haveli+Daman+Diu+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	dadra-nagar-haveli-daman-diu
+Amar Ujala Delhi Hindi	https://www.amarujala.com/rss/delhi-ncr.xml	Amar Ujala	IN	hi	Local	tier_1	primary	30	1	delhi
+Goa Chronicle	https://goachronicle.com/feed/	Goa Chronicle	IN	en	Local	tier_3	secondary	30	68	goa
+Goa TOI	https://timesofindia.indiatimes.com/rssfeeds/36692495.cms	Times of India	IN	en	Local	tier_1	primary	30	1	goa
+TV9 Gujarati	https://www.tv9gujarati.com/feed/	TV9 Gujarati	IN	gu	World	tier_2	primary	30	2	gujarat
+Ahmedabad TOI	https://timesofindia.indiatimes.com/rssfeeds/52673929.cms	Times of India	IN	en	Local	tier_1	primary	30	1	gujarat
+Google News Haryana	https://news.google.com/rss/search?q=Haryana+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	haryana
+Amar Ujala HP Hindi	https://www.amarujala.com/rss/himachal-pradesh.xml	Amar Ujala	IN	hi	Local	tier_1	primary	30	1	himachal-pradesh
+Greater Kashmir	https://www.greaterkashmir.com/feed/	Greater Kashmir	IN	en	Local	tier_2	secondary	25	74	jammu-kashmir
+Kashmir Life	https://kashmirlife.net/feed/	Kashmir Life	IN	en	Local	tier_3	secondary	30	68	jammu-kashmir
+Kashmir Observer	https://kashmirobserver.net/feed/	Kashmir Observer	IN	en	Local	tier_2	secondary	30	72	jammu-kashmir
+Google News Jharkhand	https://news.google.com/rss/search?q=Jharkhand+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	jharkhand
+Prajavani Kannada	https://www.prajavani.net/feed	Deccan Herald	IN	kn	World	tier_2	secondary	30	5	karnataka
+Kannada Prabha	https://www.kannadaprabha.com/feed/	Kannada Prabha	IN	kn	Politics	tier_2	primary	30	2	karnataka
+New Indian Express Karnataka	https://www.newindianexpress.com/states/karnataka/rssfeed	New Indian Express	IN	en	Local	tier_1	primary	30	1	karnataka
+Public TV Kannada	https://www.publictv.in/feed/	Public TV	IN	kn	Politics	tier_2	primary	30	2	karnataka
+TV9 Kannada	https://www.tv9kannada.com/feed/	TV9 Kannada	IN	kn	World	tier_2	primary	30	2	karnataka
+24 News Malayalam	https://www.twentyfournews.com/feed/	24 News	IN	ml	Politics	tier_2	primary	30	2	kerala
+New Indian Express Kerala	https://www.newindianexpress.com/states/kerala/rssfeed	New Indian Express	IN	en	Local	tier_1	primary	30	1	kerala
+Google News Ladakh	https://news.google.com/rss/search?q=Ladakh+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	ladakh
+Google News Lakshadweep	https://news.google.com/rss/search?q=Lakshadweep+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	lakshadweep
+Google News Madhya Pradesh	https://news.google.com/rss/search?q=Madhya+Pradesh+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	madhya-pradesh
+Pudhari Marathi	https://www.pudhari.news/feed/	Pudhari	IN	mr	Politics	tier_2	primary	30	2	maharashtra
+Pune Mirror	https://punemirror.com/feed/	Pune Mirror	IN	en	Local	tier_2	primary	30	2	maharashtra
+Saamana Marathi	https://www.saamana.com/feed/	Saamana	IN	mr	Politics	tier_2	primary	30	2	maharashtra
+Sakal Marathi	https://www.esakal.com/feed/	Sakal	IN	mr	World	tier_1	primary	30	1	maharashtra
+TV9 Marathi	https://www.tv9marathi.com/feed/	TV9 Marathi	IN	mr	World	tier_2	primary	30	2	maharashtra
+Google News Manipur	https://news.google.com/rss/search?q=Manipur+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	manipur
+The Shillong Times	https://theshillongtimes.com/feed/	The Shillong Times	IN	en	Local	tier_2	secondary	30	72	meghalaya
+Google News Mizoram	https://news.google.com/rss/search?q=Mizoram+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	mizoram
+Google News Nagaland	https://news.google.com/rss/search?q=Nagaland+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	nagaland
+Dharitri Odia	https://dharitri.com/feed/	Dharitri	IN	or	Politics	tier_2	secondary	30	5	odisha
+Kalinga TV Odia	https://www.kalingatv.com/feed/	Kalinga TV	IN	or	Politics	tier_2	primary	30	2	odisha
+OTV Odia	https://www.odishatv.in/feed/	OTV	IN	or	World	tier_2	primary	30	2	odisha
+Odisha TV Odia	https://odishatv.in/feed	OTV	IN	or	World	tier_2	secondary	30	5	odisha
+Pragativadi Odia	https://pragativadi.com/feed/	Pragativadi	IN	or	World	tier_3	secondary	30	4	odisha
+Google News Puducherry	https://news.google.com/rss/search?q=Puducherry+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	puducherry
+Google News Punjab	https://news.google.com/rss/search?q=Punjab+India+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	punjab
+Jaipur TOI	https://timesofindia.indiatimes.com/rssfeeds/-2128807284.cms	Times of India	IN	en	Local	tier_1	primary	30	1	rajasthan
+Google News Sikkim	https://news.google.com/rss/search?q=Sikkim+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	sikkim
+BBC Tamil	https://feeds.bbci.co.uk/tamil/rss.xml	BBC	IN	ta	World	tier_1	secondary	15	8	tamil-nadu
+Puthiya Thalaimurai Tamil	https://www.puthiyathalaimurai.com/feed/	Puthiya Thalaimurai	IN	ta	Politics	tier_2	primary	30	2	tamil-nadu
+Thanthi TV Tamil	https://www.thanthitv.com/feed/	Thanthi TV	IN	ta	World	tier_2	primary	30	2	tamil-nadu
+Tamil The Hindu	https://www.hindutamil.in/feed	The Hindu	IN	ta	Politics	tier_2	secondary	30	5	tamil-nadu
+Chennai TOI	https://timesofindia.indiatimes.com/rssfeeds/2673929.cms	Times of India	IN	en	Local	tier_1	primary	30	1	tamil-nadu
+Vikatan Tamil	https://www.vikatan.com/feed/	Vikatan	IN	ta	World	tier_1	primary	30	1	tamil-nadu
+10TV Telugu	https://www.10tv.in/feed/	10TV	IN	te	World	tier_2	primary	30	2	telangana
+NTV Telugu	https://www.ntvtelugu.com/feed/	NTV	IN	te	World	tier_2	primary	30	2	telangana
+New Indian Express Telangana	https://www.newindianexpress.com/states/telangana/rssfeed	New Indian Express	IN	en	Local	tier_1	primary	30	1	telangana
+TV9 Telugu	https://www.tv9telugu.com/feed	TV9 Network	IN	te	Politics	tier_2	secondary	30	5	telangana
+Telangana Today	https://telanganatoday.com/feed	Telangana Today	IN	en	Local	tier_2	primary	30	2	telangana
+Hyderabad TOI	https://timesofindia.indiatimes.com/rssfeeds/-2128833038.cms	Times of India	IN	en	Local	tier_1	primary	30	1	telangana
+Google News Tripura	https://news.google.com/rss/search?q=Tripura+local+news&hl=en-IN&gl=IN&ceid=IN:en	Google News (Regional)	IN	en	Local	tier_2	aggregator	20	62	tripura
+Amar Ujala UP Hindi	https://www.amarujala.com/rss/uttar-pradesh.xml	Amar Ujala	IN	hi	Local	tier_1	primary	30	1	uttar-pradesh
+Lucknow TOI	https://timesofindia.indiatimes.com/rssfeeds/-2128816011.cms	Times of India	IN	en	Local	tier_1	primary	30	1	uttar-pradesh
+Amar Ujala Uttarakhand Hindi	https://www.amarujala.com/rss/uttarakhand.xml	Amar Ujala	IN	hi	Local	tier_1	primary	30	1	uttarakhand
+BBC Bengali	https://feeds.bbci.co.uk/bengali/rss.xml	BBC	IN	bn	World	tier_1	secondary	15	8	west-bengal
+Kolkata TOI	https://timesofindia.indiatimes.com/rssfeeds/52673931.cms	Times of India	IN	en	Local	tier_1	primary	30	1	west-bengal

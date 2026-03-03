@@ -13,12 +13,12 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, email, donationType, userId } = await req.json();
+    const { amount, email, donorName, isAnonymous, donationType, userId } = await req.json();
 
     // Validate minimum amount
-    if (!amount || amount < 10) {
+    if (!amount || amount < 50) {
       return new Response(
-        JSON.stringify({ error: "Minimum donation amount is ₹10" }),
+        JSON.stringify({ error: "Minimum donation amount is ₹50" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -41,6 +41,8 @@ serve(async (req) => {
       receipt: `donation_${Date.now()}`,
       notes: {
         email: email || "",
+        donor_name: donorName || "",
+        is_anonymous: String(Boolean(isAnonymous)),
         donation_type: donationType || "one-time",
         user_id: userId || "",
       },
@@ -76,6 +78,8 @@ serve(async (req) => {
     await supabase.from("donations").insert({
       user_id: userId || null,
       email: email || null,
+      donor_name: donorName || null,
+      is_anonymous: Boolean(isAnonymous),
       amount: amount,
       currency: "INR",
       donation_type: donationType || "one-time",

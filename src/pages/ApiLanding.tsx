@@ -24,12 +24,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase-env";
 
 // API Domain Configuration - Single domain, environment determined by API key
 const API_DOMAIN = "https://api.newstack.online/v1";
 
 // For testing via Supabase edge functions
-const SUPABASE_API_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+const SUPABASE_API_BASE = `${SUPABASE_URL}/functions/v1`;
 
 // Documentation sidebar items
 const docNavItems = [
@@ -288,7 +289,7 @@ function ApiTester({ onRequireAuth }: ApiTesterProps) {
         method,
         headers: {
           "Content-Type": "application/json",
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "apikey": SUPABASE_ANON_KEY,
           "X-API-Key": sandboxKey.api_key,
           "X-Enterprise-ID": sandboxKey.enterprise_id || "",
         },

@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useOwnerAuditLog } from "@/hooks/use-owner-audit-log";
 import { PasswordStrengthMeter } from "@/components/newsroom/PasswordStrengthMeter";
+import { isDesignatedEnterpriseAdmin } from "@/lib/admin-access";
 
 type ViewMode = "warning" | "auth" | "verify-passkey" | "set-password" | "success";
 
@@ -59,16 +60,11 @@ export default function NewsroomOwnerSetup() {
     setViewMode("auth");
   };
 
-  // Designated owner email for first-time setup
-  const DESIGNATED_OWNER_EMAIL = "originxlabs@gmail.com";
-
   const ensureEmailIsOwner = async (ownerEmail: string) => {
     const normalized = ownerEmail.trim().toLowerCase();
 
-    // FIRST: Check if this is the designated owner email for initial setup
-    if (normalized === DESIGNATED_OWNER_EMAIL.toLowerCase()) {
-      return true;
-    }
+    // First gate: only designated admin identities can perform owner setup.
+    if (!isDesignatedEnterpriseAdmin(normalized)) return false;
 
     // PRIMARY: Check newsroom_members for owner role (this is the source of truth)
     const { data: memberOwner } = await supabase
@@ -105,7 +101,7 @@ export default function NewsroomOwnerSetup() {
       const isOwnerEmail = await ensureEmailIsOwner(email);
       if (!isOwnerEmail) {
         await auditLog.logFailed(email.trim(), "Non-owner attempted password login");
-        toast.error("Access denied: this email is not the owner");
+        toast.error("Owner access denied: this is not a designated admin email");
         return;
       }
 
@@ -142,7 +138,7 @@ export default function NewsroomOwnerSetup() {
       const isOwnerEmail = await ensureEmailIsOwner(email);
       if (!isOwnerEmail) {
         await auditLog.logFailed(email.trim(), "Non-owner attempted owner-init OTP request");
-        toast.error("Access denied: this email is not the owner");
+        toast.error("Owner access denied: this is not a designated admin email");
         return;
       }
 

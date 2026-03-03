@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlaceData } from "@/hooks/use-places";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase-env";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_KEY = SUPABASE_ANON_KEY;
 
 interface Message {
   id: string;

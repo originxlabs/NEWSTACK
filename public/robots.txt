@@ -11,6 +11,8 @@ Disallow: /saved
 
 # Sitemaps
 Sitemap: https://newstack.live/sitemap.xml
+# LLM crawler guidance
+# See: https://newstack.live/llms.txt
 
 # Search engine specific rules
 User-agent: Googlebot

@@ -22,6 +22,7 @@ interface HeroSectionProps {
 export function HeroSection({ worldNews = [], isLoadingNews }: HeroSectionProps) {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLElement>(null);
+  const stackPaneRef = useRef<HTMLDivElement>(null);
   const headlineRef = useRef<HTMLHeadingElement>(null);
   const subtitleRef = useRef<HTMLParagraphElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
@@ -81,6 +82,14 @@ export function HeroSection({ worldNews = [], isLoadingNews }: HeroSectionProps)
       "-=0.2"
     );
 
+    // Right card stack pane
+    tl.fromTo(
+      stackPaneRef.current,
+      { opacity: 0, x: 36, scale: 0.98 },
+      { opacity: 1, x: 0, scale: 1, duration: 0.65 },
+      "-=0.45"
+    );
+
     // Stats strip
     if (statsRef.current) {
       const items = statsRef.current.querySelectorAll(".stat-item");
@@ -125,110 +134,116 @@ export function HeroSection({ worldNews = [], isLoadingNews }: HeroSectionProps)
       <div className="hero-glow absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-primary/10 blur-3xl pointer-events-none" />
       <div className="hero-glow absolute top-1/2 right-10 w-[300px] h-[300px] rounded-full bg-accent/8 blur-3xl pointer-events-none" style={{ animationDelay: "1s" }} />
 
-      <div className="container mx-auto max-w-5xl relative z-10">
-        {/* Live Badge */}
-        <div ref={badgeRef} className="flex justify-center mb-5">
-          <Badge
-            variant="outline"
-            className="text-[11px] h-6 gap-1.5 px-3 bg-primary/10 text-primary border-primary/20 font-mono tracking-widest uppercase"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block" />
-            Live Intelligence Feed
-          </Badge>
-        </div>
+      <div className="container mx-auto max-w-6xl relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.08fr_0.92fr] gap-10 lg:gap-12 items-center">
+          <div>
+            {/* Live Badge */}
+            <div ref={badgeRef} className="flex justify-center lg:justify-start mb-5">
+              <Badge
+                variant="outline"
+                className="text-[11px] h-6 gap-1.5 px-3 bg-primary/10 text-primary border-primary/20 font-mono tracking-widest uppercase"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block" />
+                Live Intelligence Feed
+              </Badge>
+            </div>
 
-        {/* Time strip */}
-        <div ref={taglineRef} className="flex items-center justify-center gap-4 mb-7 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" />
-            <span className="font-mono">{currentTime}</span>
+            {/* Time strip */}
+            <div ref={taglineRef} className="flex items-center justify-center lg:justify-start gap-4 mb-7 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                <span className="font-mono">{currentTime}</span>
+              </div>
+              <span className="text-border">•</span>
+              <span>{currentDate}</span>
+            </div>
+
+            {/* Main Headline — word-split for GSAP */}
+            <h1
+              ref={headlineRef}
+              className="font-display text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-5 text-center lg:text-left leading-[1.1]"
+            >
+              <span className="word inline-block mr-3 text-foreground">Your</span>
+              <span className="word inline-block mr-3 gradient-text">Daily</span>
+              <span className="word inline-block mr-3 gradient-text">Reality</span>
+              <br className="hidden sm:block" />
+              <span className="word inline-block mr-3 text-foreground">Briefing</span>
+            </h1>
+
+            {/* Eyebrow typography line */}
+            <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
+              <div className="h-px w-16 bg-border" />
+              <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+                by OriginX Labs · Neutral · Verified · Open
+              </span>
+              <div className="h-px w-16 bg-border" />
+            </div>
+
+            {/* Subtitle */}
+            <p
+              ref={subtitleRef}
+              className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 mb-9 leading-relaxed text-center lg:text-left"
+            >
+              An open, neutral intelligence layer built from public sources.
+              <br className="hidden sm:block" />
+              No opinions. No paywalls. Just verified facts from multiple perspectives.
+            </p>
+
+            {/* Trust Stats */}
+            <div ref={statsRef} className="flex flex-wrap items-center justify-center lg:justify-start gap-8 mb-10">
+              <Link
+                to="/news?filter=sources"
+                className="stat-item flex items-center gap-2 text-sm hover:text-primary transition-colors group"
+              >
+                <Layers className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
+                <span className="font-bold text-foreground group-hover:text-primary">170+</span>
+                <span className="text-muted-foreground group-hover:text-primary">Verified Sources</span>
+                <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Link>
+              <div className="stat-item flex items-center gap-2 text-sm">
+                <Shield className="w-4 h-4 text-muted-foreground" />
+                <span className="font-bold text-foreground">100%</span>
+                <span className="text-muted-foreground">Open Access</span>
+              </div>
+              <div className="stat-item flex items-center gap-2 text-sm">
+                <Activity className="w-4 h-4 text-muted-foreground" />
+                <span className="font-bold text-foreground">15min</span>
+                <span className="text-muted-foreground">Update Cycle</span>
+              </div>
+            </div>
+
+            {/* CTA Buttons */}
+            <div ref={ctaRef} className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3">
+              <Button
+                size="lg"
+                className="min-w-[220px] gap-2 shadow-sm"
+                onClick={() => navigate("/news")}
+              >
+                Explore Today's Intelligence
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="min-w-[220px]"
+                onClick={() => navigate("/world")}
+              >
+                View Global Pulse
+              </Button>
+            </div>
+
+            {/* Supporting note */}
+            <p className="text-xs text-muted-foreground/60 text-center lg:text-left max-w-lg mx-auto lg:mx-0 mt-8 leading-relaxed">
+              Stories are clustered from multiple independent sources, scored for credibility,
+              and presented without editorial interpretation.
+            </p>
           </div>
-          <span className="text-border">•</span>
-          <span>{currentDate}</span>
-        </div>
 
-        {/* Main Headline — word-split for GSAP */}
-        <h1
-          ref={headlineRef}
-          className="font-display text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-5 text-center leading-[1.1]"
-        >
-          <span className="word inline-block mr-3 text-foreground">Your</span>
-          <span className="word inline-block mr-3 gradient-text">Daily</span>
-          <span className="word inline-block mr-3 gradient-text">Reality</span>
-          <br className="hidden sm:block" />
-          <span className="word inline-block mr-3 text-foreground">Briefing</span>
-        </h1>
-
-        {/* Eyebrow typography line */}
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="h-px w-16 bg-border" />
-          <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
-            by OriginX Labs · Neutral · Verified · Open
-          </span>
-          <div className="h-px w-16 bg-border" />
-        </div>
-
-        {/* Subtitle */}
-        <p
-          ref={subtitleRef}
-          className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto mb-9 leading-relaxed text-center"
-        >
-          An open, neutral intelligence layer built from public sources.
-          <br className="hidden sm:block" />
-          No opinions. No paywalls. Just verified facts from multiple perspectives.
-        </p>
-
-        {/* Trust Stats */}
-        <div ref={statsRef} className="flex flex-wrap items-center justify-center gap-8 mb-10">
-          <Link
-            to="/news?filter=sources"
-            className="stat-item flex items-center gap-2 text-sm hover:text-primary transition-colors group"
-          >
-            <Layers className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
-            <span className="font-bold text-foreground group-hover:text-primary">170+</span>
-            <span className="text-muted-foreground group-hover:text-primary">Verified Sources</span>
-            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </Link>
-          <div className="stat-item flex items-center gap-2 text-sm">
-            <Shield className="w-4 h-4 text-muted-foreground" />
-            <span className="font-bold text-foreground">100%</span>
-            <span className="text-muted-foreground">Open Access</span>
-          </div>
-          <div className="stat-item flex items-center gap-2 text-sm">
-            <Activity className="w-4 h-4 text-muted-foreground" />
-            <span className="font-bold text-foreground">15min</span>
-            <span className="text-muted-foreground">Update Cycle</span>
+          <div ref={stackPaneRef} className="w-full flex justify-center lg:justify-end">
+            {/* World Top 20 News Card Stack */}
+            <HeroNewsStack articles={worldNews} isLoading={isLoadingNews} />
           </div>
         </div>
-
-        {/* CTA Buttons */}
-        <div ref={ctaRef} className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Button
-            size="lg"
-            className="min-w-[220px] gap-2 shadow-sm"
-            onClick={() => navigate("/news")}
-          >
-            Explore Today's Intelligence
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="min-w-[220px]"
-            onClick={() => navigate("/world")}
-          >
-            View Global Pulse
-          </Button>
-        </div>
-
-        {/* Supporting note */}
-        <p className="text-xs text-muted-foreground/60 text-center max-w-lg mx-auto mt-8 leading-relaxed">
-          Stories are clustered from multiple independent sources, scored for credibility,
-          and presented without editorial interpretation.
-        </p>
-
-        {/* World Top 20 News Card Stack */}
-        <HeroNewsStack articles={worldNews} isLoading={isLoadingNews} />
       </div>
     </section>
   );

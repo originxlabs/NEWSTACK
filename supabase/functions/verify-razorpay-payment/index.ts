@@ -1,11 +1,55 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createHmac } from "https://deno.land/std@0.168.0/node/crypto.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const FROM_EMAIL = "Newstack <no-reply@newstack.live>";
+
+const getThankYouHtml = (name: string, amount: number) => `
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    </head>
+    <body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f4f5;">
+        <tr>
+          <td align="center" style="padding:32px 16px;">
+            <table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;">
+              <tr>
+                <td style="background:linear-gradient(135deg,#18181b 0%,#27272a 100%);padding:28px 32px;text-align:center;">
+                  <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;">Thank You for Supporting OpenNews</h1>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:32px;">
+                  <p style="margin:0 0 12px;color:#18181b;font-size:18px;font-weight:600;">Hello ${name},</p>
+                  <p style="margin:0 0 16px;color:#52525b;font-size:15px;line-height:1.7;">
+                    We received your donation of <strong>₹${amount}</strong>. Your contribution helps us build transparent, independent and public-interest journalism infrastructure.
+                  </p>
+                  <p style="margin:0;color:#52525b;font-size:15px;line-height:1.7;">
+                    We’re grateful for your support.
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="background:#fafafa;padding:20px 32px;border-top:1px solid #e4e4e7;">
+                  <p style="margin:0;color:#71717a;font-size:12px;text-align:center;">© ${new Date().getFullYear()} Newstack. All rights reserved.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+  </html>
+`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -75,6 +119,24 @@ serve(async (req) => {
       })
       .eq("razorpay_order_id", razorpay_order_id);
 
+    if (donation.email) {
+      try {
+        const resendApiKey = Deno.env.get("RESEND_API_KEY");
+        if (resendApiKey) {
+          const resend = new Resend(resendApiKey);
+          const donorName = donation.is_anonymous ? "Supporter" : (donation.donor_name || "Supporter");
+          await resend.emails.send({
+            from: FROM_EMAIL,
+            to: [donation.email],
+            subject: "Thank you for supporting OpenNews",
+            html: getThankYouHtml(donorName, donation.amount || 0),
+          });
+        }
+      } catch (emailError) {
+        console.error("Failed to send thank-you email:", emailError);
+      }
+    }
+
     // Grant premium features to user
     if (userId) {
       const premiumExpiry = donation.donation_type === "monthly"
@@ -101,7 +163,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Payment verified and premium features activated!",
+        message: "Payment verified successfully",
         premium: true,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

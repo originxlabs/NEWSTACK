@@ -13,6 +13,7 @@ import { CookieConsent } from "@/components/CookieConsent";
 import { LocationPermission } from "@/components/LocationPermission";
 import { InterestsOnboarding, useInterestsOnboarding } from "@/components/InterestsOnboarding";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
+import { MediaSourceMarquee } from "@/components/MediaSourceMarquee";
 import { WhatChangedToday, StoryCluster } from "@/components/intelligence";
 import { LatestNewsCards } from "@/components/LatestNewsCards";
 import { Badge } from "@/components/ui/badge";
@@ -38,9 +39,35 @@ const Index = () => {
   const [consentCompleted, setConsentCompleted] = useState(false);
   const { showOnboarding, completeOnboarding } = useInterestsOnboarding();
   const navigate = useNavigate();
+  const selectedInterests = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("newstack_interests");
+      if (!raw) return [] as string[];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter((value) => typeof value === "string") : [];
+    } catch {
+      return [] as string[];
+    }
+  }, []);
+  const primaryInterest = selectedInterests[0];
   
-  // Fetch trending stories
-  const { data: newsData, isLoading } = useNews({ feedType: "trending", pageSize: 20 });
+  // Personalized latest stories (refresh every 1 hour)
+  const { data: latestNewsData, isLoading } = useNews({
+    feedType: user ? "foryou" : "recent",
+    pageSize: 20,
+    sortBy: "latest",
+    country: country?.code,
+    topic: primaryInterest,
+    refetchIntervalMs: 60 * 60 * 1000,
+  });
+
+  // Trending stories for pulse strip and cluster grouping
+  const { data: trendingNewsData } = useNews({
+    feedType: "trending",
+    pageSize: 20,
+    country: country?.code,
+    refetchIntervalMs: 5 * 60 * 1000,
+  });
 
   // Fetch top 20 global/world stories for Hero card stack (refreshes every 4 hours)
   const { data: worldNewsData, isLoading: isLoadingWorldNews } = useNews({
@@ -63,18 +90,18 @@ const Index = () => {
   );
   
   const trendingStories = useMemo(() => 
-    (newsData?.articles || []).map(a => ({
+    (trendingNewsData?.articles || []).map(a => ({
       id: a.id,
       headline: a.headline,
       topic: a.topic_slug,
       sourceCount: a.source_count,
       publishedAt: a.published_at,
     })),
-    [newsData]
+    [trendingNewsData]
   );
 
   const storyClusters = useMemo(() => 
-    (newsData?.articles || []).slice(0, 6).map(a => ({
+    (trendingNewsData?.articles || []).slice(0, 6).map(a => ({
       id: a.id,
       headline: a.headline,
       summary: a.summary || a.ai_analysis || "",
@@ -84,7 +111,7 @@ const Index = () => {
       topic: a.topic_slug || "world",
       confidence: determineConfidence(a.source_count),
     })),
-    [newsData]
+    [trendingNewsData]
   );
 
   // Check if cookie consent is needed
@@ -162,6 +189,8 @@ const Index = () => {
           <HeroSection worldNews={worldNewsArticles} isLoadingNews={isLoadingWorldNews} />
         )}
 
+        <MediaSourceMarquee />
+
         {/* What Changed Today Strip */}
         {trendingStories.length > 0 && (
           <WhatChangedToday stories={trendingStories} />
@@ -169,13 +198,18 @@ const Index = () => {
 
         {/* Latest 20 News Cards - GSAP animated */}
         <LatestNewsCards
-          articles={(newsData?.articles || []).map(a => ({
+          articles={(latestNewsData?.articles || []).map(a => ({
             id: a.id,
             headline: a.headline,
             topic: a.topic_slug,
             sourceCount: a.source_count,
             publishedAt: a.published_at,
             summary: a.summary || a.ai_analysis || "",
+            tags: [
+              a.topic_slug ? `#${String(a.topic_slug).replace(/\s+/g, "-").toLowerCase()}` : "#news",
+              a.country_code ? `#${String(a.country_code).toLowerCase()}` : "#global",
+              (a.source_count || 0) >= 4 ? "#multi-source" : "#verified",
+            ],
           }))}
           isLoading={isLoading}
         />

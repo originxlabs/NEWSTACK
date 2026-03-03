@@ -1,0 +1,121 @@
+name,publisher,url,country_code,language,category,reliability_tier,source_type,state_id,fetch_interval_minutes,priority
+ABC Australia Top,ABC Australia,https://www.abc.net.au/news/feed/51120/rss.xml,AU,en,World,tier_1,primary,,20,90
+SBS Australia,SBS News,https://www.sbs.com.au/news/feed,AU,en,World,tier_2,secondary,,20,82
+Sydney Morning Herald,Sydney Morning Herald,https://www.smh.com.au/rss/feed.xml,AU,en,World,tier_2,secondary,,30,78
+Daily Star Bangladesh,The Daily Star,https://www.thedailystar.net/frontpage/rss.xml,BD,en,World,tier_2,secondary,,25,80
+Folha Brazil,Folha de S.Paulo,https://feeds.folha.uol.com.br/emcimadahora/rss091.xml,BR,pt,World,tier_2,secondary,,30,74
+CBC Top,CBC,https://www.cbc.ca/cmlink/rss-topstories,CA,en,World,tier_1,primary,,20,90
+Global News Canada,Global News,https://globalnews.ca/feed/,CA,en,World,tier_2,secondary,,20,82
+DW Top,Deutsche Welle,https://rss.dw.com/rdf/rss-en-top,DE,en,World,tier_1,primary,,20,90
+Euronews,Euronews,https://www.euronews.com/rss?format=mrss,FR,en,World,tier_2,secondary,,20,80
+France24,France 24,https://www.france24.com/en/rss,FR,en,World,tier_1,primary,,20,90
+BBC Business,BBC,http://feeds.bbci.co.uk/news/business/rss.xml,GB,en,Business,tier_1,primary,,15,93
+BBC Technology,BBC,http://feeds.bbci.co.uk/news/technology/rss.xml,GB,en,Technology,tier_1,primary,,20,90
+BBC UK,BBC,http://feeds.bbci.co.uk/news/uk/rss.xml,GB,en,World,tier_1,primary,,15,95
+Guardian UK,The Guardian,https://www.theguardian.com/uk/rss,GB,en,World,tier_1,primary,,20,91
+Guardian World,The Guardian,https://www.theguardian.com/world/rss,GB,en,World,tier_1,primary,,15,93
+Sky News Home,Sky News,https://feeds.skynews.com/feeds/rss/home.xml,GB,en,World,tier_2,secondary,,20,84
+Sky News World,Sky News,https://feeds.skynews.com/feeds/rss/world.xml,GB,en,World,tier_2,secondary,,20,84
+SCMP,South China Morning Post,https://www.scmp.com/rss/91/feed,HK,en,World,tier_2,secondary,,20,82
+South China Morning Post World,South China Morning Post,https://www.scmp.com/rss/4/feed,HK,en,World,tier_2,secondary,,20,80
+Jerusalem Post,Jerusalem Post,https://www.jpost.com/Rss/RssFeedsHeadlines.aspx,IL,en,World,tier_2,secondary,,20,80
+Times of Israel,Times of Israel,https://www.timesofisrael.com/feed/,IL,en,World,tier_2,secondary,,20,80
+10TV Telugu,10TV,https://www.10tv.in/feed/,IN,te,World,tier_2,primary,telangana,30,2
+24 News Malayalam,24 News,https://www.twentyfournews.com/feed/,IN,ml,Politics,tier_2,primary,kerala,30,2
+Ahmedabad TOI,Times of India,https://timesofindia.indiatimes.com/rssfeeds/52673929.cms,IN,en,Local,tier_1,primary,gujarat,30,1
+Amar Ujala Delhi Hindi,Amar Ujala,https://www.amarujala.com/rss/delhi-ncr.xml,IN,hi,Local,tier_1,primary,delhi,30,1
+Amar Ujala Hindi,Amar Ujala,https://www.amarujala.com/rss/india-news.xml,IN,hi,World,tier_2,secondary,,30,5
+Amar Ujala HP Hindi,Amar Ujala,https://www.amarujala.com/rss/himachal-pradesh.xml,IN,hi,Local,tier_1,primary,himachal-pradesh,30,1
+Amar Ujala UP Hindi,Amar Ujala,https://www.amarujala.com/rss/uttar-pradesh.xml,IN,hi,Local,tier_1,primary,uttar-pradesh,30,1
+Amar Ujala Uttarakhand Hindi,Amar Ujala,https://www.amarujala.com/rss/uttarakhand.xml,IN,hi,Local,tier_1,primary,uttarakhand,30,1
+BBC Bengali,BBC,https://feeds.bbci.co.uk/bengali/rss.xml,IN,bn,World,tier_1,secondary,west-bengal,15,8
+BBC Hindi,BBC,https://feeds.bbci.co.uk/hindi/india/rss.xml,IN,hi,World,tier_1,secondary,,15,8
+BBC Tamil,BBC,https://feeds.bbci.co.uk/tamil/rss.xml,IN,ta,World,tier_1,secondary,tamil-nadu,15,8
+Chandigarh TOI,Times of India,https://timesofindia.indiatimes.com/rssfeeds/-2128769355.cms,IN,en,Local,tier_1,primary,haryana,30,1
+Chennai TOI,Times of India,https://timesofindia.indiatimes.com/rssfeeds/2673929.cms,IN,en,Local,tier_1,primary,tamil-nadu,30,1
+Dainik Agradoot Assamese,Dainik Agradoot,https://www.dainikagradoot.in/feed/,IN,as,Politics,tier_2,primary,assam,30,3
+Dharitri Odia,Dharitri,https://dharitri.com/feed/,IN,or,Politics,tier_2,secondary,odisha,30,5
+EastMojo,EastMojo,https://www.eastmojo.com/feed/,IN,en,Local,tier_2,secondary,,25,74
+Economic Times,Economic Times,https://economictimes.indiatimes.com/rssfeedsdefault.cms,IN,en,Business,tier_1,primary,,15,90
+Firstpost,Firstpost,https://www.firstpost.com/commonfeeds/v1/mfp/rss/india.xml,IN,en,India,tier_2,secondary,,20,84
+Goa Chronicle,Goa Chronicle,https://goachronicle.com/feed/,IN,en,Local,tier_3,secondary,goa,30,68
+Goa TOI,Times of India,https://timesofindia.indiatimes.com/rssfeeds/36692495.cms,IN,en,Local,tier_1,primary,goa,30,1
+Greater Kashmir,Greater Kashmir,https://www.greaterkashmir.com/feed/,IN,en,Local,tier_2,secondary,jammu-kashmir,25,74
+Guwahati Plus Assamese,Guwahati Plus,https://www.guwahatiplus.com/feed/,IN,as,Local,tier_2,secondary,assam,30,2
+Hindustan Hindi,HT Media,https://feed.livehindustan.com/rss/3127,IN,hi,Politics,tier_2,secondary,,30,5
+Hindustan Times,Hindustan Times,https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml,IN,en,India,tier_1,primary,,15,90
+Hyderabad TOI,Times of India,https://timesofindia.indiatimes.com/rssfeeds/-2128833038.cms,IN,en,Local,tier_1,primary,andhra-pradesh,30,1
+India Today,India Today,https://www.indiatoday.in/rss/home,IN,en,India,tier_2,secondary,,15,88
+Indian Express,,https://indianexpress.com/section/india/feed/,IN,en,World,tier_2,secondary,,30,80
+Indian Express World,,https://indianexpress.com/section/world/feed/,IN,en,World,tier_2,secondary,,30,70
+Jaipur TOI,Times of India,https://timesofindia.indiatimes.com/rssfeeds/-2128807284.cms,IN,en,Local,tier_1,primary,rajasthan,30,1
+Kalinga TV Odia,Kalinga TV,https://www.kalingatv.com/feed/,IN,or,Politics,tier_2,primary,odisha,30,2
+Kannada Prabha,Kannada Prabha,https://www.kannadaprabha.com/feed/,IN,kn,Politics,tier_2,primary,karnataka,30,2
+Kashmir Life,Kashmir Life,https://kashmirlife.net/feed/,IN,en,Local,tier_3,secondary,jammu-kashmir,30,68
+Kashmir Observer,Kashmir Observer,https://kashmirobserver.net/feed/,IN,en,Local,tier_2,secondary,jammu-kashmir,30,72
+Kolkata TOI,Times of India,https://timesofindia.indiatimes.com/rssfeeds/52673931.cms,IN,en,Local,tier_1,primary,west-bengal,30,1
+LiveMint,,https://www.livemint.com/rss/news,IN,en,Business,tier_2,secondary,,30,75
+Lucknow TOI,Times of India,https://timesofindia.indiatimes.com/rssfeeds/-2128816011.cms,IN,en,Local,tier_1,primary,uttar-pradesh,30,1
+Nagpur Today,Nagpur Today,https://www.nagpurtoday.in/feed/,IN,en,Local,tier_3,secondary,,30,3
+NDTV,,https://feeds.feedburner.com/ndtvnews-top-stories,IN,en,World,tier_2,secondary,,30,80
+New Indian Express AP,New Indian Express,https://www.newindianexpress.com/states/andhra-pradesh/rssfeed,IN,en,Local,tier_1,primary,,30,1
+New Indian Express Karnataka,New Indian Express,https://www.newindianexpress.com/states/karnataka/rssfeed,IN,en,Local,tier_1,primary,karnataka,30,1
+New Indian Express Kerala,New Indian Express,https://www.newindianexpress.com/states/kerala/rssfeed,IN,en,Local,tier_1,primary,kerala,30,1
+New Indian Express Odisha,New Indian Express,https://www.newindianexpress.com/states/odisha/rssfeed,IN,en,Local,tier_1,primary,,30,1
+New Indian Express Telangana,New Indian Express,https://www.newindianexpress.com/states/telangana/rssfeed,IN,en,Local,tier_1,primary,telangana,30,1
+New Indian Express TN,New Indian Express,https://www.newindianexpress.com/states/tamil-nadu/rssfeed,IN,en,Local,tier_1,primary,,30,1
+Niyomiya Barta Assamese,Niyomiya Barta,https://www.niyomiyabarta.com/feed/,IN,as,World,tier_2,primary,assam,30,2
+NTV Telugu,NTV,https://www.ntvtelugu.com/feed/,IN,te,World,tier_2,primary,telangana,30,2
+Odisha TV Odia,OTV,https://odishatv.in/feed,IN,or,World,tier_2,secondary,odisha,30,5
+OTV Odia,OTV,https://www.odishatv.in/feed/,IN,or,World,tier_2,primary,odisha,30,2
+Prabhat Khabar Hindi Bihar,Prabhat Khabar,https://www.prabhatkhabar.com/feed/,IN,hi,Politics,tier_2,primary,bihar,30,2
+Pragativadi Odia,Pragativadi,https://pragativadi.com/feed/,IN,or,World,tier_3,secondary,odisha,30,4
+Prajavani Kannada,Deccan Herald,https://www.prajavani.net/feed,IN,kn,World,tier_2,secondary,karnataka,30,5
+Public TV Kannada,Public TV,https://www.publictv.in/feed/,IN,kn,Politics,tier_2,primary,karnataka,30,2
+Pudhari Marathi,Pudhari,https://www.pudhari.news/feed/,IN,mr,Politics,tier_2,primary,maharashtra,30,2
+Pune Mirror,Pune Mirror,https://punemirror.com/feed/,IN,en,Local,tier_2,primary,maharashtra,30,2
+Puthiya Thalaimurai Tamil,Puthiya Thalaimurai,https://www.puthiyathalaimurai.com/feed/,IN,ta,Politics,tier_2,primary,tamil-nadu,30,2
+Saamana Marathi,Saamana,https://www.saamana.com/feed/,IN,mr,Politics,tier_2,primary,maharashtra,30,2
+Sakal Marathi,Sakal,https://www.esakal.com/feed/,IN,mr,World,tier_1,primary,maharashtra,30,1
+Sangbad Pratidin Bengali,Sangbad Pratidin,https://www.sangbadpratidin.in/feed/,IN,bn,World,tier_2,primary,assam,30,2
+Tamil The Hindu,The Hindu,https://www.hindutamil.in/feed,IN,ta,Politics,tier_2,secondary,tamil-nadu,30,5
+Telangana Today,Telangana Today,https://telanganatoday.com/feed,IN,en,Local,tier_2,primary,telangana,30,2
+Thanthi TV Tamil,Thanthi TV,https://www.thanthitv.com/feed/,IN,ta,World,tier_2,primary,tamil-nadu,30,2
+The Hindu,,https://www.thehindu.com/news/feeder/default.rss,IN,en,World,tier_2,secondary,,30,80
+The Hindu Business,,https://www.thehindu.com/business/feeder/default.rss,IN,en,Business,tier_2,secondary,,30,75
+The Hindu National,,https://www.thehindu.com/news/national/feeder/default.rss,IN,en,Politics,tier_2,secondary,,30,85
+The Shillong Times,The Shillong Times,https://theshillongtimes.com/feed/,IN,en,Local,tier_2,secondary,meghalaya,30,72
+Times of India Top,Times of India,https://timesofindia.indiatimes.com/rssfeedstopstories.cms,IN,en,India,tier_1,primary,,15,90
+TOI India,Times of India,https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms,IN,en,India,tier_1,primary,,15,90
+TV9 Gujarati,TV9 Gujarati,https://www.tv9gujarati.com/feed/,IN,gu,World,tier_2,primary,gujarat,30,2
+TV9 Kannada,TV9 Kannada,https://www.tv9kannada.com/feed/,IN,kn,World,tier_2,primary,karnataka,30,2
+TV9 Marathi,TV9 Marathi,https://www.tv9marathi.com/feed/,IN,mr,World,tier_2,primary,maharashtra,30,2
+TV9 Telugu,TV9 Network,https://www.tv9telugu.com/feed,IN,te,Politics,tier_2,secondary,telangana,30,5
+Vikatan Tamil,Vikatan,https://www.vikatan.com/feed/,IN,ta,World,tier_1,primary,tamil-nadu,30,1
+ANSA World,ANSA,https://www.ansa.it/sito/ansait_rss.xml,IT,it,World,tier_2,secondary,,30,76
+Japan Times,The Japan Times,https://www.japantimes.co.jp/feed/,JP,en,World,tier_1,primary,,20,88
+NHK World,NHK,https://www3.nhk.or.jp/rss/news/cat0.xml,JP,en,World,tier_1,primary,,20,88
+Mexico News Daily,Mexico News Daily,https://mexiconewsdaily.com/feed/,MX,en,World,tier_2,secondary,,30,72
+Punch Nigeria,Punch,https://punchng.com/feed/,NG,en,World,tier_2,secondary,,25,76
+Vanguard Nigeria,Vanguard,https://www.vanguardngr.com/feed/,NG,en,World,tier_2,secondary,,25,76
+Kathmandu Post,Kathmandu Post,https://kathmandupost.com/rss,NP,en,World,tier_2,secondary,,25,78
+Rappler Philippines,Rappler,https://www.rappler.com/rss/,PH,en,World,tier_2,secondary,,25,78
+Al Jazeera Middle East,Al Jazeera,https://www.aljazeera.com/xml/rss/all.xml,QA,en,World,tier_1,primary,,15,90
+Channel NewsAsia,CNA,https://www.channelnewsasia.com/rssfeeds/8395986,SG,en,World,tier_1,primary,,20,88
+Straits Times,The Straits Times,https://www.straitstimes.com/news/singapore/rss.xml,SG,en,World,tier_1,primary,,20,88
+ABC Top,ABC News,https://abcnews.go.com/abcnews/topstories,US,en,World,tier_2,secondary,,20,82
+CBS Top,CBS News,https://www.cbsnews.com/latest/rss/main,US,en,World,tier_2,secondary,,20,82
+CNN Top,CNN,http://rss.cnn.com/rss/edition.rss,US,en,World,tier_2,secondary,,20,84
+CNN World,CNN,http://rss.cnn.com/rss/edition_world.rss,US,en,World,tier_2,secondary,,20,84
+Fox News Latest,Fox News,https://moxie.foxnews.com/google-publisher/latest.xml,US,en,World,tier_2,secondary,,20,80
+LA Times,Los Angeles Times,https://www.latimes.com/world-nation/rss2.0.xml,US,en,World,tier_2,secondary,,30,82
+NPR News,NPR,https://feeds.npr.org/1001/rss.xml,US,en,World,tier_1,primary,,15,90
+NYTimes Business,The New York Times,https://rss.nytimes.com/services/xml/rss/nyt/Business.xml,US,en,Business,tier_1,primary,,20,90
+NYTimes Home,The New York Times,https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml,US,en,World,tier_1,primary,,15,95
+NYTimes US,The New York Times,https://rss.nytimes.com/services/xml/rss/nyt/US.xml,US,en,World,tier_1,primary,,20,92
+NYTimes World,The New York Times,https://rss.nytimes.com/services/xml/rss/nyt/World.xml,US,en,World,tier_1,primary,,15,94
+Washington Post World,The Washington Post,https://feeds.washingtonpost.com/rss/world,US,en,World,tier_1,primary,,20,90
+VNExpress,VNExpress,https://vnexpress.net/rss/tin-moi-nhat.rss,VN,vi,World,tier_2,secondary,,25,74
+Mail and Guardian,Mail & Guardian,https://mg.co.za/feed/,ZA,en,World,tier_2,secondary,,30,76
+BBC News,,http://feeds.bbci.co.uk/news/rss.xml,,en,World,tier_2,secondary,,30,95
+BBC World,,http://feeds.bbci.co.uk/news/world/rss.xml,,en,World,tier_2,secondary,,30,90

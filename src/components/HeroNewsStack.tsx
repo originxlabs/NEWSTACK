@@ -21,6 +21,15 @@ interface HeroNewsStackProps {
   isLoading?: boolean;
 }
 
+function getCircularOffset(index: number, activeIndex: number, total: number) {
+  if (total <= 1) return index - activeIndex;
+  let offset = index - activeIndex;
+  const half = total / 2;
+  if (offset > half) offset -= total;
+  if (offset < -half) offset += total;
+  return offset;
+}
+
 const TOPIC_COLORS: Record<string, string> = {
   world: "bg-blue-500/15 text-blue-400 border-blue-500/25",
   politics: "bg-purple-500/15 text-purple-400 border-purple-500/25",
@@ -49,16 +58,22 @@ export function HeroNewsStack({ articles, isLoading }: HeroNewsStackProps) {
   const navigate = useNavigate();
   const stackRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [nextRefresh, setNextRefresh] = useState(4 * 60 * 60); // 4 hours in seconds
+  const [nextRefresh, setNextRefresh] = useState(60 * 60); // 1 hour in seconds
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const total = Math.min(articles.length, 20);
 
+  useEffect(() => {
+    if (total > 0 && activeIdx >= total) {
+      setActiveIdx(0);
+    }
+  }, [activeIdx, total]);
+
   // Countdown timer
   useEffect(() => {
     intervalRef.current = setInterval(() => {
-      setNextRefresh((s) => (s <= 1 ? 4 * 60 * 60 : s - 1));
+      setNextRefresh((s) => (s <= 1 ? 60 * 60 : s - 1));
     }, 1000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, []);
@@ -78,7 +93,7 @@ export function HeroNewsStack({ articles, isLoading }: HeroNewsStackProps) {
     const cards = stackRef.current.querySelectorAll<HTMLElement>(".stack-card");
     
     cards.forEach((card, i) => {
-      const offset = i - activeIdx;
+      const offset = getCircularOffset(i, activeIdx, total);
       const absOffset = Math.abs(offset);
       const visible = absOffset <= 3;
 
@@ -112,7 +127,7 @@ export function HeroNewsStack({ articles, isLoading }: HeroNewsStackProps) {
         onComplete: () => {
           // Re-apply stack positions after entrance
           cards.forEach((card, i) => {
-            const offset = i - activeIdx;
+            const offset = getCircularOffset(i, activeIdx, total);
             const absOffset = Math.abs(offset);
             gsap.set(card, {
               opacity: Math.abs(offset) <= 3 ? 1 - absOffset * 0.22 : 0,
@@ -143,7 +158,7 @@ export function HeroNewsStack({ articles, isLoading }: HeroNewsStackProps) {
 
   if (isLoading) {
     return (
-      <div className="relative w-full max-w-sm mx-auto mt-8 h-[360px] flex items-center justify-center">
+      <div className="relative w-full max-w-sm mx-auto mt-6 lg:mt-0 h-[360px] flex items-center justify-center">
         <div className="absolute inset-0 rounded-2xl border border-border/50 bg-card animate-pulse" />
         <div className="text-muted-foreground text-sm font-mono">Loading world news…</div>
       </div>
@@ -152,11 +167,8 @@ export function HeroNewsStack({ articles, isLoading }: HeroNewsStackProps) {
 
   if (total === 0) return null;
 
-  const active = articles[activeIdx];
-  const imgSrc = active.imageUrl || FALLBACK_IMAGES[activeIdx % FALLBACK_IMAGES.length];
-
   return (
-    <div className="flex flex-col items-center gap-4 mt-10 w-full">
+    <div className="flex flex-col items-center gap-4 mt-6 lg:mt-0 w-full">
       {/* Header row */}
       <div className="flex items-center justify-between w-full max-w-sm">
         <div className="flex items-center gap-2">

@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlaceData } from "@/hooks/use-places";
 import { PlaceSkeleton } from "./PlaceSkeleton";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase-env";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_KEY = SUPABASE_ANON_KEY;
 
 interface NearbyEssentialsProps {
   placeData: PlaceData;

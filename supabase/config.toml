@@ -1,4 +1,20 @@
-project_id = "orefmlntnfrgjvvhqxvt"
+project_id = "cpdxgnrpboreraiwcqgl"
+
+[api]
+schemas = ["public", "storage", "graphql_public", "opennews"]
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = []
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+enable_confirmations = true
+max_frequency = "1m0s"
+otp_length = 8
 
 [functions.fetch-news]
 verify_jwt = false
@@ -63,16 +79,32 @@ verify_jwt = false
 [functions.translate-to-english]
 verify_jwt = false
 
-# Schedule RSS ingestion every 15 minutes for fresher news
-# This runs automatically without manual intervention - fetches from all global + India RSS sources
-[[cron]]
-name = "ingest-rss-cron"
-schedule = "*/15 * * * *"
-function = "ingest-rss"
+[functions.sync-rss-feeds]
+verify_jwt = false
 
-# Schedule daily email digest at 8 AM IST (2:30 AM UTC)
-# IST = UTC + 5:30, so 8:00 AM IST = 02:30 UTC
-[[cron]]
-name = "daily-digest-cron"
-schedule = "30 2 * * *"
-function = "send-daily-digest"
+[functions.opennews-social]
+verify_jwt = false
+
+[functions.opennews-api]
+verify_jwt = false
+
+[functions.opennews-moderate]
+verify_jwt = false
+
+[functions.opennews-trending-refresh]
+verify_jwt = false
+
+[functions.opennews-og-image]
+verify_jwt = false
+
+[functions.opennews-x-publisher]
+verify_jwt = false
+
+[functions.opennews-politics-sync]
+verify_jwt = false
+
+[functions.public-grievances]
+verify_jwt = false
+
+[functions.public-grievance-sync]
+verify_jwt = false

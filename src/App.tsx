@@ -7,7 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PreferencesProvider } from "@/contexts/PreferencesContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ScrollToTop } from "@/components/ScrollToTop";
-import { StackBot } from "@/components/StackBot";
+import { OpenNews } from "@/components/StackBot";
+import { OpenNewsPromoRibbon } from "@/components/OpenNewsPromoRibbon";
 import { NewsletterPopup } from "@/components/NewsletterPopup";
 import { MobileAppWrapper } from "@/components/mobile/MobileAppWrapper";
 import { SplashScreen } from "@/components/SplashScreen";
@@ -60,6 +61,25 @@ import NewsroomIngestionMonitor from "./pages/newsroom/NewsroomIngestionMonitor"
 import NewsroomAccessUsers from "./pages/newsroom/NewsroomAccessUsers";
 import IngestionPortal from "./pages/IngestionPortal";
 import { AdminRouteGuard } from "./components/newsroom/AdminRouteGuard";
+import OpenNewsLayoutPage from "./pages/opennews/OpenNewsLayoutPage";
+import OpenNewsOverviewPage from "./pages/opennews/OpenNewsOverviewPage";
+import OpenNewsThreadPage from "./pages/opennews/OpenNewsThreadPage";
+import OpenPoliticsPage from "./pages/OpenPolitics";
+import PublicGrievances from "./pages/PublicGrievances";
+import SupportOpenNews from "./pages/SupportOpenNews";
+import {
+  OpenNewsAnonymousReportsPage,
+  OpenNewsDebateArenaPage,
+  OpenNewsInvestigationsPage,
+  OpenNewsLatestPage,
+  OpenNewsPoliticalTrackerPage,
+  OpenNewsVerifiedJournalistsPage,
+} from "./pages/opennews/OpenNewsSubRoutes";
+import {
+  DiscussionsPage,
+  OpenNewsAdminStandalonePage,
+  TrendingPage,
+} from "./pages/opennews/OpenNewsStandalone";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -141,7 +161,8 @@ function AppContent() {
     <>
       <ScrollToTop />
       <SplashManager />
-      <StackBot />
+      <OpenNews />
+      <OpenNewsPromoRibbon />
       <NewsletterPopup />
       <MobileAppWrapper>
         <Routes>
@@ -163,6 +184,25 @@ function AppContent() {
           <Route path="/api/docs" element={<ApiDocs />} />
           <Route path="/api/pricing" element={<ApiPricing />} />
           <Route path="/api/dashboard" element={<ApiDashboard />} />
+          <Route path="/opennews" element={<OpenNewsLayoutPage />}>
+            <Route index element={<OpenNewsOverviewPage />} />
+            <Route path="latest" element={<OpenNewsLatestPage />} />
+            <Route path="investigations" element={<OpenNewsInvestigationsPage />} />
+            <Route path="anonymous-reports" element={<OpenNewsAnonymousReportsPage />} />
+            <Route path="verified-journalists" element={<OpenNewsVerifiedJournalistsPage />} />
+            <Route path="debate-arena" element={<OpenNewsDebateArenaPage />} />
+            <Route path="political-tracker" element={<OpenNewsPoliticalTrackerPage />} />
+            <Route path="thread/:postId" element={<OpenNewsThreadPage />} />
+          </Route>
+          <Route path="/discussions" element={<DiscussionsPage />} />
+          <Route path="/trending" element={<TrendingPage />} />
+          <Route path="/politicians" element={<OpenPoliticsPage />} />
+          <Route path="/opennews/admin" element={<OpenNewsAdminStandalonePage />} />
+          <Route path="/open-politics" element={<OpenPoliticsPage />} />
+          <Route path="/open-governance" element={<OpenPoliticsPage />} />
+          <Route path="/public-grievances" element={<PublicGrievances />} />
+          <Route path="/support-opennews" element={<SupportOpenNews />} />
+          <Route path="/support" element={<SupportOpenNews />} />
           <Route path="/enterprise/dashboard" element={<EnterpriseDashboard />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/ingestion" element={<IngestionPortal />} />

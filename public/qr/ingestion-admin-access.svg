@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-labelledby="title desc">
+  <title id="title">NEWSTACK Admin Ingestion Access</title>
+  <desc id="desc">QR style placeholder for admin ingestion verification.</desc>
+  <rect width="220" height="220" fill="#ffffff"/>
+  <rect x="8" y="8" width="204" height="204" fill="none" stroke="#111827" stroke-width="4"/>
+  <rect x="20" y="20" width="48" height="48" fill="#111827"/>
+  <rect x="28" y="28" width="32" height="32" fill="#ffffff"/>
+  <rect x="36" y="36" width="16" height="16" fill="#111827"/>
+  <rect x="152" y="20" width="48" height="48" fill="#111827"/>
+  <rect x="160" y="28" width="32" height="32" fill="#ffffff"/>
+  <rect x="168" y="36" width="16" height="16" fill="#111827"/>
+  <rect x="20" y="152" width="48" height="48" fill="#111827"/>
+  <rect x="28" y="160" width="32" height="32" fill="#ffffff"/>
+  <rect x="36" y="168" width="16" height="16" fill="#111827"/>
+  <rect x="86" y="24" width="8" height="8" fill="#111827"/>
+  <rect x="102" y="24" width="8" height="8" fill="#111827"/>
+  <rect x="118" y="24" width="8" height="8" fill="#111827"/>
+  <rect x="86" y="40" width="8" height="8" fill="#111827"/>
+  <rect x="102" y="40" width="8" height="8" fill="#111827"/>
+  <rect x="118" y="40" width="8" height="8" fill="#111827"/>
+  <rect x="82" y="86" width="8" height="8" fill="#111827"/>
+  <rect x="98" y="86" width="8" height="8" fill="#111827"/>
+  <rect x="114" y="86" width="8" height="8" fill="#111827"/>
+  <rect x="130" y="86" width="8" height="8" fill="#111827"/>
+  <rect x="82" y="102" width="8" height="8" fill="#111827"/>
+  <rect x="98" y="102" width="8" height="8" fill="#111827"/>
+  <rect x="114" y="102" width="8" height="8" fill="#111827"/>
+  <rect x="130" y="102" width="8" height="8" fill="#111827"/>
+  <rect x="82" y="118" width="8" height="8" fill="#111827"/>
+  <rect x="98" y="118" width="8" height="8" fill="#111827"/>
+  <rect x="114" y="118" width="8" height="8" fill="#111827"/>
+  <rect x="130" y="118" width="8" height="8" fill="#111827"/>
+  <rect x="86" y="152" width="8" height="8" fill="#111827"/>
+  <rect x="102" y="152" width="8" height="8" fill="#111827"/>
+  <rect x="118" y="152" width="8" height="8" fill="#111827"/>
+  <rect x="134" y="152" width="8" height="8" fill="#111827"/>
+  <rect x="150" y="152" width="8" height="8" fill="#111827"/>
+  <rect x="166" y="152" width="8" height="8" fill="#111827"/>
+  <rect x="86" y="168" width="8" height="8" fill="#111827"/>
+  <rect x="118" y="168" width="8" height="8" fill="#111827"/>
+  <rect x="150" y="168" width="8" height="8" fill="#111827"/>
+  <rect x="182" y="168" width="8" height="8" fill="#111827"/>
+  <rect x="86" y="184" width="8" height="8" fill="#111827"/>
+  <rect x="102" y="184" width="8" height="8" fill="#111827"/>
+  <rect x="134" y="184" width="8" height="8" fill="#111827"/>
+  <rect x="150" y="184" width="8" height="8" fill="#111827"/>
+  <rect x="166" y="184" width="8" height="8" fill="#111827"/>
+  <text x="110" y="214" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#111827">
+    hello@abhishekpanda.com
+  </text>
+</svg>

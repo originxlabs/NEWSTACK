@@ -52,6 +52,8 @@ import { inferDistrictFromText, normalizeLanguageCode, type InferredDistrictResu
 import { IngestionRunHistory } from "@/components/IngestionRunHistory";
 import { IngestionTimelineChart } from "@/components/IngestionTimelineChart";
 import { usePersonalizedFeed } from "@/hooks/use-personalized-feed";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNewsroomRole } from "@/hooks/use-newsroom-role";
 
 interface Story {
   id: string;
@@ -86,6 +88,8 @@ interface Feed {
 }
 
 export default function StatePage() {
+  const { user } = useAuth();
+  const { isAdmin } = useNewsroomRole();
   const { stateId } = useParams<{ stateId: string }>();
   const navigate = useNavigate();
   const [stories, setStories] = useState<Story[]>([]);
@@ -102,6 +106,14 @@ export default function StatePage() {
   const [accessUserId, setAccessUserId] = useState<string | null>(null);
   
   const { trackRead, personalizeStories, topCategories, topStates } = usePersonalizedFeed();
+  const allowlistedAdminEmails = ((import.meta.env.VITE_INGESTION_ADMIN_EMAILS as string | undefined) || "hello@abhishekpanda.com")
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+  const userEmail = (user?.email || "").toLowerCase();
+  const isAllowlistedAdminEmail = !!userEmail && allowlistedAdminEmails.includes(userEmail);
+  const canManualIngest = !!user && isAdmin && isAllowlistedAdminEmail;
+
   // Get state config from centralized config
   const stateConfig = stateId ? getStateConfig(stateId) : undefined;
   
@@ -110,6 +122,13 @@ export default function StatePage() {
     const checkSession = () => {
       const storedUserId = localStorage.getItem("ingestion_access_user_id");
       const storedExpiry = localStorage.getItem("ingestion_access_expiry");
+
+      if (!canManualIngest) {
+        localStorage.removeItem("ingestion_access_user_id");
+        localStorage.removeItem("ingestion_access_expiry");
+        setAccessUserId(null);
+        return;
+      }
       
       if (storedUserId && storedExpiry) {
         const expiry = new Date(storedExpiry);
@@ -133,15 +152,16 @@ export default function StatePage() {
     const interval = setInterval(checkSession, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [canManualIngest]);
 
   const handleAccessSuccess = (userId: string) => {
+    if (!canManualIngest) return;
     setAccessUserId(userId);
     const expiry = new Date();
-    expiry.setMinutes(expiry.getMinutes() + 30); // 30 minutes expiry
+    expiry.setMinutes(expiry.getMinutes() + 15); // 15 minutes expiry
     localStorage.setItem("ingestion_access_user_id", userId);
     localStorage.setItem("ingestion_access_expiry", expiry.toISOString());
-    toast.success("Access verified! You can now trigger news refresh for 30 minutes.");
+    toast.success("Access verified! You can now trigger news refresh for 15 minutes.");
   };
   const stateName = stateConfig?.name || stateId?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "State";
 
@@ -498,9 +518,14 @@ export default function StatePage() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant={accessUserId ? "default" : "outline"}
+                    variant={accessUserId && canManualIngest ? "default" : "outline"}
                     size="sm"
                     onClick={async () => {
+                      if (!canManualIngest) {
+                        toast.error("Manual ingestion is restricted to allowlisted newsroom admins.");
+                        return;
+                      }
+
                       if (!accessUserId) {
                         setIsAccessModalOpen(true);
                         return;
@@ -556,7 +581,7 @@ export default function StatePage() {
                               localStorage.removeItem("ingestion_access_user_id");
                               localStorage.removeItem("ingestion_access_expiry");
                               setAccessUserId(null);
-                              toast.error("Session expired (30 min). Please re-verify.", { id: "refresh-news" });
+                              toast.error("Session expired (15 min). Please re-verify.", { id: "refresh-news" });
                               setIsAccessModalOpen(true);
                               return;
                             }
@@ -570,26 +595,26 @@ export default function StatePage() {
                     disabled={isLoading}
                     className={cn(
                       "gap-2",
-                      accessUserId 
+                      accessUserId && canManualIngest
                         ? "bg-primary hover:bg-primary/90" 
                         : "border-dashed"
                     )}
                   >
-                    {accessUserId ? (
+                    {accessUserId && canManualIngest ? (
                       <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
                     ) : (
                       <Lock className="w-4 h-4" />
                     )}
-                    {accessUserId 
+                    {accessUserId && canManualIngest
                       ? `Refresh ${stateName} News`
-                      : "Verify to Refresh News"
+                      : "Admin Verification Required"
                     }
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {accessUserId 
+                  {accessUserId && canManualIngest
                     ? "Trigger RSS ingestion for fresh news"
-                    : "Email OTP verification required to trigger manual ingestion"
+                    : "Allowlisted newsroom admin + QR/OTP verification required"
                   }
                 </TooltipContent>
               </Tooltip>
@@ -962,7 +987,7 @@ export default function StatePage() {
 
       {/* Ingestion Access Modal for OTP verification */}
       <IngestionAccessModal
-        isOpen={isAccessModalOpen}
+        isOpen={isAccessModalOpen && canManualIngest}
         onClose={() => setIsAccessModalOpen(false)}
         onSuccess={handleAccessSuccess}
       />

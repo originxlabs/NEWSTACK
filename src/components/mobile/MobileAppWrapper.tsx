@@ -4,7 +4,7 @@ import { usePWAMode } from "@/hooks/use-pwa-mode";
 import { SwipeNewsFeed } from "./SwipeNewsFeed";
 import { 
   Home, Newspaper, Headphones, MapPin, Menu,
-  Globe, LogIn, Star
+  Globe, LogIn, Star, Flame, Landmark
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,15 +19,20 @@ interface MobileAppWrapperProps {
 
 const navItems = [
   { path: "/", icon: Home, label: "Home" },
-  { path: "/news", icon: Newspaper, label: "News" },
-  { path: "/listen", icon: Headphones, label: "Listen" },
+  { path: "/opennews", icon: Newspaper, label: "OpenNews" },
+  { path: "/trending", icon: Flame, label: "Trending" },
   { path: "/places", icon: MapPin, label: "Places" },
 ];
 
 const menuItems = [
-  { path: "/world", icon: Globe, label: "World News", description: "Global headlines" },
-  { path: "/topics", icon: Newspaper, label: "Topics", description: "Browse categories" },
-  { path: "/support", icon: Star, label: "Support Us", description: "Help us grow" },
+  { path: "/news", icon: Newspaper, label: "News", description: "Top stories" },
+  { path: "/india", icon: Newspaper, label: "India", description: "India updates" },
+  { path: "/world", icon: Globe, label: "World", description: "Global headlines" },
+  { path: "/places", icon: MapPin, label: "Places", description: "Local intelligence" },
+  { path: "/opennews", icon: Newspaper, label: "Open News", description: "Open journalism engine" },
+  { path: "/open-politics", icon: Landmark, label: "Open Politics", description: "Leader intelligence tree" },
+  { path: "/api", icon: Star, label: "Developers", description: "API and docs" },
+  { path: "/trending", icon: Flame, label: "Trending", description: "Viral narratives" },
 ];
 
 export function MobileAppWrapper({ children }: MobileAppWrapperProps) {

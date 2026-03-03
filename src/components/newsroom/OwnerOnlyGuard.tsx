@@ -8,6 +8,7 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNewsroomRole } from "@/hooks/use-newsroom-role";
 import { supabase } from "@/integrations/supabase/client";
+import { isDesignatedEnterpriseAdmin } from "@/lib/admin-access";
 
 interface OwnerOnlyGuardProps {
   children: React.ReactNode;
@@ -24,8 +25,9 @@ export function OwnerOnlyGuard({
   const { role, isOwner, isOwnerOrSuperadmin, loading: roleLoading } = useNewsroomRole();
   const navigate = useNavigate();
   const [accessDenied, setAccessDenied] = useState(false);
+  const isDesignatedAdmin = isDesignatedEnterpriseAdmin(user?.email);
 
-  const hasAccess = requireOwner ? isOwner : isOwnerOrSuperadmin;
+  const hasAccess = (requireOwner ? isOwner : isOwnerOrSuperadmin) && isDesignatedAdmin;
   const loading = authLoading || roleLoading;
 
   useEffect(() => {
@@ -177,7 +179,7 @@ export function OwnerOnlyGuard({
                 <div className="flex items-start gap-3">
                   <ShieldX className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-muted-foreground">
-                    This area is restricted to <strong>platform owners only</strong>. Your current role (<strong>{role}</strong>) does not have permission to access {pageName}.
+                    This area is restricted to <strong>designated owner identities</strong>. Your current role (<strong>{role}</strong>) or email is not permitted for {pageName}.
                   </p>
                 </div>
                 <div className="flex items-start gap-3">

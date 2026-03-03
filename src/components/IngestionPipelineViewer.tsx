@@ -35,6 +35,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { audioFeedback } from "@/lib/audio-feedback";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNewsroomRole } from "@/hooks/use-newsroom-role";
 
 type RunTrigger = "manual" | "auto";
 
@@ -93,6 +95,8 @@ export function IngestionPipelineViewer({
   countryCode,
   provinceId,
 }: IngestionPipelineViewerProps) {
+  const { user } = useAuth();
+  const { isAdmin } = useNewsroomRole();
   const [steps, setSteps] = useState<PipelineStep[]>(
     PIPELINE_STEPS.map((s) => ({ ...s, status: "pending" as const }))
   );
@@ -115,6 +119,17 @@ export function IngestionPipelineViewer({
     storiesMerged: 0,
     totalDuration: 0,
   });
+  const allowlistedAdminEmails = useMemo(
+    () =>
+      ((import.meta.env.VITE_INGESTION_ADMIN_EMAILS as string | undefined) || "hello@abhishekpanda.com")
+        .split(",")
+        .map((entry) => entry.trim().toLowerCase())
+        .filter(Boolean),
+    [],
+  );
+  const userEmail = (user?.email || "").toLowerCase();
+  const isAllowlistedAdminEmail = !!userEmail && allowlistedAdminEmails.includes(userEmail);
+  const canManualIngest = !!user && isAdmin && isAllowlistedAdminEmail;
 
   // Check rate limiting
   const checkRateLimit = useCallback(() => {
@@ -245,6 +260,10 @@ export function IngestionPipelineViewer({
   const runIngestion = useCallback(
     async (trigger: RunTrigger = "manual") => {
       if (isRunning) return;
+      if (!canManualIngest) {
+        toast.error("Only allowlisted newsroom admins can run ingestion.");
+        return;
+      }
 
       setLastTrigger(trigger);
       setLastRunNote(null);
@@ -437,12 +456,13 @@ export function IngestionPipelineViewer({
       onIngestionComplete,
       eligibleFeedsPreflight,
       fetchNewStoriesSince,
+      canManualIngest,
     ]
   );
 
   // Auto-refresh polling with countdown
   useEffect(() => {
-    if (!autoRefreshEnabled || autoRefreshInterval <= 0) return;
+    if (!canManualIngest || !autoRefreshEnabled || autoRefreshInterval <= 0) return;
 
     setNextRefreshIn(autoRefreshInterval / 1000);
 
@@ -459,7 +479,7 @@ export function IngestionPipelineViewer({
     }, 1000);
 
     return () => clearInterval(countdownInterval);
-  }, [autoRefreshEnabled, autoRefreshInterval, isRunning, runIngestion, cooldownRemaining]);
+  }, [canManualIngest, autoRefreshEnabled, autoRefreshInterval, isRunning, runIngestion, cooldownRemaining]);
 
   const getStepColor = (status: PipelineStep["status"]) => {
     switch (status) {
@@ -533,8 +553,9 @@ export function IngestionPipelineViewer({
               {showAutoRefreshControls && (
                 <button
                   onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                  disabled={!canManualIngest}
                   className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors",
+                    "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
                     autoRefreshEnabled
                       ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
                       : "bg-muted text-muted-foreground border border-border"
@@ -582,7 +603,7 @@ export function IngestionPipelineViewer({
               <Button
                 size="sm"
                 onClick={() => runIngestion("manual")}
-                disabled={isRunning || cooldownRemaining > 0}
+                disabled={!canManualIngest || isRunning || cooldownRemaining > 0}
                 className="gap-1.5 h-8"
               >
                 {isRunning ? (
@@ -596,7 +617,9 @@ export function IngestionPipelineViewer({
                   ? `${progressPercent}%`
                   : cooldownRemaining > 0
                     ? formatCooldown(cooldownRemaining)
-                    : "Fetch News"}
+                  : canManualIngest
+                    ? "Fetch News"
+                    : "Admin Only"}
               </Button>
             </div>
           </div>

@@ -10,1628 +10,1347 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.4"
+  }
+  auth: {
+    Tables: {
+      audit_log_entries: {
+        Row: {
+          created_at: string | null
+          id: string
+          instance_id: string | null
+          ip_address: string
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          instance_id?: string | null
+          ip_address?: string
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          instance_id?: string | null
+          ip_address?: string
+          payload?: Json | null
+        }
+        Relationships: []
+      }
+      custom_oauth_providers: {
+        Row: {
+          acceptable_client_ids: string[]
+          attribute_mapping: Json
+          authorization_params: Json
+          authorization_url: string | null
+          cached_discovery: Json | null
+          client_id: string
+          client_secret: string
+          created_at: string
+          discovery_cached_at: string | null
+          discovery_url: string | null
+          email_optional: boolean
+          enabled: boolean
+          id: string
+          identifier: string
+          issuer: string | null
+          jwks_uri: string | null
+          name: string
+          pkce_enabled: boolean
+          provider_type: string
+          scopes: string[]
+          skip_nonce_check: boolean
+          token_url: string | null
+          updated_at: string
+          userinfo_url: string | null
+        }
+        Insert: {
+          acceptable_client_ids?: string[]
+          attribute_mapping?: Json
+          authorization_params?: Json
+          authorization_url?: string | null
+          cached_discovery?: Json | null
+          client_id: string
+          client_secret: string
+          created_at?: string
+          discovery_cached_at?: string | null
+          discovery_url?: string | null
+          email_optional?: boolean
+          enabled?: boolean
+          id?: string
+          identifier: string
+          issuer?: string | null
+          jwks_uri?: string | null
+          name: string
+          pkce_enabled?: boolean
+          provider_type: string
+          scopes?: string[]
+          skip_nonce_check?: boolean
+          token_url?: string | null
+          updated_at?: string
+          userinfo_url?: string | null
+        }
+        Update: {
+          acceptable_client_ids?: string[]
+          attribute_mapping?: Json
+          authorization_params?: Json
+          authorization_url?: string | null
+          cached_discovery?: Json | null
+          client_id?: string
+          client_secret?: string
+          created_at?: string
+          discovery_cached_at?: string | null
+          discovery_url?: string | null
+          email_optional?: boolean
+          enabled?: boolean
+          id?: string
+          identifier?: string
+          issuer?: string | null
+          jwks_uri?: string | null
+          name?: string
+          pkce_enabled?: boolean
+          provider_type?: string
+          scopes?: string[]
+          skip_nonce_check?: boolean
+          token_url?: string | null
+          updated_at?: string
+          userinfo_url?: string | null
+        }
+        Relationships: []
+      }
+      flow_state: {
+        Row: {
+          auth_code: string | null
+          auth_code_issued_at: string | null
+          authentication_method: string
+          code_challenge: string | null
+          code_challenge_method:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at: string | null
+          email_optional: boolean
+          id: string
+          invite_token: string | null
+          linking_target_id: string | null
+          oauth_client_state_id: string | null
+          provider_access_token: string | null
+          provider_refresh_token: string | null
+          provider_type: string
+          referrer: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          auth_code?: string | null
+          auth_code_issued_at?: string | null
+          authentication_method: string
+          code_challenge?: string | null
+          code_challenge_method?:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at?: string | null
+          email_optional?: boolean
+          id: string
+          invite_token?: string | null
+          linking_target_id?: string | null
+          oauth_client_state_id?: string | null
+          provider_access_token?: string | null
+          provider_refresh_token?: string | null
+          provider_type: string
+          referrer?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          auth_code?: string | null
+          auth_code_issued_at?: string | null
+          authentication_method?: string
+          code_challenge?: string | null
+          code_challenge_method?:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at?: string | null
+          email_optional?: boolean
+          id?: string
+          invite_token?: string | null
+          linking_target_id?: string | null
+          oauth_client_state_id?: string | null
+          provider_access_token?: string | null
+          provider_refresh_token?: string | null
+          provider_type?: string
+          referrer?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      identities: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          identity_data: Json
+          last_sign_in_at: string | null
+          provider: string
+          provider_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          identity_data: Json
+          last_sign_in_at?: string | null
+          provider: string
+          provider_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          identity_data?: Json
+          last_sign_in_at?: string | null
+          provider?: string
+          provider_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instances: {
+        Row: {
+          created_at: string | null
+          id: string
+          raw_base_config: string | null
+          updated_at: string | null
+          uuid: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          raw_base_config?: string | null
+          updated_at?: string | null
+          uuid?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          raw_base_config?: string | null
+          updated_at?: string | null
+          uuid?: string | null
+        }
+        Relationships: []
+      }
+      mfa_amr_claims: {
+        Row: {
+          authentication_method: string
+          created_at: string
+          id: string
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          authentication_method: string
+          created_at: string
+          id: string
+          session_id: string
+          updated_at: string
+        }
+        Update: {
+          authentication_method?: string
+          created_at?: string
+          id?: string
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_amr_claims_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mfa_challenges: {
+        Row: {
+          created_at: string
+          factor_id: string
+          id: string
+          ip_address: unknown
+          otp_code: string | null
+          verified_at: string | null
+          web_authn_session_data: Json | null
+        }
+        Insert: {
+          created_at: string
+          factor_id: string
+          id: string
+          ip_address: unknown
+          otp_code?: string | null
+          verified_at?: string | null
+          web_authn_session_data?: Json | null
+        }
+        Update: {
+          created_at?: string
+          factor_id?: string
+          id?: string
+          ip_address?: unknown
+          otp_code?: string | null
+          verified_at?: string | null
+          web_authn_session_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_challenges_auth_factor_id_fkey"
+            columns: ["factor_id"]
+            isOneToOne: false
+            referencedRelation: "mfa_factors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mfa_factors: {
+        Row: {
+          created_at: string
+          factor_type: Database["auth"]["Enums"]["factor_type"]
+          friendly_name: string | null
+          id: string
+          last_challenged_at: string | null
+          last_webauthn_challenge_data: Json | null
+          phone: string | null
+          secret: string | null
+          status: Database["auth"]["Enums"]["factor_status"]
+          updated_at: string
+          user_id: string
+          web_authn_aaguid: string | null
+          web_authn_credential: Json | null
+        }
+        Insert: {
+          created_at: string
+          factor_type: Database["auth"]["Enums"]["factor_type"]
+          friendly_name?: string | null
+          id: string
+          last_challenged_at?: string | null
+          last_webauthn_challenge_data?: Json | null
+          phone?: string | null
+          secret?: string | null
+          status: Database["auth"]["Enums"]["factor_status"]
+          updated_at: string
+          user_id: string
+          web_authn_aaguid?: string | null
+          web_authn_credential?: Json | null
+        }
+        Update: {
+          created_at?: string
+          factor_type?: Database["auth"]["Enums"]["factor_type"]
+          friendly_name?: string | null
+          id?: string
+          last_challenged_at?: string | null
+          last_webauthn_challenge_data?: Json | null
+          phone?: string | null
+          secret?: string | null
+          status?: Database["auth"]["Enums"]["factor_status"]
+          updated_at?: string
+          user_id?: string
+          web_authn_aaguid?: string | null
+          web_authn_credential?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_factors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_authorizations: {
+        Row: {
+          approved_at: string | null
+          authorization_code: string | null
+          authorization_id: string
+          client_id: string
+          code_challenge: string | null
+          code_challenge_method:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at: string
+          expires_at: string
+          id: string
+          nonce: string | null
+          redirect_uri: string
+          resource: string | null
+          response_type: Database["auth"]["Enums"]["oauth_response_type"]
+          scope: string
+          state: string | null
+          status: Database["auth"]["Enums"]["oauth_authorization_status"]
+          user_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          authorization_code?: string | null
+          authorization_id: string
+          client_id: string
+          code_challenge?: string | null
+          code_challenge_method?:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at?: string
+          expires_at?: string
+          id: string
+          nonce?: string | null
+          redirect_uri: string
+          resource?: string | null
+          response_type?: Database["auth"]["Enums"]["oauth_response_type"]
+          scope: string
+          state?: string | null
+          status?: Database["auth"]["Enums"]["oauth_authorization_status"]
+          user_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          authorization_code?: string | null
+          authorization_id?: string
+          client_id?: string
+          code_challenge?: string | null
+          code_challenge_method?:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          nonce?: string | null
+          redirect_uri?: string
+          resource?: string | null
+          response_type?: Database["auth"]["Enums"]["oauth_response_type"]
+          scope?: string
+          state?: string | null
+          status?: Database["auth"]["Enums"]["oauth_authorization_status"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_authorizations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_authorizations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_client_states: {
+        Row: {
+          code_verifier: string | null
+          created_at: string
+          id: string
+          provider_type: string
+        }
+        Insert: {
+          code_verifier?: string | null
+          created_at: string
+          id: string
+          provider_type: string
+        }
+        Update: {
+          code_verifier?: string | null
+          created_at?: string
+          id?: string
+          provider_type?: string
+        }
+        Relationships: []
+      }
+      oauth_clients: {
+        Row: {
+          client_name: string | null
+          client_secret_hash: string | null
+          client_type: Database["auth"]["Enums"]["oauth_client_type"]
+          client_uri: string | null
+          created_at: string
+          deleted_at: string | null
+          grant_types: string
+          id: string
+          logo_uri: string | null
+          redirect_uris: string
+          registration_type: Database["auth"]["Enums"]["oauth_registration_type"]
+          token_endpoint_auth_method: string
+          updated_at: string
+        }
+        Insert: {
+          client_name?: string | null
+          client_secret_hash?: string | null
+          client_type?: Database["auth"]["Enums"]["oauth_client_type"]
+          client_uri?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          grant_types: string
+          id: string
+          logo_uri?: string | null
+          redirect_uris: string
+          registration_type: Database["auth"]["Enums"]["oauth_registration_type"]
+          token_endpoint_auth_method: string
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string | null
+          client_secret_hash?: string | null
+          client_type?: Database["auth"]["Enums"]["oauth_client_type"]
+          client_uri?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          grant_types?: string
+          id?: string
+          logo_uri?: string | null
+          redirect_uris?: string
+          registration_type?: Database["auth"]["Enums"]["oauth_registration_type"]
+          token_endpoint_auth_method?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      oauth_consents: {
+        Row: {
+          client_id: string
+          granted_at: string
+          id: string
+          revoked_at: string | null
+          scopes: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          granted_at?: string
+          id: string
+          revoked_at?: string | null
+          scopes: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          granted_at?: string
+          id?: string
+          revoked_at?: string | null
+          scopes?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_consents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_consents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      one_time_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          relates_to: string
+          token_hash: string
+          token_type: Database["auth"]["Enums"]["one_time_token_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          relates_to: string
+          token_hash: string
+          token_type: Database["auth"]["Enums"]["one_time_token_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          relates_to?: string
+          token_hash?: string
+          token_type?: Database["auth"]["Enums"]["one_time_token_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "one_time_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refresh_tokens: {
+        Row: {
+          created_at: string | null
+          id: number
+          instance_id: string | null
+          parent: string | null
+          revoked: boolean | null
+          session_id: string | null
+          token: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          instance_id?: string | null
+          parent?: string | null
+          revoked?: boolean | null
+          session_id?: string | null
+          token?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          instance_id?: string | null
+          parent?: string | null
+          revoked?: boolean | null
+          session_id?: string | null
+          token?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refresh_tokens_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saml_providers: {
+        Row: {
+          attribute_mapping: Json | null
+          created_at: string | null
+          entity_id: string
+          id: string
+          metadata_url: string | null
+          metadata_xml: string
+          name_id_format: string | null
+          sso_provider_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          attribute_mapping?: Json | null
+          created_at?: string | null
+          entity_id: string
+          id: string
+          metadata_url?: string | null
+          metadata_xml: string
+          name_id_format?: string | null
+          sso_provider_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          attribute_mapping?: Json | null
+          created_at?: string | null
+          entity_id?: string
+          id?: string
+          metadata_url?: string | null
+          metadata_xml?: string
+          name_id_format?: string | null
+          sso_provider_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saml_providers_sso_provider_id_fkey"
+            columns: ["sso_provider_id"]
+            isOneToOne: false
+            referencedRelation: "sso_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saml_relay_states: {
+        Row: {
+          created_at: string | null
+          flow_state_id: string | null
+          for_email: string | null
+          id: string
+          redirect_to: string | null
+          request_id: string
+          sso_provider_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          flow_state_id?: string | null
+          for_email?: string | null
+          id: string
+          redirect_to?: string | null
+          request_id: string
+          sso_provider_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          flow_state_id?: string | null
+          for_email?: string | null
+          id?: string
+          redirect_to?: string | null
+          request_id?: string
+          sso_provider_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saml_relay_states_flow_state_id_fkey"
+            columns: ["flow_state_id"]
+            isOneToOne: false
+            referencedRelation: "flow_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saml_relay_states_sso_provider_id_fkey"
+            columns: ["sso_provider_id"]
+            isOneToOne: false
+            referencedRelation: "sso_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schema_migrations: {
+        Row: {
+          version: string
+        }
+        Insert: {
+          version: string
+        }
+        Update: {
+          version?: string
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          aal: Database["auth"]["Enums"]["aal_level"] | null
+          created_at: string | null
+          factor_id: string | null
+          id: string
+          ip: unknown
+          not_after: string | null
+          oauth_client_id: string | null
+          refresh_token_counter: number | null
+          refresh_token_hmac_key: string | null
+          refreshed_at: string | null
+          scopes: string | null
+          tag: string | null
+          updated_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          aal?: Database["auth"]["Enums"]["aal_level"] | null
+          created_at?: string | null
+          factor_id?: string | null
+          id: string
+          ip?: unknown
+          not_after?: string | null
+          oauth_client_id?: string | null
+          refresh_token_counter?: number | null
+          refresh_token_hmac_key?: string | null
+          refreshed_at?: string | null
+          scopes?: string | null
+          tag?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          aal?: Database["auth"]["Enums"]["aal_level"] | null
+          created_at?: string | null
+          factor_id?: string | null
+          id?: string
+          ip?: unknown
+          not_after?: string | null
+          oauth_client_id?: string | null
+          refresh_token_counter?: number | null
+          refresh_token_hmac_key?: string | null
+          refreshed_at?: string | null
+          scopes?: string | null
+          tag?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_oauth_client_id_fkey"
+            columns: ["oauth_client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sso_domains: {
+        Row: {
+          created_at: string | null
+          domain: string
+          id: string
+          sso_provider_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          domain: string
+          id: string
+          sso_provider_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          domain?: string
+          id?: string
+          sso_provider_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_domains_sso_provider_id_fkey"
+            columns: ["sso_provider_id"]
+            isOneToOne: false
+            referencedRelation: "sso_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sso_providers: {
+        Row: {
+          created_at: string | null
+          disabled: boolean | null
+          id: string
+          resource_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          disabled?: boolean | null
+          id: string
+          resource_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          disabled?: boolean | null
+          id?: string
+          resource_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          aud: string | null
+          banned_until: string | null
+          confirmation_sent_at: string | null
+          confirmation_token: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string | null
+          email_change: string | null
+          email_change_confirm_status: number | null
+          email_change_sent_at: string | null
+          email_change_token_current: string | null
+          email_change_token_new: string | null
+          email_confirmed_at: string | null
+          encrypted_password: string | null
+          id: string
+          instance_id: string | null
+          invited_at: string | null
+          is_anonymous: boolean
+          is_sso_user: boolean
+          is_super_admin: boolean | null
+          last_sign_in_at: string | null
+          phone: string | null
+          phone_change: string | null
+          phone_change_sent_at: string | null
+          phone_change_token: string | null
+          phone_confirmed_at: string | null
+          raw_app_meta_data: Json | null
+          raw_user_meta_data: Json | null
+          reauthentication_sent_at: string | null
+          reauthentication_token: string | null
+          recovery_sent_at: string | null
+          recovery_token: string | null
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aud?: string | null
+          banned_until?: string | null
+          confirmation_sent_at?: string | null
+          confirmation_token?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          email_change?: string | null
+          email_change_confirm_status?: number | null
+          email_change_sent_at?: string | null
+          email_change_token_current?: string | null
+          email_change_token_new?: string | null
+          email_confirmed_at?: string | null
+          encrypted_password?: string | null
+          id: string
+          instance_id?: string | null
+          invited_at?: string | null
+          is_anonymous?: boolean
+          is_sso_user?: boolean
+          is_super_admin?: boolean | null
+          last_sign_in_at?: string | null
+          phone?: string | null
+          phone_change?: string | null
+          phone_change_sent_at?: string | null
+          phone_change_token?: string | null
+          phone_confirmed_at?: string | null
+          raw_app_meta_data?: Json | null
+          raw_user_meta_data?: Json | null
+          reauthentication_sent_at?: string | null
+          reauthentication_token?: string | null
+          recovery_sent_at?: string | null
+          recovery_token?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aud?: string | null
+          banned_until?: string | null
+          confirmation_sent_at?: string | null
+          confirmation_token?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          email_change?: string | null
+          email_change_confirm_status?: number | null
+          email_change_sent_at?: string | null
+          email_change_token_current?: string | null
+          email_change_token_new?: string | null
+          email_confirmed_at?: string | null
+          encrypted_password?: string | null
+          id?: string
+          instance_id?: string | null
+          invited_at?: string | null
+          is_anonymous?: boolean
+          is_sso_user?: boolean
+          is_super_admin?: boolean | null
+          last_sign_in_at?: string | null
+          phone?: string | null
+          phone_change?: string | null
+          phone_change_sent_at?: string | null
+          phone_change_token?: string | null
+          phone_confirmed_at?: string | null
+          raw_app_meta_data?: Json | null
+          raw_user_meta_data?: Json | null
+          reauthentication_sent_at?: string | null
+          reauthentication_token?: string | null
+          recovery_sent_at?: string | null
+          recovery_token?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      email: { Args: never; Returns: string }
+      jwt: { Args: never; Returns: Json }
+      role: { Args: never; Returns: string }
+      uid: { Args: never; Returns: string }
+    }
+    Enums: {
+      aal_level: "aal1" | "aal2" | "aal3"
+      code_challenge_method: "s256" | "plain"
+      factor_status: "unverified" | "verified"
+      factor_type: "totp" | "webauthn" | "phone"
+      oauth_authorization_status: "pending" | "approved" | "denied" | "expired"
+      oauth_client_type: "public" | "confidential"
+      oauth_registration_type: "dynamic" | "manual"
+      oauth_response_type: "code"
+      one_time_token_type:
+        | "confirmation_token"
+        | "reauthentication_token"
+        | "recovery_token"
+        | "email_change_token_new"
+        | "email_change_token_current"
+        | "phone_change_token"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
-      admin_users: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  storage: {
+    Tables: {
+      buckets: {
         Row: {
-          created_at: string
-          created_by: string | null
-          email: string
-          id: string
-          role: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          email: string
-          id?: string
-          role?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          email?: string
-          id?: string
-          role?: string
-        }
-        Relationships: []
-      }
-      api_key_usage_logs: {
-        Row: {
-          api_key_id: string
-          created_at: string
-          endpoint: string
-          id: string
-          ip_address: string | null
-          method: string
-          response_time_ms: number | null
-          status_code: number | null
-          user_agent: string | null
-        }
-        Insert: {
-          api_key_id: string
-          created_at?: string
-          endpoint: string
-          id?: string
-          ip_address?: string | null
-          method?: string
-          response_time_ms?: number | null
-          status_code?: number | null
-          user_agent?: string | null
-        }
-        Update: {
-          api_key_id?: string
-          created_at?: string
-          endpoint?: string
-          id?: string
-          ip_address?: string | null
-          method?: string
-          response_time_ms?: number | null
-          status_code?: number | null
-          user_agent?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "api_key_usage_logs_api_key_id_fkey"
-            columns: ["api_key_id"]
-            isOneToOne: false
-            referencedRelation: "api_keys"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      api_keys: {
-        Row: {
-          allowed_endpoints: string[] | null
-          api_key: string
-          created_at: string
-          created_by: string | null
-          customer_email: string
-          customer_name: string
-          enterprise_id: string | null
-          expires_at: string | null
-          id: string
-          is_active: boolean
-          is_sandbox: boolean
-          last_used_at: string | null
-          notes: string | null
-          plan: string
-          rate_limit_per_second: number
-          requests_limit: number
-          requests_used: number
-          subscription_id: string | null
-        }
-        Insert: {
-          allowed_endpoints?: string[] | null
-          api_key: string
-          created_at?: string
-          created_by?: string | null
-          customer_email: string
-          customer_name: string
-          enterprise_id?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean
-          is_sandbox?: boolean
-          last_used_at?: string | null
-          notes?: string | null
-          plan?: string
-          rate_limit_per_second?: number
-          requests_limit?: number
-          requests_used?: number
-          subscription_id?: string | null
-        }
-        Update: {
-          allowed_endpoints?: string[] | null
-          api_key?: string
-          created_at?: string
-          created_by?: string | null
-          customer_email?: string
-          customer_name?: string
-          enterprise_id?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean
-          is_sandbox?: boolean
-          last_used_at?: string | null
-          notes?: string | null
-          plan?: string
-          rate_limit_per_second?: number
-          requests_limit?: number
-          requests_used?: number
-          subscription_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "api_keys_subscription_id_fkey"
-            columns: ["subscription_id"]
-            isOneToOne: false
-            referencedRelation: "enterprise_subscriptions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      api_usage_daily: {
-        Row: {
-          api_key_id: string
-          avg_response_time_ms: number | null
-          created_at: string
-          failed_requests: number | null
-          id: string
-          news_requests: number | null
-          places_requests: number | null
-          successful_requests: number | null
-          total_requests: number | null
-          usage_date: string
-          world_requests: number | null
-        }
-        Insert: {
-          api_key_id: string
-          avg_response_time_ms?: number | null
-          created_at?: string
-          failed_requests?: number | null
-          id?: string
-          news_requests?: number | null
-          places_requests?: number | null
-          successful_requests?: number | null
-          total_requests?: number | null
-          usage_date: string
-          world_requests?: number | null
-        }
-        Update: {
-          api_key_id?: string
-          avg_response_time_ms?: number | null
-          created_at?: string
-          failed_requests?: number | null
-          id?: string
-          news_requests?: number | null
-          places_requests?: number | null
-          successful_requests?: number | null
-          total_requests?: number | null
-          usage_date?: string
-          world_requests?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "api_usage_daily_api_key_id_fkey"
-            columns: ["api_key_id"]
-            isOneToOne: false
-            referencedRelation: "api_keys"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      api_usage_tracking: {
-        Row: {
-          api_key_id: string
-          created_at: string
-          endpoint: string
-          enterprise_id: string | null
-          id: string
-          ip_address: string | null
-          is_sandbox: boolean | null
-          method: string | null
-          request_date: string
-          request_hour: number | null
-          response_time_ms: number | null
-          status_code: number | null
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          api_key_id: string
-          created_at?: string
-          endpoint: string
-          enterprise_id?: string | null
-          id?: string
-          ip_address?: string | null
-          is_sandbox?: boolean | null
-          method?: string | null
-          request_date?: string
-          request_hour?: number | null
-          response_time_ms?: number | null
-          status_code?: number | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          api_key_id?: string
-          created_at?: string
-          endpoint?: string
-          enterprise_id?: string | null
-          id?: string
-          ip_address?: string | null
-          is_sandbox?: boolean | null
-          method?: string | null
-          request_date?: string
-          request_hour?: number | null
-          response_time_ms?: number | null
-          status_code?: number | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "api_usage_tracking_api_key_id_fkey"
-            columns: ["api_key_id"]
-            isOneToOne: false
-            referencedRelation: "api_keys"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      breaking_news: {
-        Row: {
-          country_code: string | null
-          created_at: string
-          expires_at: string
-          headline: string
-          id: string
-          image_url: string | null
-          is_active: boolean
-          source_name: string | null
-          source_url: string | null
-          summary: string | null
-          topic_slug: string | null
-        }
-        Insert: {
-          country_code?: string | null
-          created_at?: string
-          expires_at?: string
-          headline: string
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          source_name?: string | null
-          source_url?: string | null
-          summary?: string | null
-          topic_slug?: string | null
-        }
-        Update: {
-          country_code?: string | null
-          created_at?: string
-          expires_at?: string
-          headline?: string
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          source_name?: string | null
-          source_url?: string | null
-          summary?: string | null
-          topic_slug?: string | null
-        }
-        Relationships: []
-      }
-      click_events: {
-        Row: {
-          created_at: string
-          element_id: string | null
-          element_text: string | null
-          element_type: string | null
-          id: string
-          metadata: Json | null
-          page_path: string | null
-          session_id: string | null
-          user_id: string | null
-          x_position: number | null
-          y_position: number | null
-        }
-        Insert: {
-          created_at?: string
-          element_id?: string | null
-          element_text?: string | null
-          element_type?: string | null
-          id?: string
-          metadata?: Json | null
-          page_path?: string | null
-          session_id?: string | null
-          user_id?: string | null
-          x_position?: number | null
-          y_position?: number | null
-        }
-        Update: {
-          created_at?: string
-          element_id?: string | null
-          element_text?: string | null
-          element_type?: string | null
-          id?: string
-          metadata?: Json | null
-          page_path?: string | null
-          session_id?: string | null
-          user_id?: string | null
-          x_position?: number | null
-          y_position?: number | null
-        }
-        Relationships: []
-      }
-      countries: {
-        Row: {
-          code: string
-          default_language: string | null
-          flag_emoji: string | null
-          name: string
-          native_name: string | null
-        }
-        Insert: {
-          code: string
-          default_language?: string | null
-          flag_emoji?: string | null
-          name: string
-          native_name?: string | null
-        }
-        Update: {
-          code?: string
-          default_language?: string | null
-          flag_emoji?: string | null
-          name?: string
-          native_name?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "countries_default_language_fkey"
-            columns: ["default_language"]
-            isOneToOne: false
-            referencedRelation: "languages"
-            referencedColumns: ["code"]
-          },
-        ]
-      }
-      cron_job_logs: {
-        Row: {
-          created_at: string
-          duration_ms: number | null
-          error_message: string | null
-          id: string
-          job_name: string
-          metadata: Json | null
-          records_processed: number | null
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          duration_ms?: number | null
-          error_message?: string | null
-          id?: string
-          job_name: string
-          metadata?: Json | null
-          records_processed?: number | null
-          status: string
-        }
-        Update: {
-          created_at?: string
-          duration_ms?: number | null
-          error_message?: string | null
-          id?: string
-          job_name?: string
-          metadata?: Json | null
-          records_processed?: number | null
-          status?: string
-        }
-        Relationships: []
-      }
-      donations: {
-        Row: {
-          amount: number
-          created_at: string
-          currency: string | null
-          donation_type: string | null
-          email: string | null
-          id: string
-          order_id: string | null
-          payment_id: string | null
-          premium_granted: boolean | null
-          razorpay_order_id: string | null
-          razorpay_payment_id: string | null
-          razorpay_signature: string | null
-          status: string | null
-          subscription_months: number | null
-          user_id: string | null
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          currency?: string | null
-          donation_type?: string | null
-          email?: string | null
-          id?: string
-          order_id?: string | null
-          payment_id?: string | null
-          premium_granted?: boolean | null
-          razorpay_order_id?: string | null
-          razorpay_payment_id?: string | null
-          razorpay_signature?: string | null
-          status?: string | null
-          subscription_months?: number | null
-          user_id?: string | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          currency?: string | null
-          donation_type?: string | null
-          email?: string | null
-          id?: string
-          order_id?: string | null
-          payment_id?: string | null
-          premium_granted?: boolean | null
-          razorpay_order_id?: string | null
-          razorpay_payment_id?: string | null
-          razorpay_signature?: string | null
-          status?: string | null
-          subscription_months?: number | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      email_otps: {
-        Row: {
-          attempts: number
-          created_at: string
-          email: string
-          expires_at: string
-          id: string
-          max_attempts: number
-          otp_code: string
-          purpose: string
-          verified_at: string | null
-        }
-        Insert: {
-          attempts?: number
-          created_at?: string
-          email: string
-          expires_at: string
-          id?: string
-          max_attempts?: number
-          otp_code: string
-          purpose?: string
-          verified_at?: string | null
-        }
-        Update: {
-          attempts?: number
-          created_at?: string
-          email?: string
-          expires_at?: string
-          id?: string
-          max_attempts?: number
-          otp_code?: string
-          purpose?: string
-          verified_at?: string | null
-        }
-        Relationships: []
-      }
-      enterprise_subscriptions: {
-        Row: {
-          api_key_id: string | null
-          billing_cycle: string | null
-          created_at: string
-          currency: string | null
-          current_period_end: string | null
-          current_period_start: string | null
-          enterprise_id: string | null
-          id: string
-          plan_type: string
-          price_paid: number | null
-          razorpay_order_id: string | null
-          razorpay_subscription_id: string | null
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          api_key_id?: string | null
-          billing_cycle?: string | null
-          created_at?: string
-          currency?: string | null
-          current_period_end?: string | null
-          current_period_start?: string | null
-          enterprise_id?: string | null
-          id?: string
-          plan_type?: string
-          price_paid?: number | null
-          razorpay_order_id?: string | null
-          razorpay_subscription_id?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          api_key_id?: string | null
-          billing_cycle?: string | null
-          created_at?: string
-          currency?: string | null
-          current_period_end?: string | null
-          current_period_start?: string | null
-          enterprise_id?: string | null
-          id?: string
-          plan_type?: string
-          price_paid?: number | null
-          razorpay_order_id?: string | null
-          razorpay_subscription_id?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "enterprise_subscriptions_api_key_id_fkey"
-            columns: ["api_key_id"]
-            isOneToOne: false
-            referencedRelation: "api_keys"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      feed_fetch_results: {
-        Row: {
-          created_at: string
-          duration_ms: number | null
-          error_message: string | null
-          feed_id: string | null
-          feed_name: string
-          id: string
-          ingestion_run_id: string | null
-          status: string
-          stories_fetched: number | null
-          stories_inserted: number | null
-        }
-        Insert: {
-          created_at?: string
-          duration_ms?: number | null
-          error_message?: string | null
-          feed_id?: string | null
-          feed_name: string
-          id?: string
-          ingestion_run_id?: string | null
-          status?: string
-          stories_fetched?: number | null
-          stories_inserted?: number | null
-        }
-        Update: {
-          created_at?: string
-          duration_ms?: number | null
-          error_message?: string | null
-          feed_id?: string | null
-          feed_name?: string
-          id?: string
-          ingestion_run_id?: string | null
-          status?: string
-          stories_fetched?: number | null
-          stories_inserted?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "feed_fetch_results_feed_id_fkey"
-            columns: ["feed_id"]
-            isOneToOne: false
-            referencedRelation: "rss_feeds"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feed_fetch_results_ingestion_run_id_fkey"
-            columns: ["ingestion_run_id"]
-            isOneToOne: false
-            referencedRelation: "ingestion_runs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ingestion_access_users: {
-        Row: {
-          cookie_policy_accepted: boolean | null
-          created_at: string
-          device_info: Json | null
-          email: string
-          id: string
-          ip_address: string | null
-          is_verified: boolean | null
-          last_ingestion_at: string | null
-          location: Json | null
-          otp_verified_at: string | null
-          phone: string | null
-          terms_accepted: boolean | null
-          total_ingestions: number | null
-          updated_at: string
-          user_agent: string | null
-        }
-        Insert: {
-          cookie_policy_accepted?: boolean | null
-          created_at?: string
-          device_info?: Json | null
-          email: string
-          id?: string
-          ip_address?: string | null
-          is_verified?: boolean | null
-          last_ingestion_at?: string | null
-          location?: Json | null
-          otp_verified_at?: string | null
-          phone?: string | null
-          terms_accepted?: boolean | null
-          total_ingestions?: number | null
-          updated_at?: string
-          user_agent?: string | null
-        }
-        Update: {
-          cookie_policy_accepted?: boolean | null
-          created_at?: string
-          device_info?: Json | null
-          email?: string
-          id?: string
-          ip_address?: string | null
-          is_verified?: boolean | null
-          last_ingestion_at?: string | null
-          location?: Json | null
-          otp_verified_at?: string | null
-          phone?: string | null
-          terms_accepted?: boolean | null
-          total_ingestions?: number | null
-          updated_at?: string
-          user_agent?: string | null
-        }
-        Relationships: []
-      }
-      ingestion_runs: {
-        Row: {
-          completed_at: string | null
-          created_at: string
-          error_message: string | null
-          error_step: string | null
-          id: string
-          started_at: string
-          status: string
-          step_classify: string | null
-          step_classify_count: number | null
-          step_cleanup: string | null
-          step_cleanup_deleted: number | null
-          step_dedupe: string | null
-          step_dedupe_merged: number | null
-          step_fetch_feeds: string | null
-          step_fetch_feeds_count: number | null
-          step_normalize: string | null
-          step_normalize_count: number | null
-          step_store: string | null
-          step_store_created: number | null
-          step_validate: string | null
-          step_validate_rejected: number | null
-          tier1_feeds: number | null
-          tier2_feeds: number | null
-          tier3_feeds: number | null
-          total_feeds_processed: number | null
-          total_stories_created: number | null
-          total_stories_merged: number | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string
-          error_message?: string | null
-          error_step?: string | null
-          id?: string
-          started_at?: string
-          status?: string
-          step_classify?: string | null
-          step_classify_count?: number | null
-          step_cleanup?: string | null
-          step_cleanup_deleted?: number | null
-          step_dedupe?: string | null
-          step_dedupe_merged?: number | null
-          step_fetch_feeds?: string | null
-          step_fetch_feeds_count?: number | null
-          step_normalize?: string | null
-          step_normalize_count?: number | null
-          step_store?: string | null
-          step_store_created?: number | null
-          step_validate?: string | null
-          step_validate_rejected?: number | null
-          tier1_feeds?: number | null
-          tier2_feeds?: number | null
-          tier3_feeds?: number | null
-          total_feeds_processed?: number | null
-          total_stories_created?: number | null
-          total_stories_merged?: number | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string
-          error_message?: string | null
-          error_step?: string | null
-          id?: string
-          started_at?: string
-          status?: string
-          step_classify?: string | null
-          step_classify_count?: number | null
-          step_cleanup?: string | null
-          step_cleanup_deleted?: number | null
-          step_dedupe?: string | null
-          step_dedupe_merged?: number | null
-          step_fetch_feeds?: string | null
-          step_fetch_feeds_count?: number | null
-          step_normalize?: string | null
-          step_normalize_count?: number | null
-          step_store?: string | null
-          step_store_created?: number | null
-          step_validate?: string | null
-          step_validate_rejected?: number | null
-          tier1_feeds?: number | null
-          tier2_feeds?: number | null
-          tier3_feeds?: number | null
-          total_feeds_processed?: number | null
-          total_stories_created?: number | null
-          total_stories_merged?: number | null
-        }
-        Relationships: []
-      }
-      ingestion_user_logs: {
-        Row: {
-          access_user_id: string | null
-          country_code: string | null
-          created_at: string
-          id: string
-          ingestion_run_id: string | null
-          ip_address: string | null
-          metadata: Json | null
-          province_id: string | null
-          trigger_type: string
-          user_agent: string | null
-          user_email: string | null
-          user_id: string | null
-        }
-        Insert: {
-          access_user_id?: string | null
-          country_code?: string | null
-          created_at?: string
-          id?: string
-          ingestion_run_id?: string | null
-          ip_address?: string | null
-          metadata?: Json | null
-          province_id?: string | null
-          trigger_type?: string
-          user_agent?: string | null
-          user_email?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          access_user_id?: string | null
-          country_code?: string | null
-          created_at?: string
-          id?: string
-          ingestion_run_id?: string | null
-          ip_address?: string | null
-          metadata?: Json | null
-          province_id?: string | null
-          trigger_type?: string
-          user_agent?: string | null
-          user_email?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ingestion_user_logs_access_user_id_fkey"
-            columns: ["access_user_id"]
-            isOneToOne: false
-            referencedRelation: "ingestion_access_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ingestion_user_logs_ingestion_run_id_fkey"
-            columns: ["ingestion_run_id"]
-            isOneToOne: false
-            referencedRelation: "ingestion_runs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      languages: {
-        Row: {
-          code: string
-          direction: string | null
-          name: string
-          native_name: string
-        }
-        Insert: {
-          code: string
-          direction?: string | null
-          name: string
-          native_name: string
-        }
-        Update: {
-          code?: string
-          direction?: string | null
-          name?: string
-          native_name?: string
-        }
-        Relationships: []
-      }
-      newsletter_popup_events: {
-        Row: {
-          created_at: string
-          email: string | null
-          event_type: string
-          id: string
-          metadata: Json | null
-          page_url: string | null
-          popup_trigger_minute: number | null
-          referrer: string | null
-          session_id: string | null
-          user_agent: string | null
-        }
-        Insert: {
-          created_at?: string
-          email?: string | null
-          event_type: string
-          id?: string
-          metadata?: Json | null
-          page_url?: string | null
-          popup_trigger_minute?: number | null
-          referrer?: string | null
-          session_id?: string | null
-          user_agent?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string | null
-          event_type?: string
-          id?: string
-          metadata?: Json | null
-          page_url?: string | null
-          popup_trigger_minute?: number | null
-          referrer?: string | null
-          session_id?: string | null
-          user_agent?: string | null
-        }
-        Relationships: []
-      }
-      newsletter_subscribers: {
-        Row: {
-          email: string
-          id: string
-          is_active: boolean | null
-          subscribed_at: string
-        }
-        Insert: {
-          email: string
-          id?: string
-          is_active?: boolean | null
-          subscribed_at?: string
-        }
-        Update: {
-          email?: string
-          id?: string
-          is_active?: boolean | null
-          subscribed_at?: string
-        }
-        Relationships: []
-      }
-      newsroom_members: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          invited_by: string | null
-          is_active: boolean
-          password_last_set_at: string | null
-          role: Database["public"]["Enums"]["newsroom_role"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          invited_by?: string | null
-          is_active?: boolean
-          password_last_set_at?: string | null
-          role?: Database["public"]["Enums"]["newsroom_role"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          invited_by?: string | null
-          is_active?: boolean
-          password_last_set_at?: string | null
-          role?: Database["public"]["Enums"]["newsroom_role"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      owner_access_logs: {
-        Row: {
-          created_at: string
-          email: string
-          error_message: string | null
-          event_type: string
-          id: string
-          ip_address: string | null
-          metadata: Json | null
-          success: boolean | null
-          user_agent: string | null
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          error_message?: string | null
-          event_type: string
-          id?: string
-          ip_address?: string | null
-          metadata?: Json | null
-          success?: boolean | null
-          user_agent?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          error_message?: string | null
-          event_type?: string
-          id?: string
-          ip_address?: string | null
-          metadata?: Json | null
-          success?: boolean | null
-          user_agent?: string | null
-        }
-        Relationships: []
-      }
-      page_views: {
-        Row: {
-          country: string | null
-          created_at: string
-          device_type: string | null
-          id: string
-          page_path: string
-          referrer: string | null
-          session_id: string | null
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          country?: string | null
-          created_at?: string
-          device_type?: string | null
-          id?: string
-          page_path: string
-          referrer?: string | null
-          session_id?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          country?: string | null
-          created_at?: string
-          device_type?: string | null
-          id?: string
-          page_path?: string
-          referrer?: string | null
-          session_id?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          country_code: string | null
-          created_at: string
-          display_name: string | null
-          email: string | null
-          id: string
-          is_premium: boolean | null
-          language_code: string | null
-          phone: string | null
-          preferred_mode: string | null
-          premium_expires_at: string | null
-          premium_features: Json | null
-          subscription_tier: string | null
-          total_donations: number | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          country_code?: string | null
-          created_at?: string
-          display_name?: string | null
-          email?: string | null
-          id?: string
-          is_premium?: boolean | null
-          language_code?: string | null
-          phone?: string | null
-          preferred_mode?: string | null
-          premium_expires_at?: string | null
-          premium_features?: Json | null
-          subscription_tier?: string | null
-          total_donations?: number | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          avatar_url?: string | null
-          country_code?: string | null
-          created_at?: string
-          display_name?: string | null
-          email?: string | null
-          id?: string
-          is_premium?: boolean | null
-          language_code?: string | null
-          phone?: string | null
-          preferred_mode?: string | null
-          premium_expires_at?: string | null
-          premium_features?: Json | null
-          subscription_tier?: string | null
-          total_donations?: number | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_country_code_fkey"
-            columns: ["country_code"]
-            isOneToOne: false
-            referencedRelation: "countries"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "profiles_language_code_fkey"
-            columns: ["language_code"]
-            isOneToOne: false
-            referencedRelation: "languages"
-            referencedColumns: ["code"]
-          },
-        ]
-      }
-      push_subscriptions: {
-        Row: {
-          auth: string
-          created_at: string
-          endpoint: string
-          id: string
-          is_active: boolean | null
-          p256dh: string
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          auth: string
-          created_at?: string
-          endpoint: string
-          id?: string
-          is_active?: boolean | null
-          p256dh: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          auth?: string
-          created_at?: string
-          endpoint?: string
-          id?: string
-          is_active?: boolean | null
-          p256dh?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      rss_feeds: {
-        Row: {
-          avg_stories_per_fetch: number | null
-          category: string | null
-          country_code: string | null
-          created_at: string
-          error_count: number | null
-          fetch_interval_minutes: number | null
-          health_score: number | null
-          id: string
-          is_active: boolean | null
-          language: string | null
-          last_error_at: string | null
-          last_error_message: string | null
-          last_fetched_at: string | null
-          name: string
-          priority: number | null
-          publisher: string | null
-          reliability_tier: string | null
-          source_type: string | null
-          state_id: string | null
-          total_fetch_count: number | null
-          url: string
-        }
-        Insert: {
-          avg_stories_per_fetch?: number | null
-          category?: string | null
-          country_code?: string | null
-          created_at?: string
-          error_count?: number | null
-          fetch_interval_minutes?: number | null
-          health_score?: number | null
-          id?: string
-          is_active?: boolean | null
-          language?: string | null
-          last_error_at?: string | null
-          last_error_message?: string | null
-          last_fetched_at?: string | null
-          name: string
-          priority?: number | null
-          publisher?: string | null
-          reliability_tier?: string | null
-          source_type?: string | null
-          state_id?: string | null
-          total_fetch_count?: number | null
-          url: string
-        }
-        Update: {
-          avg_stories_per_fetch?: number | null
-          category?: string | null
-          country_code?: string | null
-          created_at?: string
-          error_count?: number | null
-          fetch_interval_minutes?: number | null
-          health_score?: number | null
-          id?: string
-          is_active?: boolean | null
-          language?: string | null
-          last_error_at?: string | null
-          last_error_message?: string | null
-          last_fetched_at?: string | null
-          name?: string
-          priority?: number | null
-          publisher?: string | null
-          reliability_tier?: string | null
-          source_type?: string | null
-          state_id?: string | null
-          total_fetch_count?: number | null
-          url?: string
-        }
-        Relationships: []
-      }
-      rss_ingestion_logs: {
-        Row: {
-          created_at: string
-          duration_ms: number | null
-          error_message: string | null
-          feed_id: string | null
-          feed_name: string | null
-          feed_url: string | null
-          id: string
-          status: string
-          stories_fetched: number | null
-          stories_inserted: number | null
-        }
-        Insert: {
-          created_at?: string
-          duration_ms?: number | null
-          error_message?: string | null
-          feed_id?: string | null
-          feed_name?: string | null
-          feed_url?: string | null
-          id?: string
-          status: string
-          stories_fetched?: number | null
-          stories_inserted?: number | null
-        }
-        Update: {
-          created_at?: string
-          duration_ms?: number | null
-          error_message?: string | null
-          feed_id?: string | null
-          feed_name?: string | null
-          feed_url?: string | null
-          id?: string
-          status?: string
-          stories_fetched?: number | null
-          stories_inserted?: number | null
-        }
-        Relationships: []
-      }
-      saved_news: {
-        Row: {
-          created_at: string
-          id: string
-          news_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          news_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          news_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      saved_places: {
-        Row: {
-          created_at: string
-          id: string
-          liked: boolean | null
-          place_address: string | null
-          place_id: string
-          place_image_url: string | null
-          place_lat: number | null
-          place_lng: number | null
-          place_name: string
-          place_rating: number | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          liked?: boolean | null
-          place_address?: string | null
-          place_id: string
-          place_image_url?: string | null
-          place_lat?: number | null
-          place_lng?: number | null
-          place_name: string
-          place_rating?: number | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          liked?: boolean | null
-          place_address?: string | null
-          place_id?: string
-          place_image_url?: string | null
-          place_lat?: number | null
-          place_lng?: number | null
-          place_name?: string
-          place_rating?: number | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      stories: {
-        Row: {
-          ai_summary: string | null
-          category: string | null
-          city: string | null
-          confidence_level: string | null
-          country_code: string | null
-          created_at: string
-          district: string | null
-          engagement_listens: number | null
-          engagement_reads: number | null
-          engagement_saves: number | null
-          first_published_at: string
-          has_contradictions: boolean | null
-          headline: string
-          id: string
-          image_url: string | null
-          is_global: boolean | null
-          last_updated_at: string
-          locality: string | null
-          normalized_headline: string
-          original_headline: string | null
-          original_language: string | null
-          original_summary: string | null
-          primary_source_count: number | null
-          source_count: number | null
-          state: string | null
-          story_hash: string
-          story_state: string | null
-          summary: string | null
-          trend_score: number | null
-          verified_source_count: number | null
-        }
-        Insert: {
-          ai_summary?: string | null
-          category?: string | null
-          city?: string | null
-          confidence_level?: string | null
-          country_code?: string | null
-          created_at?: string
-          district?: string | null
-          engagement_listens?: number | null
-          engagement_reads?: number | null
-          engagement_saves?: number | null
-          first_published_at?: string
-          has_contradictions?: boolean | null
-          headline: string
-          id?: string
-          image_url?: string | null
-          is_global?: boolean | null
-          last_updated_at?: string
-          locality?: string | null
-          normalized_headline: string
-          original_headline?: string | null
-          original_language?: string | null
-          original_summary?: string | null
-          primary_source_count?: number | null
-          source_count?: number | null
-          state?: string | null
-          story_hash: string
-          story_state?: string | null
-          summary?: string | null
-          trend_score?: number | null
-          verified_source_count?: number | null
-        }
-        Update: {
-          ai_summary?: string | null
-          category?: string | null
-          city?: string | null
-          confidence_level?: string | null
-          country_code?: string | null
-          created_at?: string
-          district?: string | null
-          engagement_listens?: number | null
-          engagement_reads?: number | null
-          engagement_saves?: number | null
-          first_published_at?: string
-          has_contradictions?: boolean | null
-          headline?: string
-          id?: string
-          image_url?: string | null
-          is_global?: boolean | null
-          last_updated_at?: string
-          locality?: string | null
-          normalized_headline?: string
-          original_headline?: string | null
-          original_language?: string | null
-          original_summary?: string | null
-          primary_source_count?: number | null
-          source_count?: number | null
-          state?: string | null
-          story_hash?: string
-          story_state?: string | null
-          summary?: string | null
-          trend_score?: number | null
-          verified_source_count?: number | null
-        }
-        Relationships: []
-      }
-      story_sources: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          is_primary_reporting: boolean | null
-          published_at: string
-          reliability_tier: string | null
-          source_name: string
-          source_type: string | null
-          source_url: string
-          story_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_primary_reporting?: boolean | null
-          published_at: string
-          reliability_tier?: string | null
-          source_name: string
-          source_type?: string | null
-          source_url: string
-          story_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_primary_reporting?: boolean | null
-          published_at?: string
-          reliability_tier?: string | null
-          source_name?: string
-          source_type?: string | null
-          source_url?: string
-          story_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "story_sources_story_id_fkey"
-            columns: ["story_id"]
-            isOneToOne: false
-            referencedRelation: "stories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      topics: {
-        Row: {
-          color: string | null
-          created_at: string
-          description: string | null
-          icon: string | null
+          allowed_mime_types: string[] | null
+          avif_autodetection: boolean | null
+          created_at: string | null
+          file_size_limit: number | null
           id: string
           name: string
-          slug: string
+          owner: string | null
+          owner_id: string | null
+          public: boolean | null
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string | null
         }
         Insert: {
-          color?: string | null
-          created_at?: string
-          description?: string | null
-          icon?: string | null
-          id?: string
+          allowed_mime_types?: string[] | null
+          avif_autodetection?: boolean | null
+          created_at?: string | null
+          file_size_limit?: number | null
+          id: string
           name: string
-          slug: string
+          owner?: string | null
+          owner_id?: string | null
+          public?: boolean | null
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string | null
         }
         Update: {
-          color?: string | null
-          created_at?: string
-          description?: string | null
-          icon?: string | null
+          allowed_mime_types?: string[] | null
+          avif_autodetection?: boolean | null
+          created_at?: string | null
+          file_size_limit?: number | null
           id?: string
           name?: string
-          slug?: string
+          owner?: string | null
+          owner_id?: string | null
+          public?: boolean | null
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string | null
         }
         Relationships: []
       }
-      user_news_interactions: {
+      buckets_analytics: {
         Row: {
           created_at: string
+          deleted_at: string | null
+          format: string
           id: string
-          liked: boolean | null
-          listened: boolean | null
-          news_id: string
-          read_time_seconds: number | null
-          saved: boolean | null
+          name: string
+          type: Database["storage"]["Enums"]["buckettype"]
           updated_at: string
-          user_id: string
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
+          format?: string
           id?: string
-          liked?: boolean | null
-          listened?: boolean | null
-          news_id: string
-          read_time_seconds?: number | null
-          saved?: boolean | null
+          name: string
+          type?: Database["storage"]["Enums"]["buckettype"]
           updated_at?: string
-          user_id: string
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
+          format?: string
           id?: string
-          liked?: boolean | null
-          listened?: boolean | null
-          news_id?: string
-          read_time_seconds?: number | null
-          saved?: boolean | null
+          name?: string
+          type?: Database["storage"]["Enums"]["buckettype"]
           updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
-      user_topic_preferences: {
+      buckets_vectors: {
         Row: {
           created_at: string
           id: string
-          topic_id: string
-          user_id: string
-          weight: number | null
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string
         }
         Insert: {
           created_at?: string
-          id?: string
-          topic_id: string
-          user_id: string
-          weight?: number | null
+          id: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
-          topic_id?: string
-          user_id?: string
-          weight?: number | null
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      migrations: {
+        Row: {
+          executed_at: string | null
+          hash: string
+          id: number
+          name: string
+        }
+        Insert: {
+          executed_at?: string | null
+          hash: string
+          id: number
+          name: string
+        }
+        Update: {
+          executed_at?: string | null
+          hash?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      objects: {
+        Row: {
+          bucket_id: string | null
+          created_at: string | null
+          id: string
+          last_accessed_at: string | null
+          metadata: Json | null
+          name: string | null
+          owner: string | null
+          owner_id: string | null
+          path_tokens: string[] | null
+          updated_at: string | null
+          user_metadata: Json | null
+          version: string | null
+        }
+        Insert: {
+          bucket_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          metadata?: Json | null
+          name?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          path_tokens?: string[] | null
+          updated_at?: string | null
+          user_metadata?: Json | null
+          version?: string | null
+        }
+        Update: {
+          bucket_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          metadata?: Json | null
+          name?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          path_tokens?: string[] | null
+          updated_at?: string | null
+          user_metadata?: Json | null
+          version?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "user_topic_preferences_topic_id_fkey"
-            columns: ["topic_id"]
+            foreignKeyName: "objects_bucketId_fkey"
+            columns: ["bucket_id"]
             isOneToOne: false
-            referencedRelation: "topics"
+            referencedRelation: "buckets"
             referencedColumns: ["id"]
           },
         ]
       }
-      webhook_delivery_logs: {
+      s3_multipart_uploads: {
         Row: {
-          attempt_number: number
+          bucket_id: string
           created_at: string
-          delivery_time_ms: number | null
-          error_message: string | null
-          event_type: string
           id: string
-          payload: Json
-          response_body: string | null
-          status_code: number | null
-          subscription_id: string
-          success: boolean
+          in_progress_size: number
+          key: string
+          owner_id: string | null
+          upload_signature: string
+          user_metadata: Json | null
+          version: string
         }
         Insert: {
-          attempt_number?: number
+          bucket_id: string
           created_at?: string
-          delivery_time_ms?: number | null
-          error_message?: string | null
-          event_type: string
-          id?: string
-          payload: Json
-          response_body?: string | null
-          status_code?: number | null
-          subscription_id: string
-          success?: boolean
+          id: string
+          in_progress_size?: number
+          key: string
+          owner_id?: string | null
+          upload_signature: string
+          user_metadata?: Json | null
+          version: string
         }
         Update: {
-          attempt_number?: number
+          bucket_id?: string
           created_at?: string
-          delivery_time_ms?: number | null
-          error_message?: string | null
-          event_type?: string
           id?: string
-          payload?: Json
-          response_body?: string | null
-          status_code?: number | null
-          subscription_id?: string
-          success?: boolean
+          in_progress_size?: number
+          key?: string
+          owner_id?: string | null
+          upload_signature?: string
+          user_metadata?: Json | null
+          version?: string
         }
         Relationships: [
           {
-            foreignKeyName: "webhook_delivery_logs_subscription_id_fkey"
-            columns: ["subscription_id"]
+            foreignKeyName: "s3_multipart_uploads_bucket_id_fkey"
+            columns: ["bucket_id"]
             isOneToOne: false
-            referencedRelation: "webhook_subscriptions"
+            referencedRelation: "buckets"
             referencedColumns: ["id"]
           },
         ]
       }
-      webhook_subscriptions: {
+      s3_multipart_uploads_parts: {
         Row: {
-          api_key_id: string
+          bucket_id: string
           created_at: string
-          events: string[]
+          etag: string
           id: string
-          is_active: boolean
-          last_error: string | null
-          last_status_code: number | null
-          last_triggered_at: string | null
-          retry_count: number
-          secret: string
-          updated_at: string
-          webhook_url: string
+          key: string
+          owner_id: string | null
+          part_number: number
+          size: number
+          upload_id: string
+          version: string
         }
         Insert: {
-          api_key_id: string
+          bucket_id: string
           created_at?: string
-          events?: string[]
+          etag: string
           id?: string
-          is_active?: boolean
-          last_error?: string | null
-          last_status_code?: number | null
-          last_triggered_at?: string | null
-          retry_count?: number
-          secret: string
-          updated_at?: string
-          webhook_url: string
+          key: string
+          owner_id?: string | null
+          part_number: number
+          size?: number
+          upload_id: string
+          version: string
         }
         Update: {
-          api_key_id?: string
+          bucket_id?: string
           created_at?: string
-          events?: string[]
+          etag?: string
           id?: string
-          is_active?: boolean
-          last_error?: string | null
-          last_status_code?: number | null
-          last_triggered_at?: string | null
-          retry_count?: number
-          secret?: string
-          updated_at?: string
-          webhook_url?: string
+          key?: string
+          owner_id?: string | null
+          part_number?: number
+          size?: number
+          upload_id?: string
+          version?: string
         }
         Relationships: [
           {
-            foreignKeyName: "webhook_subscriptions_api_key_id_fkey"
-            columns: ["api_key_id"]
+            foreignKeyName: "s3_multipart_uploads_parts_bucket_id_fkey"
+            columns: ["bucket_id"]
             isOneToOne: false
-            referencedRelation: "api_keys"
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "s3_multipart_uploads_parts_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "s3_multipart_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vector_indexes: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id: string
+          metadata_configuration: Json | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id?: string
+          metadata_configuration?: Json | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          data_type?: string
+          dimension?: number
+          distance_metric?: string
+          id?: string
+          metadata_configuration?: Json | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vector_indexes_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets_vectors"
             referencedColumns: ["id"]
           },
         ]
@@ -1641,29 +1360,124 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      cleanup_expired_otps: { Args: never; Returns: undefined }
-      generate_api_key: { Args: never; Returns: string }
-      generate_enterprise_id: { Args: never; Returns: string }
-      generate_webhook_secret: { Args: never; Returns: string }
-      get_newsroom_role: {
-        Args: { _user_id: string }
-        Returns: Database["public"]["Enums"]["newsroom_role"]
+      can_insert_object: {
+        Args: { bucketid: string; metadata: Json; name: string; owner: string }
+        Returns: undefined
       }
-      has_newsroom_access: {
+      extension: { Args: { name: string }; Returns: string }
+      filename: { Args: { name: string }; Returns: string }
+      foldername: { Args: { name: string }; Returns: string[] }
+      get_common_prefix: {
+        Args: { p_delimiter: string; p_key: string; p_prefix: string }
+        Returns: string
+      }
+      get_size_by_bucket: {
+        Args: never
+        Returns: {
+          bucket_id: string
+          size: number
+        }[]
+      }
+      list_multipart_uploads_with_delimiter: {
         Args: {
-          _min_role: Database["public"]["Enums"]["newsroom_role"]
-          _user_id: string
+          bucket_id: string
+          delimiter_param: string
+          max_keys?: number
+          next_key_token?: string
+          next_upload_token?: string
+          prefix_param: string
         }
-        Returns: boolean
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+        }[]
       }
-      increment_api_usage: { Args: { key_id: string }; Returns: undefined }
-      is_newsroom_owner_or_superadmin: {
-        Args: { _user_id: string }
-        Returns: boolean
+      list_objects_with_delimiter: {
+        Args: {
+          _bucket_id: string
+          delimiter_param: string
+          max_keys?: number
+          next_token?: string
+          prefix_param: string
+          sort_order?: string
+          start_after?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      operation: { Args: never; Returns: string }
+      search: {
+        Args: {
+          bucketname: string
+          levels?: number
+          limits?: number
+          offsets?: number
+          prefix: string
+          search?: string
+          sortcolumn?: string
+          sortorder?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_by_timestamp: {
+        Args: {
+          p_bucket_id: string
+          p_level: number
+          p_limit: number
+          p_prefix: string
+          p_sort_column: string
+          p_sort_column_after: string
+          p_sort_order: string
+          p_start_after: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_v2: {
+        Args: {
+          bucket_name: string
+          levels?: number
+          limits?: number
+          prefix: string
+          sort_column?: string
+          sort_column_after?: string
+          sort_order?: string
+          start_after?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
       }
     }
     Enums: {
-      newsroom_role: "owner" | "superadmin" | "admin" | "editor" | "viewer"
+      buckettype: "STANDARD" | "ANALYTICS" | "VECTOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1789,9 +1603,32 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  public: {
+  auth: {
     Enums: {
-      newsroom_role: ["owner", "superadmin", "admin", "editor", "viewer"],
+      aal_level: ["aal1", "aal2", "aal3"],
+      code_challenge_method: ["s256", "plain"],
+      factor_status: ["unverified", "verified"],
+      factor_type: ["totp", "webauthn", "phone"],
+      oauth_authorization_status: ["pending", "approved", "denied", "expired"],
+      oauth_client_type: ["public", "confidential"],
+      oauth_registration_type: ["dynamic", "manual"],
+      oauth_response_type: ["code"],
+      one_time_token_type: [
+        "confirmation_token",
+        "reauthentication_token",
+        "recovery_token",
+        "email_change_token_new",
+        "email_change_token_current",
+        "phone_change_token",
+      ],
+    },
+  },
+  public: {
+    Enums: {},
+  },
+  storage: {
+    Enums: {
+      buckettype: ["STANDARD", "ANALYTICS", "VECTOR"],
     },
   },
 } as const

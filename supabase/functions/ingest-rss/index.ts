@@ -26,6 +26,8 @@ interface RSSFeed {
   reliability_tier: "tier_1" | "tier_2" | "tier_3";
   fetch_interval_minutes: number;
   last_fetched_at: string | null;
+  priority?: number | null;
+  state_id?: string | null;
 }
 
 // ===== CATEGORY TAXONOMY (LOCKED) =====
@@ -944,7 +946,7 @@ function getRegionScope(
 
   // Default based on feed
   return { 
-    scope: feedCountryCode ? "India" : "World", 
+    scope: feedCountryCode === "IN" ? "India" : "World", 
     city: null, 
     state: null, 
     district: null, 
@@ -1398,97 +1400,45 @@ function shouldFetchFeed(feed: RSSFeed): boolean {
   return minutesSinceLastFetch >= intervalMinutes;
 }
 
+function getTierRank(tier: RSSFeed["reliability_tier"]): number {
+  if (tier === "tier_1") return 1;
+  if (tier === "tier_2") return 2;
+  return 3;
+}
+
+function getFeedUrgency(feed: RSSFeed): number {
+  if (!feed.last_fetched_at) return Number.POSITIVE_INFINITY;
+
+  const lastFetched = new Date(feed.last_fetched_at).getTime();
+  const minutesSinceLastFetch = (Date.now() - lastFetched) / (1000 * 60);
+  const intervalMinutes = feed.fetch_interval_minutes || 30;
+
+  // >1 means overdue; higher = more urgent.
+  return minutesSinceLastFetch / intervalMinutes;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Verify authorization for scheduled/manual calls
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabaseAnonKeyRaw = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabaseAuth = createClient(supabaseUrl, supabaseAnonKeyRaw || supabaseKey);
+
+  // Verify authorization for scheduled/manual calls.
   const authHeader = req.headers.get("Authorization");
-  const apiKeyHeader = req.headers.get("apikey");
   const cronSecret = Deno.env.get("CRON_INGEST_SECRET");
-  const supabaseAnonKeyRaw = Deno.env.get("SUPABASE_ANON_KEY");
+  const allowedAdminEmails = (Deno.env.get("INGESTION_ADMIN_EMAILS") || "hello@abhishekpanda.com")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
 
   const url = new URL(req.url);
   const secretParam = url.searchParams.get("secret");
 
-  // Normalize secrets (URLSearchParams decodes '+' as space)
-  const trimmedCronSecret = cronSecret?.trim();
-  const trimmedAnonKey = supabaseAnonKeyRaw?.trim();
-  const trimmedSecretParam = secretParam?.trim();
-  const normalizedSecretParam = trimmedSecretParam?.replace(/\s/g, "+");
-
-  // Check various auth methods:
-  // 1. URL parameter with cron secret (normalized)
-  const isValidSecretParam =
-    trimmedCronSecret && normalizedSecretParam && normalizedSecretParam === trimmedCronSecret;
-  // 2. Bearer token with cron secret
-  const isValidBearerToken = trimmedCronSecret && authHeader === `Bearer ${trimmedCronSecret}`;
-  // 3. Internal Supabase cron (uses anon key in Authorization header)
-  const isInternalCron = !!trimmedAnonKey && (authHeader?.includes(trimmedAnonKey) ?? false);
-  // 4. Direct call without auth (for testing in config.toml cron - verify_jwt is false)
-  const isLocalCron = !authHeader && !secretParam;
-  // 5. Frontend call with Bearer anon key (standard format)
-  const isFrontendCall = !!trimmedAnonKey && authHeader === `Bearer ${trimmedAnonKey}`;
-  // 6. Frontend call using standard "apikey" header (anon key)
-  const isFrontendApiKeyCall = !!trimmedAnonKey && apiKeyHeader === trimmedAnonKey;
-  // 7. Frontend call via supabase.functions.invoke with apikey header set to anon key
-  // This is the standard pattern - apikey header contains the anon key, Authorization contains user JWT
-  const isSupabaseInvoke = !!trimmedAnonKey && apiKeyHeader === trimmedAnonKey;
-  // 8. Has valid Bearer JWT token (any authenticated call from frontend with valid JWT)
-  const hasValidBearerJWT = !!authHeader && authHeader.startsWith("Bearer ") && authHeader.length > 50;
-
-  console.log("Auth check:", {
-    hasCronSecret: !!cronSecret,
-    cronSecretLen: cronSecret?.length ?? 0,
-    hasSecretParam: !!secretParam,
-    secretMatch: isValidSecretParam,
-    bearerMatch: isValidBearerToken,
-    internalCron: isInternalCron,
-    localCron: isLocalCron,
-    frontendCall: isFrontendCall,
-    frontendApiKeyCall: isFrontendApiKeyCall,
-    supabaseInvoke: isSupabaseInvoke,
-    hasValidBearerJWT: hasValidBearerJWT,
-    anonKeyPresent: !!trimmedAnonKey,
-    hasAuthorizationHeader: !!authHeader,
-    hasApiKeyHeader: !!apiKeyHeader,
-    apiKeyMatchesAnon: apiKeyHeader === trimmedAnonKey,
-  });
-
-  // For external calls (cron-job.org), require the secret
-  // For internal cron, frontend calls, or supabase.functions.invoke, allow through
-  // The key insight: supabase.functions.invoke() always sends the anon key in the "apikey" header
-  if (
-    !isValidSecretParam &&
-    !isValidBearerToken &&
-    !isInternalCron &&
-    !isLocalCron &&
-    !isFrontendCall &&
-    !isFrontendApiKeyCall &&
-    !isSupabaseInvoke &&
-    !hasValidBearerJWT
-  ) {
-    console.log("Unauthorized access attempt - no valid auth method found");
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  
-  console.log("Authorization successful - starting ingestion");
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  // Extract user info and IP from request for logging
-  const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-                    req.headers.get("x-real-ip") ||
-                    req.headers.get("cf-connecting-ip") ||
-                    "unknown";
-  const userAgent = req.headers.get("user-agent") || "unknown";
-  
   // Parse body for country/province context if provided
   let countryCode: string | null = null;
   let provinceId: string | null = null;
@@ -1496,108 +1446,226 @@ serve(async (req) => {
   let userEmail: string | null = null;
   let stateIdFilter: string | null = null;
   let accessUserId: string | null = null;
-  let triggerType: string = "cron";
-  
+  let triggerType: "manual" | "cron" = "manual";
+
   try {
     const body = await req.json().catch(() => ({}));
     countryCode = body.countryCode || null;
     provinceId = body.provinceId || null;
     userId = body.userId || null;
     userEmail = body.userEmail || null;
-    stateIdFilter = body.stateId || null; // Optional state filter
+    stateIdFilter = body.stateId || null;
     accessUserId = body.accessUserId || null;
-    triggerType = body.trigger || "cron";
+    triggerType = body.trigger === "cron" ? "cron" : "manual";
   } catch {
     // Body parsing failed, continue without context
   }
 
-  // Determine if this is a cron-triggered call (automated)
-  // Cron jobs: isInternalCron, isLocalCron, isValidSecretParam, isValidBearerToken with cron secret
-  const isCronTrigger = isInternalCron || isLocalCron || isValidSecretParam || isValidBearerToken;
-  
-  console.log("Trigger analysis:", {
+  // Normalize secrets (URLSearchParams decodes '+' as space)
+  const trimmedCronSecret = cronSecret?.trim();
+  const trimmedAnonKey = supabaseAnonKeyRaw?.trim();
+  const trimmedSecretParam = secretParam?.trim();
+  const normalizedSecretParam = trimmedSecretParam?.replace(/\s/g, "+");
+
+  // Supported automated trigger auth modes:
+  // 1) Secret query param
+  // 2) Bearer cron secret
+  // 3) Internal scheduler bearer anon key
+  const isValidSecretParam =
+    !!trimmedCronSecret && !!normalizedSecretParam && normalizedSecretParam === trimmedCronSecret;
+  const isValidBearerToken = !!trimmedCronSecret && authHeader === `Bearer ${trimmedCronSecret}`;
+  const isInternalCron = !!trimmedAnonKey && authHeader === `Bearer ${trimmedAnonKey}`;
+  const isCronTrigger = isValidSecretParam || isValidBearerToken || isInternalCron;
+
+  console.log("Auth check:", {
     triggerType,
-    isCronTrigger,
-    isInternalCron,
-    isLocalCron,
+    hasCronSecret: !!cronSecret,
+    hasSecretParam: !!secretParam,
     isValidSecretParam,
     isValidBearerToken,
-    accessUserId: accessUserId || "none",
+    isInternalCron,
+    hasAuthorizationHeader: !!authHeader,
+    hasAccessUserId: !!accessUserId,
   });
 
-  // For MANUAL triggers only (user-initiated via UI), verify OTP auth
-  // Cron jobs bypass this check entirely
-  if (triggerType === "manual" && !isCronTrigger) {
-    if (!accessUserId) {
-      console.log("Manual trigger without accessUserId - rejecting");
+  // Manual triggers must be authenticated admin+ with allowlisted email and verified short-lived access token.
+  if (!isCronTrigger) {
+    const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+    if (!bearerToken) {
       return new Response(
-        JSON.stringify({ 
-          error: "Authentication required", 
-          message: "Please verify your identity to trigger manual ingestion" 
+        JSON.stringify({
+          error: "Authentication required",
+          message: "Manual ingestion requires an authenticated admin session.",
         }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
-    // Verify the accessUserId exists and was verified within the last 30 minutes
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const { data: jwtUserData, error: jwtUserError } = await supabaseAuth.auth.getUser(bearerToken);
+    if (jwtUserError || !jwtUserData.user) {
+      return new Response(
+        JSON.stringify({
+          error: "Invalid session",
+          message: "Please sign in again and retry ingestion.",
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    userId = jwtUserData.user.id;
+    userEmail = (jwtUserData.user.email || "").toLowerCase();
+    triggerType = "manual";
+
+    const { data: isAdminOrHigher, error: roleError } = await supabase.rpc("is_newsroom_admin_or_higher", {
+      _user_id: userId,
+    });
+
+    if (roleError || !isAdminOrHigher) {
+      return new Response(
+        JSON.stringify({
+          error: "Admin required",
+          message: "Only newsroom admin, superadmin, or owner can trigger ingestion.",
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (!allowedAdminEmails.includes(userEmail)) {
+      return new Response(
+        JSON.stringify({
+          error: "Email not allowlisted",
+          message: "This admin account is not allowlisted for manual ingestion.",
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (!accessUserId) {
+      return new Response(
+        JSON.stringify({
+          error: "Verification required",
+          message: "Complete QR + OTP verification to trigger manual ingestion.",
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const now = new Date();
     const { data: accessUser, error: accessError } = await supabase
       .from("ingestion_access_users")
-      .select("id, is_verified, otp_verified_at")
+      .select("id, email, is_verified, otp_verified_at, qr_verified, qr_verified_at, manual_access_expires_at, last_ingestion_at")
       .eq("id", accessUserId)
       .single();
 
     if (accessError || !accessUser) {
-      console.log("Invalid accessUserId:", accessUserId);
       return new Response(
-        JSON.stringify({ 
-          error: "Invalid access token", 
-          message: "Your access token is invalid. Please re-verify." 
+        JSON.stringify({
+          error: "Invalid access token",
+          message: "Admin verification token is invalid. Please re-verify.",
         }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
-    if (!accessUser.is_verified) {
-      console.log("Unverified accessUserId:", accessUserId);
+    if ((accessUser.email || "").toLowerCase() !== userEmail) {
       return new Response(
-        JSON.stringify({ 
-          error: "Verification required", 
-          message: "Please complete OTP verification to trigger ingestion." 
+        JSON.stringify({
+          error: "Access mismatch",
+          message: "Verified access token does not belong to your signed-in account.",
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (!accessUser.is_verified || !accessUser.qr_verified) {
+      return new Response(
+        JSON.stringify({
+          error: "Verification required",
+          message: "QR and OTP verification is required before manual ingestion.",
         }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
-    // Check if verification is within 30 minutes
-    if (!accessUser.otp_verified_at || accessUser.otp_verified_at < thirtyMinutesAgo) {
-      console.log("Expired accessUserId (>30min):", accessUserId, "verified at:", accessUser.otp_verified_at);
+    const sessionExpiry = accessUser.manual_access_expires_at ? new Date(accessUser.manual_access_expires_at) : null;
+    if (!sessionExpiry || sessionExpiry <= now) {
       return new Response(
-        JSON.stringify({ 
-          error: "Session expired", 
-          message: "Your access has expired (30 min limit). Please re-verify with OTP." 
+        JSON.stringify({
+          error: "Session expired",
+          message: "Manual access expired (15 min limit). Re-verify QR + OTP.",
         }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
-    console.log("Access verified for user:", accessUserId, "verified at:", accessUser.otp_verified_at);
-  } else if (isCronTrigger) {
-    console.log("Cron-triggered ingestion - bypassing manual auth check");
-    triggerType = "cron"; // Ensure proper logging
+    const fifteenMinutesMs = 15 * 60 * 1000;
+    if (accessUser.last_ingestion_at) {
+      const elapsedMs = now.getTime() - new Date(accessUser.last_ingestion_at).getTime();
+      if (elapsedMs < fifteenMinutesMs) {
+        const waitSeconds = Math.ceil((fifteenMinutesMs - elapsedMs) / 1000);
+        return new Response(
+          JSON.stringify({
+            error: "Rate limit",
+            message: `Please wait ${waitSeconds} seconds before triggering ingestion again.`,
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+    }
+
+    await supabase
+      .from("ingestion_access_users")
+      .update({
+        last_ingestion_at: now.toISOString(),
+        last_verified_email: userEmail,
+      })
+      .eq("id", accessUserId);
+  } else {
+    triggerType = "cron";
   }
+
+  console.log("Authorization successful - starting ingestion", {
+    triggerType,
+    userId,
+    stateIdFilter,
+  });
+
+  // Extract user info and IP from request for logging
+  const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+                    req.headers.get("x-real-ip") ||
+                    req.headers.get("cf-connecting-ip") ||
+                    "unknown";
+  const userAgent = req.headers.get("user-agent") || "unknown";
 
   // Create ingestion run record for tracking
   const { data: runRecord, error: runError } = await supabase
@@ -1626,9 +1694,9 @@ serve(async (req) => {
         province_id: provinceId,
         metadata: {
           authorization_method: isInternalCron ? "internal_cron" : 
-                               isLocalCron ? "local_cron" : 
-                               isSupabaseInvoke ? "supabase_invoke" : 
-                               isFrontendCall ? "frontend" : "other",
+                               isValidSecretParam ? "cron_secret_param" :
+                               isValidBearerToken ? "cron_secret_bearer" :
+                               "manual_admin",
           timestamp: new Date().toISOString(),
           state_filter: stateIdFilter,
         }
@@ -1651,9 +1719,7 @@ serve(async (req) => {
     let feedsQuery = supabase
       .from("rss_feeds")
       .select("*")
-      .eq("is_active", true)
-      .order("reliability_tier", { ascending: true })
-      .order("priority", { ascending: false });
+      .eq("is_active", true);
 
     // Apply state filter if provided
     if (stateIdFilter) {
@@ -1704,16 +1770,23 @@ serve(async (req) => {
 
     // ===== BATCHING + CONCURRENCY CONFIG =====
     // Reduced limits to prevent Edge Function timeout (60 seconds max)
-    const MAX_FEEDS_PER_RUN = 25; // Process fewer feeds per run - cron will catch up
-    const BATCH_SIZE = 5; // Process feeds in batches of 5 concurrently
+    const MAX_FEEDS_PER_RUN = 15; // Keep each invocation within worker limits.
+    const BATCH_SIZE = 5; // Process feeds in batches concurrently.
     const FEED_TIMEOUT_MS = 5000; // 5 second timeout per feed (reduced)
 
-    // Limit feeds to prevent timeout - prioritize tier_1 first
-    const prioritizedFeeds = [
-      ...feeds.filter((f: RSSFeed) => f.reliability_tier === "tier_1"),
-      ...feeds.filter((f: RSSFeed) => f.reliability_tier === "tier_2"),
-      ...feeds.filter((f: RSSFeed) => f.reliability_tier !== "tier_1" && f.reliability_tier !== "tier_2"),
-    ];
+    // Limit feeds to prevent timeout with fair scheduling:
+    // tier rank first, then overdue ratio, then explicit priority.
+    const prioritizedFeeds = [...feeds].sort((a: RSSFeed, b: RSSFeed) => {
+      const tierDiff = getTierRank(a.reliability_tier) - getTierRank(b.reliability_tier);
+      if (tierDiff !== 0) return tierDiff;
+
+      const urgencyDiff = getFeedUrgency(b) - getFeedUrgency(a);
+      if (urgencyDiff !== 0) return urgencyDiff;
+
+      const aPriority = a.priority || 0;
+      const bPriority = b.priority || 0;
+      return bPriority - aPriority;
+    });
     const feedsToProcess = prioritizedFeeds.slice(0, MAX_FEEDS_PER_RUN);
     console.log(`Processing ${feedsToProcess.length} of ${feeds.length} feeds (max ${MAX_FEEDS_PER_RUN})`);
 

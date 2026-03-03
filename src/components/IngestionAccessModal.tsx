@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mail, Phone, Shield, Loader2, CheckCircle2, 
-  MapPin, AlertCircle, FileText, Cookie, Clock
+  MapPin, Clock, QrCode, Lock
 } from "lucide-react";
 import {
   Dialog,
@@ -19,6 +19,8 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNewsroomRole } from "@/hooks/use-newsroom-role";
 
 interface IngestionAccessModalProps {
   isOpen: boolean;
@@ -27,8 +29,11 @@ interface IngestionAccessModalProps {
 }
 
 type Step = "form" | "otp" | "success";
+const MANUAL_INGESTION_SESSION_MINUTES = 15;
 
 export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAccessModalProps) {
+  const { user } = useAuth();
+  const { isAdmin } = useNewsroomRole();
   const [step, setStep] = useState<Step>("form");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -41,9 +46,25 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
   const [isReturningUser, setIsReturningUser] = useState(false);
   const [phoneRequired, setPhoneRequired] = useState(false);
 
+  const allowedAdminEmails = useMemo(
+    () =>
+      ((import.meta.env.VITE_INGESTION_ADMIN_EMAILS as string | undefined) || "hello@abhishekpanda.com")
+        .split(",")
+        .map((entry) => entry.trim().toLowerCase())
+        .filter(Boolean),
+    [],
+  );
+
+  const userEmail = (user?.email || "").toLowerCase();
+  const isAllowedAdminEmail = !!userEmail && allowedAdminEmails.includes(userEmail);
+  const canRequestAccess = !!user && isAdmin && isAllowedAdminEmail;
+
   // Check if user has previously verified (for re-verification flow)
   useEffect(() => {
     if (isOpen) {
+      if (userEmail) {
+        setEmail(userEmail);
+      }
       const storedUserId = localStorage.getItem("ingestion_access_user_id");
       const storedExpiry = localStorage.getItem("ingestion_access_expiry");
       
@@ -57,7 +78,7 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
         }
       }
     }
-  }, [isOpen]);
+  }, [isOpen, userEmail]);
 
   // Get user location
   const getLocation = async (): Promise<{ lat: number; lng: number } | null> => {
@@ -75,6 +96,11 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
   };
 
   const handleSubmitForm = async () => {
+    if (!canRequestAccess) {
+      toast.error("Only allowlisted newsroom admins can request ingestion access.");
+      return;
+    }
+
     if (!email || !termsAccepted || !cookiesAccepted) {
       toast.error("Please fill all required fields and accept terms");
       return;
@@ -109,6 +135,9 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
         .eq("email", email.toLowerCase())
         .maybeSingle();
 
+      if (checkErr) throw checkErr;
+
+      const now = new Date();
       let userId: string;
 
       if (existingUser) {
@@ -129,7 +158,12 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
             location: loc,
             terms_accepted: true,
             cookie_policy_accepted: true,
-            updated_at: new Date().toISOString(),
+            qr_verified: true,
+            qr_verified_at: now.toISOString(),
+            is_verified: false,
+            manual_access_expires_at: null,
+            last_verified_email: email.toLowerCase(),
+            updated_at: now.toISOString(),
           })
           .eq("id", existingUser.id);
 
@@ -148,6 +182,9 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
             user_agent: navigator.userAgent,
             terms_accepted: true,
             cookie_policy_accepted: true,
+            qr_verified: true,
+            qr_verified_at: now.toISOString(),
+            last_verified_email: email.toLowerCase(),
           })
           .select("id")
           .single();
@@ -191,17 +228,24 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
         throw new Error(data?.error || "Invalid OTP");
       }
 
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + MANUAL_INGESTION_SESSION_MINUTES * 60 * 1000);
+
       // Update user as verified
       await supabase
         .from("ingestion_access_users")
         .update({
           is_verified: true,
-          otp_verified_at: new Date().toISOString(),
+          qr_verified: true,
+          qr_verified_at: now.toISOString(),
+          otp_verified_at: now.toISOString(),
+          manual_access_expires_at: expiresAt.toISOString(),
+          last_verified_email: email.toLowerCase(),
         })
         .eq("id", accessUserId);
 
       setStep("success");
-      toast.success("Verification successful! Access valid for 30 minutes.");
+      toast.success(`Verification successful. Access valid for ${MANUAL_INGESTION_SESSION_MINUTES} minutes.`);
 
       // Delay before closing
       setTimeout(() => {
@@ -220,7 +264,7 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
 
   const handleClose = () => {
     setStep("form");
-    setEmail("");
+    setEmail(userEmail || "");
     setPhone("");
     setOtp("");
     setTermsAccepted(false);
@@ -238,10 +282,10 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
-            Ingestion Access
+            Admin Ingestion Access
           </DialogTitle>
           <DialogDescription>
-            Verify your identity to run the RSS ingestion pipeline
+            QR + OTP verification for admin-only manual ingestion.
           </DialogDescription>
         </DialogHeader>
 
@@ -255,24 +299,64 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
               className="space-y-4"
             >
               {/* Session info */}
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300">
                 <Clock className="w-4 h-4 flex-shrink-0" />
-                <span>Access is valid for <strong>30 minutes</strong> after verification.</span>
+                <span>Access is valid for <strong>{MANUAL_INGESTION_SESSION_MINUTES} minutes</strong> after verification.</span>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-lg border border-border/60 bg-muted/30 p-3 flex flex-col items-center text-center">
+                  <QrCode className="w-5 h-5 text-primary mb-2" />
+                  <img
+                    src="/qr/ingestion-admin-access.svg"
+                    alt="Admin ingestion access QR"
+                    className="w-28 h-28 rounded-md border border-border/50 bg-background p-1 mb-2"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Scan to open admin access flow.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+                  <p className="font-medium text-foreground mb-1">Allowlisted admin emails</p>
+                  <p>{allowedAdminEmails.join(", ")}</p>
+                  <p className="mt-2">
+                    Your signed-in email must match this allowlist and you must have newsroom admin role or higher.
+                  </p>
+                </div>
+              </div>
+
+              {!user && (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-600">
+                  Sign in with your admin account first to request manual ingestion access.
+                </div>
+              )}
+
+              {user && !isAdmin && (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-600">
+                  Your account is not a newsroom admin. Owner, superadmin, or admin role is required.
+                </div>
+              )}
+
+              {user && isAdmin && !isAllowedAdminEmail && (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-600">
+                  Your email is not in the admin allowlist for manual ingestion.
+                </div>
+              )}
+
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
+                <Label htmlFor="email">Signed-In Admin Email *</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 pr-10"
+                    readOnly
                     required
                   />
+                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 </div>
               </div>
 
@@ -342,7 +426,7 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
 
               <Button
                 onClick={handleSubmitForm}
-                disabled={isLoading || !email || !termsAccepted || !cookiesAccepted || (phoneRequired && !phone)}
+                disabled={!canRequestAccess || isLoading || !email || !termsAccepted || !cookiesAccepted || (phoneRequired && !phone)}
                 className="w-full"
               >
                 {isLoading ? (
@@ -421,7 +505,7 @@ export function IngestionAccessModal({ isOpen, onClose, onSuccess }: IngestionAc
               <div>
                 <h3 className="font-semibold text-lg">Verification Complete!</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  You now have access to the ingestion pipeline for 30 minutes.
+                  You now have access to the ingestion pipeline for {MANUAL_INGESTION_SESSION_MINUTES} minutes.
                 </p>
               </div>
             </motion.div>

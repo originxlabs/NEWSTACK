@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { useOwnerAuditLog } from "@/hooks/use-owner-audit-log";
 import { differenceInDays } from "date-fns";
 import { PasswordStrengthMeter } from "@/components/newsroom/PasswordStrengthMeter";
+import { isDesignatedEnterpriseAdmin } from "@/lib/admin-access";
 
 type ViewMode = "login" | "password-expired" | "verify-passkey" | "set-password" | "success";
 
@@ -54,23 +55,22 @@ export default function NewsroomOwnerLogin() {
   const [passwordExpiredMessage, setPasswordExpiredMessage] = useState("");
 
   const { isOwnerOrSuperadmin, loading: roleLoading } = useNewsroomRole();
+  const isSignedInDesignatedAdmin = isDesignatedEnterpriseAdmin(user?.email);
 
   // Redirect only if already logged in AND already has owner/superadmin access
   // (If a normal public user is logged in, they should still be able to use owner login.)
   useEffect(() => {
-    if (!roleLoading && user && isOwnerOrSuperadmin) {
+    if (!roleLoading && user && isOwnerOrSuperadmin && isSignedInDesignatedAdmin) {
       navigate("/newsroom", { replace: true });
     }
-  }, [user, navigate, isOwnerOrSuperadmin, roleLoading]);
-
-  // Designated owner email for initial setup
-  const DESIGNATED_OWNER_EMAIL = "originxlabs@gmail.com";
+  }, [user, navigate, isOwnerOrSuperadmin, isSignedInDesignatedAdmin, roleLoading]);
 
   const checkOwnerAndPasswordExpiry = async (ownerEmail: string) => {
     const normalized = ownerEmail.trim().toLowerCase();
-
-    // First check if this is the designated owner email
-    const isDesignatedOwner = normalized === DESIGNATED_OWNER_EMAIL.toLowerCase();
+    const isDesignatedOwner = isDesignatedEnterpriseAdmin(normalized);
+    if (!isDesignatedOwner) {
+      return { isOwner: false, isExpired: false, daysRemaining: 0 };
+    }
 
     // Check if owner exists in newsroom_members (case-insensitive)
     const { data: member } = await supabase
@@ -90,11 +90,11 @@ export default function NewsroomOwnerLogin() {
         .in("role", ["super_admin", "admin"])
         .maybeSingle();
 
-      if (!adminOwner && !isDesignatedOwner) {
+      if (!adminOwner) {
         return { isOwner: false, isExpired: false, daysRemaining: 0 };
       }
 
-      // If designated owner or in admin_users but not in newsroom_members, redirect to setup
+      // If designated owner but not in newsroom_members, redirect to setup
       if (isDesignatedOwner && !member) {
         return { isOwner: true, isExpired: true, daysRemaining: 0, needsSetup: true };
       }
@@ -132,8 +132,8 @@ export default function NewsroomOwnerLogin() {
       const result = await checkOwnerAndPasswordExpiry(email);
 
       if (!result.isOwner) {
-        await auditLog.logFailed(email.trim(), "Non-owner attempted owner login");
-        toast.error("Access denied: this email is not the owner");
+        await auditLog.logFailed(email.trim(), "Non-designated email attempted owner login");
+        toast.error("Owner access denied: this is not a designated admin email");
         return;
       }
 
@@ -191,8 +191,8 @@ export default function NewsroomOwnerLogin() {
     try {
       const { isOwner } = await checkOwnerAndPasswordExpiry(email);
       if (!isOwner) {
-        await auditLog.logFailed(email.trim(), "Non-owner attempted OTP request");
-        toast.error("Access denied: this email is not the owner");
+        await auditLog.logFailed(email.trim(), "Non-designated email attempted OTP request");
+        toast.error("Owner access denied: this is not a designated admin email");
         return;
       }
 
@@ -312,7 +312,7 @@ export default function NewsroomOwnerLogin() {
   };
 
   // Show Access Denied screen if logged in but NOT owner/superadmin
-  if (!roleLoading && user && !isOwnerOrSuperadmin) {
+  if (!roleLoading && user && (!isOwnerOrSuperadmin || !isSignedInDesignatedAdmin)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <motion.div
@@ -327,12 +327,13 @@ export default function NewsroomOwnerLogin() {
               </div>
               <CardTitle className="text-xl text-destructive">Access Denied</CardTitle>
               <CardDescription className="text-destructive/80">
-                Your account does not have owner or superadmin access to the Newsroom.
+                Owner dashboard is restricted to designated admin emails.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-center text-muted-foreground">
-                Only designated owners and superadmins can access the Newsroom dashboard.
+                Only designated admin email identities can access the Newsroom owner dashboard,
+                even if an account has elevated role labels.
                 If you believe this is an error, please contact the system administrator.
               </p>
               <div className="text-xs text-center text-muted-foreground bg-muted/50 rounded p-2">
@@ -413,12 +414,15 @@ export default function NewsroomOwnerLogin() {
                     <Input
                       id="owner-email"
                       type="email"
-                      placeholder="owner@company.com"
+                      placeholder="hello@abhishekpanda.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       autoComplete="username"
                       required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Owner login is limited to designated admin email identities.
+                    </p>
                   </div>
 
                   <div className="space-y-2">

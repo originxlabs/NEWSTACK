@@ -1,0 +1,3 @@
+ALTER TABLE public.donations
+  ADD COLUMN IF NOT EXISTS donor_name TEXT,
+  ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN NOT NULL DEFAULT false;

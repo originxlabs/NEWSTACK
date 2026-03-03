@@ -16,7 +16,6 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-// Passkey emails are sent by Supabase Auth
 
 type ViewMode = "main" | "verify-passkey" | "set-password" | "success";
 
@@ -79,7 +78,7 @@ export default function NewsroomLogin() {
     }
   };
 
-  // Request passkey for new registration
+  // Request OTP code for new registration
   const handleRequestPasskey = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -114,25 +113,25 @@ export default function NewsroomLogin() {
       });
 
       if (error || !data?.success) {
-        toast.error(error?.message || data?.error || "Failed to send passkey");
+        toast.error(error?.message || data?.error || "Failed to send verification code");
         setIsLoading(false);
         return;
       }
 
       setIsNewAccount(true);
-      toast.success("Passkey sent to your email from Newstack!");
+      toast.success("Verification code sent to your email from Newstack!");
       setViewMode("verify-passkey");
     } catch (err) {
-      toast.error("Failed to send passkey");
+      toast.error("Failed to send verification code");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Verify passkey
+  // Verify OTP code
   const handleVerifyPasskey = async () => {
     if (passkey.length !== 6) {
-      toast.error("Please enter the 6-digit passkey");
+      toast.error("Please enter the 6-digit verification code");
       return;
     }
 
@@ -149,7 +148,7 @@ export default function NewsroomLogin() {
       });
 
       if (error || !data?.success) {
-        toast.error(data?.error || "Invalid passkey. Please try again.");
+        toast.error(data?.error || "Invalid verification code. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -281,16 +280,16 @@ export default function NewsroomLogin() {
       });
 
       if (error || !data?.success) {
-        toast.error(error?.message || data?.error || "Failed to send reset passkey");
+        toast.error(error?.message || data?.error || "Failed to send reset code");
         setIsLoading(false);
         return;
       }
 
       setIsNewAccount(false);
-      toast.success("Reset passkey sent to your email from Newstack!");
+      toast.success("Reset code sent to your email from Newstack!");
       setViewMode("verify-passkey");
     } catch (err) {
-      toast.error("Failed to send reset passkey");
+      toast.error("Failed to send reset code");
     } finally {
       setIsLoading(false);
     }
@@ -411,7 +410,7 @@ export default function NewsroomLogin() {
                       <form onSubmit={handleRequestPasskey} className="space-y-4">
                         <div className="p-3 rounded-lg bg-muted/50 border border-border mb-4">
                           <p className="text-xs text-muted-foreground text-center">
-                            Register to join the NEWSTACK Newsroom. You'll receive a passkey via email to verify your account.
+                            Register to join the NEWSTACK Newsroom. You'll receive an OTP code via email to verify your account.
                           </p>
                         </div>
                         
@@ -431,12 +430,12 @@ export default function NewsroomLogin() {
                           {isLoading ? (
                             <>
                               <Loader2 className="w-4 h-4 animate-spin" />
-                              Sending passkey...
+                              Sending OTP code...
                             </>
                           ) : (
                             <>
                               <Mail className="w-4 h-4" />
-                              Send Passkey to Email
+                              Send OTP Code to Email
                             </>
                           )}
                         </Button>
@@ -459,7 +458,7 @@ export default function NewsroomLogin() {
             </motion.div>
           )}
 
-          {/* VERIFY PASSKEY */}
+          {/* VERIFY OTP */}
           {viewMode === "verify-passkey" && (
             <motion.div
               key="verify"
@@ -472,9 +471,9 @@ export default function NewsroomLogin() {
                   <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
                     <KeyRound className="w-6 h-6 text-primary" />
                   </div>
-                  <CardTitle>Enter Passkey</CardTitle>
+                  <CardTitle>Enter OTP Code</CardTitle>
                   <CardDescription>
-                    We sent a 6-digit passkey to <strong>{email}</strong>
+                    We sent a 6-digit OTP code to <strong>{email}</strong>
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -506,7 +505,7 @@ export default function NewsroomLogin() {
                         Verifying...
                       </>
                     ) : (
-                      "Verify Passkey"
+                      "Verify OTP"
                     )}
                   </Button>
 
@@ -516,7 +515,7 @@ export default function NewsroomLogin() {
                     onClick={isNewAccount ? handleRequestPasskey : handleForgotPassword}
                     disabled={isLoading}
                   >
-                    Didn't receive it? Resend passkey
+                    Didn't receive it? Resend code
                   </Button>
 
                   <Button 

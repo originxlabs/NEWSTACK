@@ -1,6 +1,6 @@
 import { 
   Plug, Code, Webhook, Database, 
-  ExternalLink, CheckCircle2, Settings, Key
+  ExternalLink, CheckCircle2, Settings, Key, Send, Search
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,22 @@ const integrations = [
     status: "available",
     details: "Scheduled exports or real-time replication",
   },
+  {
+    id: "x-publish",
+    name: "X/Twitter Publisher",
+    description: "Post verified updates from OpenNews",
+    icon: Send,
+    status: "available",
+    details: "Uses Supabase Edge Function opennews-social (action: post_to_x)",
+  },
+  {
+    id: "x-monitor",
+    name: "X/Twitter Monitor",
+    description: "Fetch breaking signals from X in real time",
+    icon: Search,
+    status: "available",
+    details: "Uses Supabase Edge Function opennews-social (action: search_x_news)",
+  },
 ];
 
 const apiEndpoints = [
@@ -40,6 +56,7 @@ const apiEndpoints = [
   { method: "GET", path: "/api/stories/:id/timeline", description: "Get story timeline" },
   { method: "GET", path: "/api/stories/:id/sources", description: "Get story sources" },
   { method: "GET", path: "/api/breaking", description: "List breaking stories" },
+  { method: "POST", path: "/functions/v1/opennews-social", description: "Publish/search on X (OpenNews social bridge)" },
 ];
 
 export default function NewsroomIntegrations() {

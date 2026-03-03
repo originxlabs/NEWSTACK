@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { OPENNEWS_AI_PROVIDER, OPENNEWS_CAPABILITIES, OPENNEWS_SOCIAL_MODE } from "@/lib/opennews-config";
 
 interface LatestStory {
   id: string;
@@ -48,7 +49,7 @@ const confidenceColors = {
   high: "text-emerald-600 bg-emerald-500/10 border-emerald-500/20",
 };
 
-export function StackBot() {
+export function OpenNews() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"breaking" | "verified" | "sources">("breaking");
   const [stories, setStories] = useState<LatestStory[]>([]);
@@ -129,7 +130,7 @@ export function StackBot() {
       
       setLastRefreshed(new Date());
     } catch (error) {
-      console.error("Error fetching StackBot data:", error);
+      console.error("Error fetching OpenNews data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -224,10 +225,21 @@ export function StackBot() {
                 <div>
                   <h3 className="font-display font-semibold text-base flex items-center gap-2">
                     <Zap className="w-4 h-4 text-red-500" />
-                    Live Intelligence
+                    OpenNews
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Breaking & verified news from 170+ sources
+                    Source-verified intelligence from RSS, X, and web monitors
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {OPENNEWS_CAPABILITIES.map((capability) => (
+                      <Badge key={capability} variant="outline" className="text-[10px] h-4">
+                        {capability.replaceAll("_", " ")}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    AI provider: {OPENNEWS_AI_PROVIDER === "sarvam" ? "Sarvam (active)" : "Open-source LLM (planned)"}
+                    {OPENNEWS_SOCIAL_MODE.xPublishingEnabled || OPENNEWS_SOCIAL_MODE.xMonitoringEnabled ? " · X integrations enabled" : " · X integrations pending credentials"}
                   </p>
                 </div>
                 <Button
@@ -384,7 +396,7 @@ export function StackBot() {
                 }}
               >
                 <TrendingUp className="w-3.5 h-3.5" />
-                View all news on NEWStack
+                Open full OpenNews feed
               </Button>
             </div>
           </motion.div>
@@ -394,7 +406,7 @@ export function StackBot() {
   );
 }
 
-// Story card component for StackBot
+// Story card component for OpenNews
 function StoryCard({ 
   story, 
   onClick, 
@@ -459,3 +471,6 @@ function StoryCard({
     </motion.div>
   );
 }
+
+
+export const StackBot = OpenNews;

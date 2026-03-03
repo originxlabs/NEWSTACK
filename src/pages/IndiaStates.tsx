@@ -37,6 +37,7 @@ import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeN
 import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 import { WeatherAQIWidget } from "@/components/weather/WeatherAQIWidget";
 import { getCountryMetadata } from "@/lib/world-countries-config";
+import { SUPABASE_URL } from "@/lib/supabase-env";
 // State color mapping based on region
 const STATE_COLORS: Record<string, string> = {
   // North
@@ -512,7 +513,7 @@ function StateCard({
     setIsTranslating(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-to-english`,
+        `${SUPABASE_URL}/functions/v1/translate-to-english`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

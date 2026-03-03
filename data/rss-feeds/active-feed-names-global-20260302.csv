@@ -1,0 +1,49 @@
+name,publisher,url,country_code,language,category,reliability_tier,source_type,state_id,fetch_interval_minutes,priority
+ABC Australia Top,ABC Australia,https://www.abc.net.au/news/feed/51120/rss.xml,AU,en,World,tier_1,primary,,20,90
+SBS Australia,SBS News,https://www.sbs.com.au/news/feed,AU,en,World,tier_2,secondary,,20,82
+Sydney Morning Herald,Sydney Morning Herald,https://www.smh.com.au/rss/feed.xml,AU,en,World,tier_2,secondary,,30,78
+Daily Star Bangladesh,The Daily Star,https://www.thedailystar.net/frontpage/rss.xml,BD,en,World,tier_2,secondary,,25,80
+Folha Brazil,Folha de S.Paulo,https://feeds.folha.uol.com.br/emcimadahora/rss091.xml,BR,pt,World,tier_2,secondary,,30,74
+CBC Top,CBC,https://www.cbc.ca/cmlink/rss-topstories,CA,en,World,tier_1,primary,,20,90
+Global News Canada,Global News,https://globalnews.ca/feed/,CA,en,World,tier_2,secondary,,20,82
+DW Top,Deutsche Welle,https://rss.dw.com/rdf/rss-en-top,DE,en,World,tier_1,primary,,20,90
+Euronews,Euronews,https://www.euronews.com/rss?format=mrss,FR,en,World,tier_2,secondary,,20,80
+France24,France 24,https://www.france24.com/en/rss,FR,en,World,tier_1,primary,,20,90
+BBC Business,BBC,http://feeds.bbci.co.uk/news/business/rss.xml,GB,en,Business,tier_1,primary,,15,93
+BBC Technology,BBC,http://feeds.bbci.co.uk/news/technology/rss.xml,GB,en,Technology,tier_1,primary,,20,90
+BBC UK,BBC,http://feeds.bbci.co.uk/news/uk/rss.xml,GB,en,World,tier_1,primary,,15,95
+Guardian UK,The Guardian,https://www.theguardian.com/uk/rss,GB,en,World,tier_1,primary,,20,91
+Guardian World,The Guardian,https://www.theguardian.com/world/rss,GB,en,World,tier_1,primary,,15,93
+Sky News Home,Sky News,https://feeds.skynews.com/feeds/rss/home.xml,GB,en,World,tier_2,secondary,,20,84
+Sky News World,Sky News,https://feeds.skynews.com/feeds/rss/world.xml,GB,en,World,tier_2,secondary,,20,84
+SCMP,South China Morning Post,https://www.scmp.com/rss/91/feed,HK,en,World,tier_2,secondary,,20,82
+South China Morning Post World,South China Morning Post,https://www.scmp.com/rss/4/feed,HK,en,World,tier_2,secondary,,20,80
+Jerusalem Post,Jerusalem Post,https://www.jpost.com/Rss/RssFeedsHeadlines.aspx,IL,en,World,tier_2,secondary,,20,80
+Times of Israel,Times of Israel,https://www.timesofisrael.com/feed/,IL,en,World,tier_2,secondary,,20,80
+ANSA World,ANSA,https://www.ansa.it/sito/ansait_rss.xml,IT,it,World,tier_2,secondary,,30,76
+Japan Times,The Japan Times,https://www.japantimes.co.jp/feed/,JP,en,World,tier_1,primary,,20,88
+NHK World,NHK,https://www3.nhk.or.jp/rss/news/cat0.xml,JP,en,World,tier_1,primary,,20,88
+Mexico News Daily,Mexico News Daily,https://mexiconewsdaily.com/feed/,MX,en,World,tier_2,secondary,,30,72
+Punch Nigeria,Punch,https://punchng.com/feed/,NG,en,World,tier_2,secondary,,25,76
+Vanguard Nigeria,Vanguard,https://www.vanguardngr.com/feed/,NG,en,World,tier_2,secondary,,25,76
+Kathmandu Post,Kathmandu Post,https://kathmandupost.com/rss,NP,en,World,tier_2,secondary,,25,78
+Rappler Philippines,Rappler,https://www.rappler.com/rss/,PH,en,World,tier_2,secondary,,25,78
+Al Jazeera Middle East,Al Jazeera,https://www.aljazeera.com/xml/rss/all.xml,QA,en,World,tier_1,primary,,15,90
+Channel NewsAsia,CNA,https://www.channelnewsasia.com/rssfeeds/8395986,SG,en,World,tier_1,primary,,20,88
+Straits Times,The Straits Times,https://www.straitstimes.com/news/singapore/rss.xml,SG,en,World,tier_1,primary,,20,88
+ABC Top,ABC News,https://abcnews.go.com/abcnews/topstories,US,en,World,tier_2,secondary,,20,82
+CBS Top,CBS News,https://www.cbsnews.com/latest/rss/main,US,en,World,tier_2,secondary,,20,82
+CNN Top,CNN,http://rss.cnn.com/rss/edition.rss,US,en,World,tier_2,secondary,,20,84
+CNN World,CNN,http://rss.cnn.com/rss/edition_world.rss,US,en,World,tier_2,secondary,,20,84
+Fox News Latest,Fox News,https://moxie.foxnews.com/google-publisher/latest.xml,US,en,World,tier_2,secondary,,20,80
+LA Times,Los Angeles Times,https://www.latimes.com/world-nation/rss2.0.xml,US,en,World,tier_2,secondary,,30,82
+NPR News,NPR,https://feeds.npr.org/1001/rss.xml,US,en,World,tier_1,primary,,15,90
+NYTimes Business,The New York Times,https://rss.nytimes.com/services/xml/rss/nyt/Business.xml,US,en,Business,tier_1,primary,,20,90
+NYTimes Home,The New York Times,https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml,US,en,World,tier_1,primary,,15,95
+NYTimes US,The New York Times,https://rss.nytimes.com/services/xml/rss/nyt/US.xml,US,en,World,tier_1,primary,,20,92
+NYTimes World,The New York Times,https://rss.nytimes.com/services/xml/rss/nyt/World.xml,US,en,World,tier_1,primary,,15,94
+Washington Post World,The Washington Post,https://feeds.washingtonpost.com/rss/world,US,en,World,tier_1,primary,,20,90
+VNExpress,VNExpress,https://vnexpress.net/rss/tin-moi-nhat.rss,VN,vi,World,tier_2,secondary,,25,74
+Mail and Guardian,Mail & Guardian,https://mg.co.za/feed/,ZA,en,World,tier_2,secondary,,30,76
+BBC News,,http://feeds.bbci.co.uk/news/rss.xml,,en,World,tier_2,secondary,,30,95
+BBC World,,http://feeds.bbci.co.uk/news/world/rss.xml,,en,World,tier_2,secondary,,30,90

@@ -15,9 +15,9 @@ import {
   getCachedSearch,
   setCachedSearch,
 } from "@/lib/places-cache";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase-env";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_KEY = SUPABASE_ANON_KEY;
 
 interface Place {
   place_id: string;

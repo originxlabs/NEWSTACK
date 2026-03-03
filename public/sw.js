@@ -1,10 +1,11 @@
 /// <reference lib="webworker" />
 
 // Version bump triggers cache refresh for installed PWA
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `newstack-${CACHE_VERSION}`;
 const OFFLINE_CACHE_NAME = `newstack-offline-${CACHE_VERSION}`;
 const ARTICLES_CACHE_NAME = `newstack-articles-${CACHE_VERSION}`;
+const OFFLINE_NEWS_ROUTES = ['/news', '/india', '/world', '/trending', '/opennews'];
 
 // Core assets to cache immediately
 const CORE_ASSETS = [
@@ -174,6 +175,10 @@ self.addEventListener('message', (event) => {
   if (event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+
+  if (event.data.type === 'TRIGGER_NEWS_SYNC') {
+    event.waitUntil(syncLatestNews());
+  }
 });
 
 // Push notification handler - works on both iOS (Safari 16.4+) and Android
@@ -249,6 +254,9 @@ self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-bookmarks') {
     event.waitUntil(syncBookmarks());
   }
+  if (event.tag === 'sync-news') {
+    event.waitUntil(syncLatestNews());
+  }
 });
 
 async function syncBookmarks() {
@@ -260,22 +268,28 @@ async function syncBookmarks() {
   console.log('Syncing', keys.length, 'offline articles');
 }
 
-// Periodic background sync for fresh content (if supported)
 self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'update-news') {
-    event.waitUntil(updateNewsCache());
+  if (event.tag === 'sync-news-periodic') {
+    event.waitUntil(syncLatestNews());
   }
 });
 
-async function updateNewsCache() {
+async function syncLatestNews() {
   try {
-    // Fetch latest news and cache it
-    const response = await fetch('/api/news?limit=20');
-    if (response.ok) {
-      const cache = await caches.open(CACHE_NAME);
-      await cache.put('/api/news?limit=20', response);
-    }
-  } catch (e) {
-    console.log('Background sync failed:', e);
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.all(
+      OFFLINE_NEWS_ROUTES.map(async (route) => {
+        const response = await fetch(route, { cache: 'no-store' });
+        if (response.ok) {
+          await cache.put(route, response.clone());
+        }
+      })
+    );
+    const clientsList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    clientsList.forEach((client) => {
+      client.postMessage({ type: 'NEWS_SYNCED', syncedAt: new Date().toISOString() });
+    });
+  } catch (error) {
+    console.error('News sync failed:', error);
   }
 }

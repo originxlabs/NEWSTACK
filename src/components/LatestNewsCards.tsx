@@ -16,6 +16,7 @@ interface NewsItem {
   sourceCount?: number;
   publishedAt?: string;
   summary?: string;
+  tags?: string[];
 }
 
 interface LatestNewsCardsProps {
@@ -159,7 +160,7 @@ export function LatestNewsCards({ articles, isLoading }: LatestNewsCardsProps) {
             {articles.slice(0, 20).map((article, idx) => (
               <button
                 key={article.id}
-                className="news-card group text-left rounded-xl border border-border/60 bg-card hover:border-primary/30 hover:bg-card/90 transition-colors duration-200 p-4 cursor-pointer shadow-sm relative overflow-hidden"
+                className="news-card group text-left rounded-xl border border-border/60 bg-card hover:border-primary/30 hover:bg-card/90 transition-colors duration-200 p-5 cursor-pointer shadow-sm relative overflow-hidden min-h-[218px] flex flex-col"
                 onClick={() => navigate(`/news?story=${article.id}`)}
               >
                 {/* Subtle gradient accent top */}
@@ -188,8 +189,21 @@ export function LatestNewsCards({ articles, isLoading }: LatestNewsCardsProps) {
                   {article.headline}
                 </h3>
 
+                {article.tags && article.tags.length > 0 && (
+                  <div className="mt-auto pt-3 flex flex-wrap gap-1.5">
+                    {article.tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={`${article.id}-${tag}`}
+                        className="inline-flex items-center rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 {/* Footer */}
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-auto">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-3">
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {article.publishedAt

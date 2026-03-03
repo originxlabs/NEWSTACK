@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useTTS } from "@/hooks/use-tts";
+import { SUPABASE_URL } from "@/lib/supabase-env";
 
 // Types
 export interface Region {
@@ -344,7 +345,7 @@ function RegionCard({
     setIsTranslating(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-to-english`,
+        `${SUPABASE_URL}/functions/v1/translate-to-english`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

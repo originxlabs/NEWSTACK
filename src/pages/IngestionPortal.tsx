@@ -20,6 +20,8 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getStateName, getStatesForDropdown } from "@/hooks/use-feed-states";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNewsroomRole } from "@/hooks/use-newsroom-role";
 
 interface IngestionRun {
   id: string;
@@ -33,6 +35,8 @@ interface IngestionRun {
 }
 
 export default function IngestionPortal() {
+  const { user } = useAuth();
+  const { isAdmin } = useNewsroomRole();
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
   const [accessUserId, setAccessUserId] = useState<string | null>(null);
   const [latestRun, setLatestRun] = useState<IngestionRun | null>(null);
@@ -43,6 +47,20 @@ export default function IngestionPortal() {
   const [sessionTimeLeft, setSessionTimeLeft] = useState<number | null>(null);
 
   const stateOptions = getStatesForDropdown();
+  const allowlistedAdminEmails = ((import.meta.env.VITE_INGESTION_ADMIN_EMAILS as string | undefined) || "hello@abhishekpanda.com")
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+  const userEmail = (user?.email || "").toLowerCase();
+  const isAllowlistedAdminEmail = !!userEmail && allowlistedAdminEmails.includes(userEmail);
+  const canManualIngest = !!user && isAdmin && isAllowlistedAdminEmail;
+  const missingGateReason = !user
+    ? "Sign in with Enterprise Sign In first."
+    : !isAdmin
+      ? "Your account is signed in but does not have newsroom admin privileges."
+      : !isAllowlistedAdminEmail
+        ? "Your signed-in account is not in the ingestion admin allowlist."
+        : null;
 
   // Check for existing verified session
   useEffect(() => {
@@ -50,7 +68,15 @@ export default function IngestionPortal() {
       const storedUserId = localStorage.getItem("ingestion_access_user_id");
       const storedExpiry = localStorage.getItem("ingestion_access_expiry");
       
-      if (storedUserId && storedExpiry) {
+      if (!canManualIngest) {
+        localStorage.removeItem("ingestion_access_user_id");
+        localStorage.removeItem("ingestion_access_expiry");
+        setAccessUserId(null);
+        setSessionTimeLeft(null);
+        return;
+      }
+
+      if (storedUserId && storedExpiry && canManualIngest) {
         const expiry = new Date(storedExpiry);
         const now = new Date();
         if (expiry > now) {
@@ -78,9 +104,14 @@ export default function IngestionPortal() {
     const interval = setInterval(checkSession, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [canManualIngest]);
 
   const fetchLatestRun = useCallback(async () => {
+    if (!canManualIngest) {
+      setLatestRun(null);
+      setIsLoading(false);
+      return;
+    }
     try {
       const { data, error } = await supabase
         .from("ingestion_runs")
@@ -95,9 +126,13 @@ export default function IngestionPortal() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [canManualIngest]);
 
   useEffect(() => {
+    if (!canManualIngest) {
+      return;
+    }
+
     fetchLatestRun();
 
     // Real-time subscription
@@ -116,18 +151,24 @@ export default function IngestionPortal() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchLatestRun]);
+  }, [canManualIngest, fetchLatestRun]);
 
   const handleAccessSuccess = (userId: string) => {
+    if (!canManualIngest) return;
     setAccessUserId(userId);
-    // Store with 30-minute expiry
+    // Store with 15-minute expiry
     const expiry = new Date();
-    expiry.setMinutes(expiry.getMinutes() + 30);
+    expiry.setMinutes(expiry.getMinutes() + 15);
     localStorage.setItem("ingestion_access_user_id", userId);
     localStorage.setItem("ingestion_access_expiry", expiry.toISOString());
   };
 
   const triggerIngestion = async () => {
+    if (!canManualIngest) {
+      toast.error("Only allowlisted newsroom admins can trigger ingestion.");
+      return;
+    }
+
     if (!accessUserId) {
       setIsAccessModalOpen(true);
       return;
@@ -168,7 +209,7 @@ export default function IngestionPortal() {
           localStorage.removeItem("ingestion_access_user_id");
           localStorage.removeItem("ingestion_access_expiry");
           setAccessUserId(null);
-          toast.error("Session expired (30 min limit). Please re-verify.", {
+          toast.error("Session expired (15 min limit). Please re-verify.", {
             description: "Your access has expired. Click 'Verify Access' to continue.",
           });
           setIsAccessModalOpen(true);
@@ -239,7 +280,7 @@ export default function IngestionPortal() {
           </div>
           <p className="text-muted-foreground max-w-xl mx-auto">
             Trigger news ingestion, monitor pipeline status, and view real-time activity.
-            Authentication required for manual triggers.
+            Manual triggers are restricted to allowlisted admin accounts.
           </p>
         </div>
 
@@ -251,30 +292,62 @@ export default function IngestionPortal() {
                 <Shield className={cn("w-5 h-5", accessUserId ? "text-emerald-500" : "text-muted-foreground")} />
                 <div>
                   <p className="font-medium">
-                    {accessUserId ? "Access Verified" : "Authentication Required"}
+                    {!canManualIngest
+                      ? "Admin Access Required"
+                      : accessUserId
+                        ? "Access Verified"
+                        : "Authentication Required"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {accessUserId 
+                    {!canManualIngest
+                      ? missingGateReason
+                      : accessUserId 
                       ? sessionTimeLeft !== null 
                         ? `Session expires in ${Math.floor(sessionTimeLeft / 60)}:${String(sessionTimeLeft % 60).padStart(2, '0')}`
                         : "You can trigger ingestion runs"
-                      : "Verify your email to run the pipeline (30 min access)"}
+                      : "Verify your email to run the pipeline (15 min access)"}
                   </p>
                 </div>
               </div>
-              {!accessUserId && (
+              {canManualIngest && !accessUserId && (
                 <Button onClick={() => setIsAccessModalOpen(true)}>
                   <Shield className="w-4 h-4 mr-2" />
                   Verify Access
                 </Button>
               )}
-              {accessUserId && sessionTimeLeft !== null && sessionTimeLeft < 300 && (
+              {canManualIngest && accessUserId && sessionTimeLeft !== null && sessionTimeLeft < 300 && (
                 <Button variant="outline" size="sm" onClick={() => setIsAccessModalOpen(true)}>
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Extend Session
                 </Button>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6 border-primary/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">How Admin Activation Works</CardTitle>
+            <CardDescription>
+              Enterprise Sign In is required, but it is not the only gate.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              1. Sign in using <span className="font-medium text-foreground">Enterprise Sign In</span>.
+            </p>
+            <p>
+              2. Your account must have newsroom admin privileges (owner/superadmin/admin role).
+            </p>
+            <p>
+              3. Your email must be allowlisted in <code>VITE_INGESTION_ADMIN_EMAILS</code>.
+            </p>
+            <p>
+              4. Click <span className="font-medium text-foreground">Verify Access</span> and complete the QR/email verification.
+            </p>
+            <p>
+              5. Verification opens a guarded session for <span className="font-medium text-foreground">15 minutes</span>, then re-verification is required.
+            </p>
           </CardContent>
         </Card>
 
@@ -358,7 +431,7 @@ export default function IngestionPortal() {
 
               <Button
                 onClick={triggerIngestion}
-                disabled={isTriggering || latestRun.status === "running"}
+                disabled={!canManualIngest || isTriggering || latestRun.status === "running"}
                 className="w-full"
               >
                 {isTriggering ? (
@@ -366,7 +439,9 @@ export default function IngestionPortal() {
                 ) : (
                   <Play className="w-4 h-4 mr-2" />
                 )}
-                {accessUserId 
+                {!canManualIngest
+                  ? "Admin Access Required"
+                  : accessUserId 
                   ? `Trigger Ingestion${selectedState && selectedState !== "all" ? ` for ${getStateName(selectedState)}` : ''}`
                   : "Verify & Trigger Ingestion"}
               </Button>
@@ -385,7 +460,7 @@ export default function IngestionPortal() {
 
       {/* Access Modal */}
       <IngestionAccessModal
-        isOpen={isAccessModalOpen}
+        isOpen={isAccessModalOpen && canManualIngest}
         onClose={() => setIsAccessModalOpen(false)}
         onSuccess={handleAccessSuccess}
       />

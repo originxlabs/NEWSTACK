@@ -1,7 +1,7 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase-env";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_KEY = SUPABASE_ANON_KEY;
 
 export interface NewsArticle {
   id: string;
@@ -47,6 +47,7 @@ interface FetchNewsParams {
   userCity?: string;
   userState?: string;
   sortBy?: "latest" | "sources" | "discussed" | "relevance"; // Sort order
+  refetchIntervalMs?: number;
 }
 
 interface NewsResponse {
@@ -105,6 +106,7 @@ export function useNews(params: FetchNewsParams = {}) {
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     retry: 2,
     refetchOnWindowFocus: true, // Refetch when user focuses window
+    refetchInterval: params.refetchIntervalMs || false,
   });
 }
 

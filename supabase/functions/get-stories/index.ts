@@ -439,7 +439,7 @@ serve(async (req) => {
           meta: {
             feedType,
             verifiedSourcesAvailable: VERIFIED_SOURCES.length,
-            cronSchedule: "Every 15 minutes"
+            cronSchedule: "Configured in Supabase cron"
           }
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -624,7 +624,7 @@ serve(async (req) => {
           feedType,
           totalVerifiedSources,
           verifiedSourcesAvailable: VERIFIED_SOURCES.length,
-          cronSchedule: "Every 15 minutes",
+          cronSchedule: "Configured in Supabase cron",
           lastUpdated: now.toISOString(),
           prioritization: "Multi-source verified stories first, then by freshness"
         }
