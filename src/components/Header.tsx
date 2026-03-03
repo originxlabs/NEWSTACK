@@ -30,7 +30,6 @@ const navLinks = [
   { name: "Places", href: "/places", icon: MapPin },
   { name: "Politics", href: "/open-politics", icon: Building2 },
   { name: "Grievances", href: "/public-grievances", icon: MessageSquareWarning },
-  { name: "Developers", href: "/api", icon: Code2 },
   { name: "Trending", href: "/trending", icon: Flame },
 ];
 
