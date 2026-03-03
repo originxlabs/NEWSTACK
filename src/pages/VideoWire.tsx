@@ -1106,7 +1106,7 @@ export default function VideoWire() {
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
               {isOffline
                 ? "You are offline. Showing your last saved 20+ reels."
-                : "Refreshing latest reels. Showing 20+ ready reels right now."}
+                : "Showing verified ready reels."}
             </CardContent>
           </Card>
         )}
