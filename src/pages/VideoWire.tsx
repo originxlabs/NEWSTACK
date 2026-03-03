@@ -25,6 +25,7 @@ interface VideoWireItem {
   embed_url?: string | null;
   is_short?: boolean;
   is_trending?: boolean;
+  duration_seconds?: number | null;
 }
 
 interface RenderReel extends VideoWireItem {
@@ -329,7 +330,13 @@ function fallbackEmbedBySource(sourceName: string): string | null {
 async function fetchVideoWire() {
   try {
     const { data, error } = await supabase.functions.invoke("video-wire-feed", {
-      body: { limit: 80, platform: "youtube" },
+      body: {
+        limit: 80,
+        platform: "youtube",
+        verifiedOnly: true,
+        maxDurationSeconds: 300,
+        strictDuration: true,
+      },
     });
 
     if (error) {

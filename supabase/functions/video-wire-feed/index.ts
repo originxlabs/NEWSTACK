@@ -24,6 +24,8 @@ interface VideoItem {
   embed_url: string | null;
   is_short: boolean;
   is_trending: boolean;
+  duration_seconds: number | null;
+  is_verified_source: boolean;
 }
 
 const FALLBACK_FEEDS: FeedSource[] = [
@@ -47,6 +49,12 @@ const FALLBACK_FEEDS: FeedSource[] = [
 
 const TRENDING_KEYWORDS = [
   "breaking", "live", "just in", "alert", "explained", "analysis", "exclusive", "shorts", "viral",
+];
+
+const VERIFIED_SOURCE_TOKENS = [
+  "bbc", "reuters", "cnn", "al jazeera", "sky news", "france 24", "dw", "ndtv", "india today",
+  "aaj tak", "abp", "wion", "news18", "republic", "new york times", "nyt", "washington post",
+  "financial times", "ft", "bloomberg", "npr", "the hindu", "indian express", "times of india", "zee news",
 ];
 
 function stripCdata(input: string): string {
@@ -77,6 +85,24 @@ function extractTag(xml: string, tag: string): string | null {
 function extractAttr(xml: string, tag: string, attr: string): string | null {
   const match = xml.match(new RegExp(`<${tag}[^>]*\\s${attr}="([^"]+)"[^>]*>`, "i"));
   return match?.[1] ?? null;
+}
+
+function extractDurationSeconds(xml: string): number | null {
+  const ytDuration = extractAttr(xml, "yt:duration", "seconds");
+  if (ytDuration && /^\d+$/.test(ytDuration)) return Number(ytDuration);
+
+  const mediaDurationTag = extractTag(xml, "media:duration");
+  if (mediaDurationTag && /^\d+$/.test(mediaDurationTag)) return Number(mediaDurationTag);
+
+  const mediaContentDuration = extractAttr(xml, "media:content", "duration");
+  if (mediaContentDuration && /^\d+$/.test(mediaContentDuration)) return Number(mediaContentDuration);
+
+  return null;
+}
+
+function isVerifiedSource(sourceName: string, sourceUrl?: string): boolean {
+  const merged = `${sourceName} ${sourceUrl ?? ""}`.toLowerCase();
+  return VERIFIED_SOURCE_TOKENS.some((token) => merged.includes(token));
 }
 
 function extractYoutubeId(link: string): string | null {
@@ -143,6 +169,7 @@ function parseAtomEntries(xml: string, source: FeedSource): VideoItem[] {
       const fromEntryVideoId = extractTag(entry, "yt:videoId");
       const fromLinkVideoId = extractYoutubeId(link);
       const videoId = fromEntryVideoId || fromLinkVideoId;
+      const durationSeconds = extractDurationSeconds(entry);
       const thumbnail =
         extractAttr(entry, "media:thumbnail", "url") ??
         extractAttr(entry, "media:content", "url") ??
@@ -161,6 +188,8 @@ function parseAtomEntries(xml: string, source: FeedSource): VideoItem[] {
         embed_url: source.platform === "youtube" ? toEmbedUrl(videoId) : null,
         is_short: looksShort(title, link),
         is_trending: isTrendingVideo(title, published),
+        duration_seconds: durationSeconds,
+        is_verified_source: isVerifiedSource(source.name, source.url),
       } as VideoItem;
     })
     .filter((item): item is VideoItem => Boolean(item));
@@ -174,6 +203,7 @@ function parseRssItems(xml: string, source: FeedSource): VideoItem[] {
       const link = extractTag(item, "link") ?? "";
       const published = extractTag(item, "pubDate") ?? new Date().toISOString();
       const videoId = extractYoutubeId(link);
+      const durationSeconds = extractDurationSeconds(item);
       const thumbnail =
         extractAttr(item, "media:thumbnail", "url") ??
         extractAttr(item, "media:content", "url") ??
@@ -193,6 +223,8 @@ function parseRssItems(xml: string, source: FeedSource): VideoItem[] {
         embed_url: source.platform === "youtube" ? toEmbedUrl(videoId) : null,
         is_short: looksShort(title, link),
         is_trending: isTrendingVideo(title, published),
+        duration_seconds: durationSeconds,
+        is_verified_source: isVerifiedSource(source.name, source.url),
       } as VideoItem;
     })
     .filter((item): item is VideoItem => Boolean(item));
@@ -223,13 +255,39 @@ async function fetchAndParseFeed(source: FeedSource): Promise<VideoItem[]> {
   }
 }
 
+function shouldKeepByDuration(item: VideoItem, maxDurationSeconds: number, strictDuration: boolean): boolean {
+  if (item.is_short) return true;
+  if (item.duration_seconds !== null) return item.duration_seconds <= maxDurationSeconds;
+  return !strictDuration;
+}
+
+async function isEmbeddableYouTube(item: VideoItem): Promise<boolean> {
+  if (item.platform !== "youtube") return true;
+  if (!item.video_id) return false;
+  try {
+    const probe = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${item.video_id}&format=json`,
+      { headers: { "User-Agent": "NEWSTACK-ReelWire/1.0" } },
+    );
+    return probe.ok;
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { limit = 60, platform = "all" } = await req.json().catch(() => ({}));
+    const {
+      limit = 60,
+      platform = "all",
+      maxDurationSeconds = 300,
+      verifiedOnly = true,
+      strictDuration = true,
+    } = await req.json().catch(() => ({}));
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -268,6 +326,8 @@ serve(async (req) => {
     const allItems = settled
       .flatMap((result) => (result.status === "fulfilled" ? result.value : []))
       .filter((item) => item.link && item.title)
+      .filter((item) => (verifiedOnly ? item.is_verified_source : true))
+      .filter((item) => shouldKeepByDuration(item, Number(maxDurationSeconds), Boolean(strictDuration)))
       .sort((a, b) => {
         const aTime = new Date(a.published_at).getTime();
         const bTime = new Date(b.published_at).getTime();
@@ -285,6 +345,10 @@ serve(async (req) => {
     for (const item of allItems) {
       const key = item.link || `${item.source}:${item.title}`;
       if (dedupe.has(key)) continue;
+
+      const embeddable = await isEmbeddableYouTube(item);
+      if (!embeddable) continue;
+
       dedupe.add(key);
       uniqueItems.push(item);
       if (uniqueItems.length >= Number(limit)) break;
@@ -296,6 +360,9 @@ serve(async (req) => {
         count: uniqueItems.length,
         sources_scanned: allFeeds.length,
         platform,
+        maxDurationSeconds,
+        verifiedOnly,
+        strictDuration,
         videos: uniqueItems,
       }),
       {
