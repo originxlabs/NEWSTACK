@@ -1,0 +1,61 @@
+name	url	publisher	country	language	category	reliability	source_type	fetch_interval	priority
+NYTimes Home	https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml	The New York Times	US	en	World	tier_1	primary	15	95
+NYTimes World	https://rss.nytimes.com/services/xml/rss/nyt/World.xml	The New York Times	US	en	World	tier_1	primary	15	94
+NYTimes US	https://rss.nytimes.com/services/xml/rss/nyt/US.xml	The New York Times	US	en	World	tier_1	primary	20	92
+NYTimes Business	https://rss.nytimes.com/services/xml/rss/nyt/Business.xml	The New York Times	US	en	Business	tier_1	primary	20	90
+Washington Post World	https://feeds.washingtonpost.com/rss/world	The Washington Post	US	en	World	tier_1	primary	20	90
+LA Times	https://www.latimes.com/world-nation/rss2.0.xml	Los Angeles Times	US	en	World	tier_2	secondary	30	82
+NPR News	https://feeds.npr.org/1001/rss.xml	NPR	US	en	World	tier_1	primary	15	90
+CNN Top	http://rss.cnn.com/rss/edition.rss	CNN	US	en	World	tier_2	secondary	20	84
+CNN World	http://rss.cnn.com/rss/edition_world.rss	CNN	US	en	World	tier_2	secondary	20	84
+Fox News Latest	https://moxie.foxnews.com/google-publisher/latest.xml	Fox News	US	en	World	tier_2	secondary	20	80
+CBS Top	https://www.cbsnews.com/latest/rss/main	CBS News	US	en	World	tier_2	secondary	20	82
+ABC Top	https://abcnews.go.com/abcnews/topstories	ABC News	US	en	World	tier_2	secondary	20	82
+Politico Playbook	https://www.politico.com/rss/politicopicks.xml	Politico	US	en	Politics	tier_2	secondary	30	76
+Guardian World	https://www.theguardian.com/world/rss	The Guardian	GB	en	World	tier_1	primary	15	93
+Guardian UK	https://www.theguardian.com/uk/rss	The Guardian	GB	en	World	tier_1	primary	20	91
+Sky News Home	https://feeds.skynews.com/feeds/rss/home.xml	Sky News	GB	en	World	tier_2	secondary	20	84
+Sky News World	https://feeds.skynews.com/feeds/rss/world.xml	Sky News	GB	en	World	tier_2	secondary	20	84
+BBC UK	http://feeds.bbci.co.uk/news/uk/rss.xml	BBC	GB	en	World	tier_1	primary	15	95
+BBC Business	http://feeds.bbci.co.uk/news/business/rss.xml	BBC	GB	en	Business	tier_1	primary	15	93
+BBC Technology	http://feeds.bbci.co.uk/news/technology/rss.xml	BBC	GB	en	Technology	tier_1	primary	20	90
+CBC Top	https://www.cbc.ca/cmlink/rss-topstories	CBC	CA	en	World	tier_1	primary	20	90
+Global News Canada	https://globalnews.ca/feed/	Global News	CA	en	World	tier_2	secondary	20	82
+ABC Australia Top	https://www.abc.net.au/news/feed/51120/rss.xml	ABC Australia	AU	en	World	tier_1	primary	20	90
+SBS Australia	https://www.sbs.com.au/news/feed	SBS News	AU	en	World	tier_2	secondary	20	82
+Sydney Morning Herald	https://www.smh.com.au/rss/feed.xml	Sydney Morning Herald	AU	en	World	tier_2	secondary	30	78
+DW Top	https://rss.dw.com/rdf/rss-en-top	Deutsche Welle	DE	en	World	tier_1	primary	20	90
+France24	https://www.france24.com/en/rss	France 24	FR	en	World	tier_1	primary	20	90
+Euronews	https://www.euronews.com/rss?format=mrss	Euronews	FR	en	World	tier_2	secondary	20	80
+ANSA World	https://www.ansa.it/sito/ansait_rss.xml	ANSA	IT	it	World	tier_2	secondary	30	76
+Japan Times	https://www.japantimes.co.jp/feed/	The Japan Times	JP	en	World	tier_1	primary	20	88
+NHK World	https://www3.nhk.or.jp/rss/news/cat0.xml	NHK	JP	en	World	tier_1	primary	20	88
+SCMP	https://www.scmp.com/rss/91/feed	South China Morning Post	HK	en	World	tier_2	secondary	20	82
+Channel NewsAsia	https://www.channelnewsasia.com/rssfeeds/8395986	CNA	SG	en	World	tier_1	primary	20	88
+Straits Times	https://www.straitstimes.com/news/singapore/rss.xml	The Straits Times	SG	en	World	tier_1	primary	20	88
+Jerusalem Post	https://www.jpost.com/Rss/RssFeedsHeadlines.aspx	Jerusalem Post	IL	en	World	tier_2	secondary	20	80
+Times of Israel	https://www.timesofisrael.com/feed/	Times of Israel	IL	en	World	tier_2	secondary	20	80
+Al Jazeera Middle East	https://www.aljazeera.com/xml/rss/all.xml	Al Jazeera	QA	en	World	tier_1	primary	15	90
+Daily Star Bangladesh	https://www.thedailystar.net/frontpage/rss.xml	The Daily Star	BD	en	World	tier_2	secondary	25	80
+Kathmandu Post	https://kathmandupost.com/rss	Kathmandu Post	NP	en	World	tier_2	secondary	25	78
+Mail and Guardian	https://mg.co.za/feed/	Mail & Guardian	ZA	en	World	tier_2	secondary	30	76
+Vanguard Nigeria	https://www.vanguardngr.com/feed/	Vanguard	NG	en	World	tier_2	secondary	25	76
+Punch Nigeria	https://punchng.com/feed/	Punch	NG	en	World	tier_2	secondary	25	76
+Folha Brazil	https://feeds.folha.uol.com.br/emcimadahora/rss091.xml	Folha de S.Paulo	BR	pt	World	tier_2	secondary	30	74
+Mexico News Daily	https://mexiconewsdaily.com/feed/	Mexico News Daily	MX	en	World	tier_2	secondary	30	72
+Rappler Philippines	https://www.rappler.com/rss/	Rappler	PH	en	World	tier_2	secondary	25	78
+VNExpress	https://vnexpress.net/rss/tin-moi-nhat.rss	VNExpress	VN	vi	World	tier_2	secondary	25	74
+South China Morning Post World	https://www.scmp.com/rss/4/feed	South China Morning Post	HK	en	World	tier_2	secondary	20	80
+Indian: India Today	https://www.indiatoday.in/rss/home	India Today	IN	en	India	tier_2	secondary	15	88
+Indian: Times of India Top	https://timesofindia.indiatimes.com/rssfeedstopstories.cms	Times of India	IN	en	India	tier_1	primary	15	90
+Indian: TOI India	https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms	Times of India	IN	en	India	tier_1	primary	15	90
+Indian: Hindustan Times	https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml	Hindustan Times	IN	en	India	tier_1	primary	15	90
+Indian: Firstpost	https://www.firstpost.com/commonfeeds/v1/mfp/rss/india.xml	Firstpost	IN	en	India	tier_2	secondary	20	84
+Indian: Economic Times	https://economictimes.indiatimes.com/rssfeedsdefault.cms	Economic Times	IN	en	Business	tier_1	primary	15	90
+Indian Local: Greater Kashmir	https://www.greaterkashmir.com/feed/	Greater Kashmir	IN	en	Local	tier_2	secondary	25	74
+Indian Local: EastMojo	https://www.eastmojo.com/feed/	EastMojo	IN	en	Local	tier_2	secondary	25	74
+Indian Local: Kashmir Observer	https://kashmirobserver.net/feed/	Kashmir Observer	IN	en	Local	tier_2	secondary	30	72
+Indian Local: The Shillong Times	https://theshillongtimes.com/feed/	The Shillong Times	IN	en	Local	tier_2	secondary	30	72
+Indian Local: Goa Chronicle	https://goachronicle.com/feed/	Goa Chronicle	IN	en	Local	tier_3	secondary	30	68
+Indian Local: News Karnataka	https://newskarnataka.com/feed/	News Karnataka	IN	en	Local	tier_3	secondary	30	68
+Indian Local: Kashmir Life	https://kashmirlife.net/feed/	Kashmir Life	IN	en	Local	tier_3	secondary	30	68

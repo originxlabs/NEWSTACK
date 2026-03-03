@@ -1,0 +1,990 @@
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { 
+  Globe, ChevronRight, ChevronLeft, MapPin, Building2, 
+  Layers, RefreshCw, TrendingUp, TrendingDown,
+  Minus, Wifi, WifiOff, Search, Navigation, Loader2, Radio, Home
+} from "lucide-react";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { 
+  GEO_HIERARCHY, 
+  Continent, 
+  Country, 
+  State, 
+  City, 
+  Locality,
+  getContinentById,
+  getCountryById,
+  getCountryByCode,
+  COUNTRY_TO_CONTINENT,
+  getGeoStats,
+  SearchResult,
+} from "@/lib/geo-hierarchy";
+import { LocationSearch } from "@/components/world/LocationSearch";
+import { useUserLocation } from "@/hooks/use-user-location";
+// Removed InteractiveWorldMap import - map removed for cleaner UI
+import { BreadcrumbNav, BreadcrumbItem as NavBreadcrumbItem } from "@/components/BreadcrumbNav";
+import { RealtimeNewsIndicator, RealtimeStatusDot } from "@/components/RealtimeNewsIndicator";
+
+// Navigation levels
+type DrillLevel = "world" | "continent" | "country" | "state" | "city" | "locality";
+
+interface BreadcrumbItem {
+  level: DrillLevel;
+  id: string;
+  name: string;
+}
+
+interface LocationStats {
+  storyCount: number;
+  trend: "up" | "down" | "stable";
+  topHeadline?: string;
+}
+
+// Realtime connection state
+function useRealtimeConnection() {
+  const [isConnected, setIsConnected] = useState(false);
+  
+  useEffect(() => {
+    const channel = supabase
+      .channel("world-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "stories" }, () => {})
+      .subscribe((status) => {
+        setIsConnected(status === "SUBSCRIBED");
+      });
+    
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+  
+  return isConnected;
+}
+
+// Fetch stats for locations with proper counts at each level
+function useLocationStats(
+  level: DrillLevel,
+  codes: string[],
+  parentCountryCode?: string,
+  parentStateName?: string,
+  parentCityName?: string
+) {
+  const [stats, setStats] = useState<Record<string, LocationStats>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  const fetchStats = useCallback(async () => {
+    if (codes.length === 0) {
+      setStats({});
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const cutoff = new Date();
+      cutoff.setHours(cutoff.getHours() - 48);
+
+      // Fetch all stories from last 48 hours with relevant fields
+      const { data, error } = await supabase
+        .from("stories")
+        .select("country_code, city, headline, created_at, is_global")
+        .gte("created_at", cutoff.toISOString())
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const statsMap: Record<string, LocationStats> = {};
+      const stories = data || [];
+
+      if (level === "world" || level === "continent") {
+        // For continents: count all stories from countries in that continent
+        const continentCounts: Record<string, { count: number; headline?: string }> = {};
+
+        for (const story of stories) {
+          const continentId = story.country_code
+            ? COUNTRY_TO_CONTINENT[story.country_code.toUpperCase()]
+            : null;
+          if (continentId && codes.includes(continentId)) {
+            if (!continentCounts[continentId]) {
+              continentCounts[continentId] = { count: 0, headline: story.headline };
+            }
+            continentCounts[continentId].count++;
+          }
+        }
+
+        for (const id of codes) {
+          statsMap[id] = {
+            storyCount: continentCounts[id]?.count || 0,
+            trend: (continentCounts[id]?.count || 0) > 50 ? "up" : "stable",
+            topHeadline: continentCounts[id]?.headline,
+          };
+        }
+      } else if (level === "country") {
+        // For countries: count all stories with matching country_code
+        const countryCounts: Record<string, { count: number; headline?: string }> = {};
+
+        const normalizedCodes = codes.map((c) => c.toUpperCase());
+        for (const story of stories) {
+          const code = story.country_code?.toUpperCase();
+          if (code && normalizedCodes.includes(code)) {
+            if (!countryCounts[code]) {
+              countryCounts[code] = { count: 0, headline: story.headline };
+            }
+            countryCounts[code].count++;
+          }
+        }
+
+        for (const code of codes) {
+          const upperCode = code.toUpperCase();
+          statsMap[code] = {
+            storyCount: countryCounts[upperCode]?.count || 0,
+            trend: (countryCounts[upperCode]?.count || 0) > 20 ? "up" : "stable",
+            topHeadline: countryCounts[upperCode]?.headline,
+          };
+        }
+      } else if (level === "state") {
+        // For states: count stories by matching ANY city within that state (realistic for our current DB schema)
+        const country = parentCountryCode ? getCountryByCode(parentCountryCode) : undefined;
+        const countryStories = parentCountryCode
+          ? stories.filter((s) => s.country_code?.toUpperCase() === parentCountryCode.toUpperCase())
+          : stories;
+        const countryLevelStories = countryStories.filter((s) => !s.city);
+
+        for (const stateId of codes) {
+          const state = country?.states.find((s) => s.id === stateId || s.name.toLowerCase() === stateId.toLowerCase());
+          const cityNames = (state?.cities || []).map((c) => c.name.toLowerCase());
+
+          const stateStories = countryStories.filter((s) => {
+            const city = s.city?.toLowerCase();
+            if (!city) return false;
+            return cityNames.some((cn) => city.includes(cn));
+          });
+
+          const specificCount = stateStories.length;
+          statsMap[stateId] = {
+            storyCount: specificCount,
+            trend: specificCount > 5 ? "up" : "stable",
+            topHeadline: stateStories[0]?.headline || countryLevelStories[0]?.headline,
+          };
+        }
+      } else if (level === "city") {
+        // For cities: count stories that match this city name within the selected state
+        const country = parentCountryCode ? getCountryByCode(parentCountryCode) : undefined;
+        const state = country?.states.find(
+          (s) => parentStateName && s.name.toLowerCase() === parentStateName.toLowerCase()
+        );
+
+        const countryStories = parentCountryCode
+          ? stories.filter((s) => s.country_code?.toUpperCase() === parentCountryCode.toUpperCase())
+          : stories;
+        const countryLevelStories = countryStories.filter((s) => !s.city);
+
+        for (const cityId of codes) {
+          const cityName = state?.cities.find((c) => c.id === cityId)?.name || cityId;
+          const cityNameNormalized = cityName.toLowerCase();
+
+          const cityMatches = countryStories.filter((s) => {
+            const city = s.city?.toLowerCase();
+            return Boolean(city && city.includes(cityNameNormalized));
+          });
+
+          const specificCount = cityMatches.length;
+          statsMap[cityId] = {
+            storyCount: specificCount,
+            trend: specificCount > 2 ? "up" : "stable",
+            topHeadline: cityMatches[0]?.headline || countryLevelStories[0]?.headline,
+          };
+        }
+      } else {
+        // For localities: we currently don't store locality/district in the DB.
+        // Keep counts at 0 so UI can prevent drilling down when data isn't available.
+        for (const code of codes) {
+          statsMap[code] = {
+            storyCount: 0,
+            trend: "stable",
+            topHeadline: parentCityName ? `No locality-level stories for ${parentCityName} yet` : undefined,
+          };
+        }
+      }
+
+      setStats(statsMap);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error("Failed to fetch location stats:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [level, codes, parentCountryCode, parentStateName, parentCityName]);
+
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 60000); // Refresh every minute
+    return () => clearInterval(interval);
+  }, [fetchStats]);
+
+  return { stats, isLoading, lastUpdated, refetch: fetchStats };
+}
+
+// Trend icon component
+function TrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
+  if (trend === "up") return <TrendingUp className="h-3 w-3 text-red-500" />;
+  if (trend === "down") return <TrendingDown className="h-3 w-3 text-emerald-500" />;
+  return <Minus className="h-3 w-3 text-muted-foreground" />;
+}
+
+// Location card component with enhanced flags and capitals
+interface LocationCardProps {
+  id: string;
+  name: string;
+  subtitle?: string;
+  flag?: string;
+  icon?: React.ReactNode;
+  stats?: LocationStats;
+  onClick: () => void;
+  isCapital?: boolean;
+  type?: string;
+  capital?: string;
+  capitalFlag?: string;
+}
+
+function LocationCard({ id, name, subtitle, flag, icon, stats, onClick, isCapital, type, capital, capitalFlag }: LocationCardProps) {
+  const hasStories = (stats?.storyCount || 0) > 0;
+  
+  return (
+    <motion.div
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      className="cursor-pointer"
+      onClick={onClick}
+    >
+      <Card className={cn(
+        "h-full transition-all hover:shadow-md hover:border-primary/30",
+        hasStories && "border-l-2 border-l-primary"
+      )}>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex items-center gap-2">
+              {flag && <span className="text-2xl">{flag}</span>}
+              {icon && !flag && icon}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-sm flex items-center gap-1.5 truncate">
+                  {name}
+                  {isCapital && (
+                    <Badge variant="outline" className="text-[9px] h-4 px-1 bg-amber-500/10 text-amber-600 border-amber-500/20 flex-shrink-0">
+                      Capital
+                    </Badge>
+                  )}
+                </h3>
+                {subtitle && (
+                  <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>
+                )}
+                {capital && (
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <Building2 className="w-2.5 h-2.5 text-amber-500" />
+                    <span className="font-medium">{capital}</span>
+                    {capitalFlag && <span className="text-xs">{capitalFlag}</span>}
+                  </p>
+                )}
+              </div>
+            </div>
+            {type && (
+              <Badge variant="outline" className="text-[9px] flex-shrink-0">
+                {type}
+              </Badge>
+            )}
+          </div>
+          
+          {stats && (
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Layers className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-sm font-semibold">{stats.storyCount}</span>
+                  <span className="text-[11px] text-muted-foreground">stories</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <TrendIcon trend={stats.trend} />
+                </div>
+              </div>
+              {stats.topHeadline && (
+                <p className="text-[11px] text-muted-foreground mt-2 line-clamp-2">
+                  {stats.topHeadline}
+                </p>
+              )}
+            </div>
+          )}
+          
+          <div className="mt-3 flex items-center justify-end text-[10px] text-muted-foreground">
+            <span>Drill down</span>
+            <ChevronRight className="h-3 w-3 ml-0.5" />
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// Breadcrumb navigation
+function DrillBreadcrumb({ 
+  items, 
+  onNavigate 
+}: { 
+  items: BreadcrumbItem[]; 
+  onNavigate: (level: DrillLevel, id?: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 text-sm overflow-x-auto scrollbar-hide">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2 gap-1 flex-shrink-0"
+        onClick={() => onNavigate("world")}
+      >
+        <Globe className="h-3.5 w-3.5" />
+        World
+      </Button>
+      
+      {items.map((item, index) => (
+        <div key={item.id} className="flex items-center">
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+          <Button
+            variant={index === items.length - 1 ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 px-2 flex-shrink-0"
+            onClick={() => onNavigate(item.level, item.id)}
+          >
+            {item.name}
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Main World Page Component
+export default function World() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isConnected = useRealtimeConnection();
+  const userLocation = useUserLocation();
+  const geoStats = useMemo(() => getGeoStats(), []);
+  
+  // Current drill-down state
+  const [currentLevel, setCurrentLevel] = useState<DrillLevel>("world");
+  const [selectedContinent, setSelectedContinent] = useState<Continent | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [selectedState, setSelectedState] = useState<State | null>(null);
+  const [selectedCity, setSelectedCity] = useState<City | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [hasAutoDrilled, setHasAutoDrilled] = useState(false);
+
+  // Removed auto-drill to user's location - always show default world landing page
+  // Users can manually click "Detect Location" button to navigate to their region
+
+  // Handle search selection
+  const handleSearchSelect = useCallback((result: SearchResult) => {
+    setShowSearch(false);
+    
+    if (result.type === "continent" && result.id) {
+      const continent = getContinentById(result.id);
+      if (continent) {
+        setSelectedContinent(continent);
+        setSelectedCountry(null);
+        setSelectedState(null);
+        setSelectedCity(null);
+        setCurrentLevel("continent");
+      }
+    } else if (result.type === "country" && result.continentId && result.countryCode) {
+      const continent = getContinentById(result.continentId);
+      const country = continent?.countries.find(c => c.code === result.countryCode);
+      if (continent && country) {
+        setSelectedContinent(continent);
+        setSelectedCountry(country);
+        setSelectedState(null);
+        setSelectedCity(null);
+        setCurrentLevel("country");
+      }
+    } else if (result.type === "state" && result.continentId && result.countryId && result.stateId) {
+      const continent = getContinentById(result.continentId);
+      const country = getCountryById(result.countryId);
+      const state = country?.states.find(s => s.id === result.stateId);
+      if (continent && country && state) {
+        setSelectedContinent(continent);
+        setSelectedCountry(country);
+        setSelectedState(state);
+        setSelectedCity(null);
+        setCurrentLevel("state");
+      }
+    } else if (result.type === "city" && result.continentId && result.countryId && result.stateId && result.cityId) {
+      const continent = getContinentById(result.continentId);
+      const country = getCountryById(result.countryId);
+      const state = country?.states.find(s => s.id === result.stateId);
+      const city = state?.cities.find(c => c.id === result.cityId);
+      if (continent && country && state && city) {
+        setSelectedContinent(continent);
+        setSelectedCountry(country);
+        setSelectedState(state);
+        setSelectedCity(city);
+        setCurrentLevel("city");
+      }
+    } else if (result.type === "locality") {
+      navigate(`/news?locality=${result.id}`);
+    }
+  }, [navigate]);
+
+  // Detect location and auto-drill
+  const handleDetectLocation = useCallback(() => {
+    userLocation.refreshLocation();
+    setHasAutoDrilled(false);
+  }, [userLocation]);
+
+  // Build breadcrumb items for BreadcrumbNav component
+  const navBreadcrumbItems = useMemo((): NavBreadcrumbItem[] => {
+    const items: NavBreadcrumbItem[] = [
+      { id: "world", label: "World", path: "/world", type: "home", icon: <Globe className="w-3.5 h-3.5" /> }
+    ];
+    if (selectedContinent) {
+      items.push({ id: selectedContinent.id, label: selectedContinent.name, type: "continent" });
+    }
+    if (selectedCountry) {
+      items.push({ 
+        id: selectedCountry.id, 
+        label: selectedCountry.name, 
+        type: "country",
+        icon: <span className="text-sm">{selectedCountry.flag}</span>
+      });
+    }
+    if (selectedState) {
+      items.push({ id: selectedState.id, label: selectedState.name, type: "state" });
+    }
+    if (selectedCity) {
+      items.push({ id: selectedCity.id, label: selectedCity.name, type: "city" });
+    }
+    return items;
+  }, [selectedContinent, selectedCountry, selectedState, selectedCity]);
+
+  // Legacy breadcrumb items for internal DrillBreadcrumb
+  const breadcrumbItems = useMemo(() => {
+    const items: BreadcrumbItem[] = [];
+    if (selectedContinent) {
+      items.push({ level: "continent", id: selectedContinent.id, name: selectedContinent.name });
+    }
+    if (selectedCountry) {
+      items.push({ level: "country", id: selectedCountry.id, name: selectedCountry.name });
+    }
+    if (selectedState) {
+      items.push({ level: "state", id: selectedState.id, name: selectedState.name });
+    }
+    if (selectedCity) {
+      items.push({ level: "city", id: selectedCity.id, name: selectedCity.name });
+    }
+    return items;
+  }, [selectedContinent, selectedCountry, selectedState, selectedCity]);
+
+  // Get current items to display - show ALL continents including those with 0 countries
+  const currentItems = useMemo(() => {
+    if (currentLevel === "world") {
+      // Show all 7 continents - Antarctica is included even with 0 countries
+      return GEO_HIERARCHY;
+    }
+    if (currentLevel === "continent" && selectedContinent) {
+      return selectedContinent.countries;
+    }
+    if (currentLevel === "country" && selectedCountry) {
+      return selectedCountry.states;
+    }
+    if (currentLevel === "state" && selectedState) {
+      return selectedState.cities;
+    }
+    if (currentLevel === "city" && selectedCity) {
+      return selectedCity.localities;
+    }
+    return [];
+  }, [currentLevel, selectedContinent, selectedCountry, selectedState, selectedCity]);
+
+  // Get codes for stats
+  const statsCodes = useMemo(() => {
+    if (currentLevel === "world") {
+      return GEO_HIERARCHY.filter(c => c.countries.length > 0).map(c => c.id);
+    }
+    if (currentLevel === "continent" && selectedContinent) {
+      return selectedContinent.countries.map(c => c.code);
+    }
+    if (currentLevel === "country" && selectedCountry) {
+      return selectedCountry.states.map(s => s.id);
+    }
+    if (currentLevel === "state" && selectedState) {
+      return selectedState.cities.map(c => c.id);
+    }
+    if (currentLevel === "city" && selectedCity) {
+      return selectedCity.localities.map(l => l.id);
+    }
+    return [];
+  }, [currentLevel, selectedContinent, selectedCountry, selectedState, selectedCity]);
+
+  // Parent country/state/city context for accurate counting
+  const parentCountryCode = selectedCountry?.code;
+  const parentStateName = selectedState?.name;
+  const parentCityName = selectedCity?.name;
+
+  const { stats, isLoading, lastUpdated, refetch } = useLocationStats(
+    currentLevel === "world" ? "world" : 
+    currentLevel === "continent" ? "country" : 
+    currentLevel,
+    statsCodes,
+    parentCountryCode,
+    parentStateName,
+    parentCityName
+  );
+
+  // Navigation handlers
+  const handleDrillDown = useCallback((item: any) => {
+    if (currentLevel === "world") {
+      const continent = item as Continent;
+      setSelectedContinent(continent);
+      setCurrentLevel("continent");
+    } else if (currentLevel === "continent") {
+      const country = item as Country;
+      // Navigate to dedicated country page for India, otherwise use in-page drill-down or country page
+      if (country.code === "IN") {
+        navigate("/india");
+      } else {
+        // Navigate to country page for full dashboard experience
+        navigate(`/world/${country.code.toLowerCase()}`);
+      }
+    } else if (currentLevel === "country") {
+      const state = item as State;
+      setSelectedState(state);
+      setCurrentLevel("state");
+    } else if (currentLevel === "state") {
+      const city = item as City;
+      setSelectedCity(city);
+      setCurrentLevel("city");
+    } else if (currentLevel === "city") {
+      // Navigate to news with locality filter and proper country/state/city context
+      const locality = item as Locality;
+      const params = new URLSearchParams();
+      if (selectedCountry) params.set("country", selectedCountry.code);
+      if (selectedState) params.set("state", selectedState.name);
+      if (selectedCity) params.set("city", selectedCity.name);
+      params.set("locality", locality.name);
+      navigate(`/news?${params.toString()}`);
+    }
+  }, [currentLevel, navigate, selectedCountry, selectedState, selectedCity]);
+
+  const handleBreadcrumbNavigate = useCallback((level: DrillLevel, id?: string) => {
+    if (level === "world") {
+      setSelectedContinent(null);
+      setSelectedCountry(null);
+      setSelectedState(null);
+      setSelectedCity(null);
+      setCurrentLevel("world");
+    } else if (level === "continent") {
+      setSelectedCountry(null);
+      setSelectedState(null);
+      setSelectedCity(null);
+      setCurrentLevel("continent");
+    } else if (level === "country") {
+      setSelectedState(null);
+      setSelectedCity(null);
+      setCurrentLevel("country");
+    } else if (level === "state") {
+      setSelectedCity(null);
+      setCurrentLevel("state");
+    } else if (level === "city") {
+      setCurrentLevel("city");
+    }
+  }, []);
+
+  const handleViewNews = useCallback(() => {
+    let params = new URLSearchParams();
+    
+    if (selectedContinent && !selectedCountry) {
+      params.set("region", selectedContinent.id);
+    } 
+    // Always set country for proper fallback when drilling down
+    if (selectedCountry) {
+      params.set("country", selectedCountry.code);
+    }
+    if (selectedState) {
+      // Use state name for better matching instead of ID
+      params.set("state", selectedState.name);
+    }
+    if (selectedCity) {
+      // Use city name for better matching instead of ID
+      params.set("city", selectedCity.name);
+    }
+    
+    navigate(`/news?${params.toString()}`);
+  }, [selectedContinent, selectedCountry, selectedState, selectedCity, navigate]);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  }, [refetch]);
+
+  // Calculate totals
+  const totalStories = useMemo(() => 
+    Object.values(stats).reduce((sum, s) => sum + s.storyCount, 0),
+  [stats]);
+
+  const formatTime = (date: Date) => {
+    const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return `${Math.floor(diff / 3600)}h ago`;
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      
+      {/* Spacer for fixed header */}
+      <div className="h-14" />
+      
+      {/* Breadcrumb Navigation - Sticky below header */}
+      <div className="sticky top-14 z-40 bg-background/98 backdrop-blur-md border-b border-border/40">
+        <div className="container mx-auto max-w-6xl px-4">
+          <BreadcrumbNav
+            items={navBreadcrumbItems}
+            onNavigate={(item, index) => {
+              if (item.type === "home") {
+                handleBreadcrumbNavigate("world");
+              } else if (item.type === "continent") {
+                handleBreadcrumbNavigate("continent");
+              } else if (item.type === "country") {
+                handleBreadcrumbNavigate("country");
+              } else if (item.type === "state") {
+                handleBreadcrumbNavigate("state");
+              } else if (item.type === "city") {
+                handleBreadcrumbNavigate("city");
+              }
+            }}
+            onGoBack={() => {
+              if (currentLevel === "continent") handleBreadcrumbNavigate("world");
+              else if (currentLevel === "country") handleBreadcrumbNavigate("continent");
+              else if (currentLevel === "state") handleBreadcrumbNavigate("country");
+              else if (currentLevel === "city") handleBreadcrumbNavigate("state");
+              else if (currentLevel === "locality") handleBreadcrumbNavigate("city");
+            }}
+          />
+        </div>
+      </div>
+      
+      {/* Real-time news indicator */}
+      <RealtimeNewsIndicator 
+        onRefresh={handleRefresh} 
+        variant="bar"
+      />
+      
+      <main>
+        {/* Page Header */}
+        <section className="border-b border-border/50 bg-muted/20">
+          <div className="container mx-auto max-w-6xl px-4 py-6">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {/* Status Bar */}
+              <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "gap-1 text-[10px]",
+                      isConnected 
+                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                        : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                    )}
+                  >
+                    {isConnected ? <Wifi className="w-2.5 h-2.5" /> : <WifiOff className="w-2.5 h-2.5" />}
+                    {isConnected ? "LIVE" : "POLLING"}
+                  </Badge>
+                  <button 
+                    onClick={handleRefresh}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    disabled={isRefreshing}
+                  >
+                    <RefreshCw className={cn("w-3 h-3", isRefreshing && "animate-spin")} />
+                    {formatTime(lastUpdated)}
+                  </button>
+                  {userLocation.hasPermission && userLocation.country && (
+                    <Badge variant="secondary" className="gap-1 text-[10px]">
+                      <Navigation className="w-2.5 h-2.5" />
+                      {userLocation.country.flag} {userLocation.country.name}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-8"
+                    onClick={handleDetectLocation}
+                    disabled={userLocation.isLoading}
+                  >
+                    {userLocation.isLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Navigation className="w-3.5 h-3.5" />
+                    )}
+                    My Location
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-8"
+                    onClick={() => setShowSearch(!showSearch)}
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                    Search
+                  </Button>
+                </div>
+              </div>
+
+              {/* Search Bar */}
+              <AnimatePresence>
+                {showSearch && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mb-4"
+                  >
+                    <LocationSearch
+                      onSelect={handleSearchSelect}
+                      onClose={() => setShowSearch(false)}
+                      placeholder="Search countries, states, cities, localities..."
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Title */}
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="font-display text-2xl sm:text-3xl font-semibold text-foreground">
+                  Global Intelligence
+                </h1>
+                <RealtimeStatusDot />
+              </div>
+              <p className="text-muted-foreground text-sm max-w-2xl mb-4">
+                Drill down from {geoStats.totalContinents} continents → {geoStats.totalCountries} countries → {geoStats.totalStates.toLocaleString()} states → {geoStats.totalCities.toLocaleString()} cities. Real-time news from verified sources.
+              </p>
+
+              {/* Breadcrumb is now outside main, in sticky header */}
+              
+              <div className="flex items-center justify-end">
+                {currentLevel !== "world" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={handleViewNews}
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    View {totalStories} Stories
+                  </Button>
+                )}
+              </div>
+
+              {/* Stats Row */}
+              <div className="flex flex-wrap items-center gap-6 mt-4 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium">{totalStories.toLocaleString()}</span>
+                  <span className="text-muted-foreground">stories</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-medium">{currentItems.length}</span>
+                  <span className="text-muted-foreground">
+                    {currentLevel === "world" ? "continents" : 
+                     currentLevel === "continent" ? "countries" : 
+                     currentLevel === "country" ? "states/regions" : 
+                     currentLevel === "state" ? "cities" : "localities"}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Map section removed for cleaner UI */}
+
+        {/* Main Content - Clean Layout */}
+        <section className="py-8">
+          <div className="container mx-auto max-w-6xl px-4">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentLevel + (selectedContinent?.id || "") + (selectedCountry?.id || "")}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                {/* Back Button for non-world levels */}
+                {currentLevel !== "world" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mb-4 gap-1.5"
+                    onClick={() => {
+                      if (currentLevel === "continent") handleBreadcrumbNavigate("world");
+                      else if (currentLevel === "country") handleBreadcrumbNavigate("continent");
+                      else if (currentLevel === "state") handleBreadcrumbNavigate("country");
+                      else if (currentLevel === "city") handleBreadcrumbNavigate("state");
+                    }}
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    Back
+                  </Button>
+                )}
+
+                {isLoading ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {[...Array(8)].map((_, i) => (
+                      <div key={i} className="h-36 bg-muted/50 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {currentItems.map((item: any, index) => (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                      >
+                        {currentLevel === "world" && (
+                          <LocationCard
+                            id={item.id}
+                            name={item.name}
+                            subtitle={`${item.countries?.length || 0} countries`}
+                            icon={<Globe className="w-4 h-4 text-primary" />}
+                            stats={stats[item.id]}
+                            onClick={() => handleDrillDown(item)}
+                          />
+                        )}
+                        {currentLevel === "continent" && (
+                          <LocationCard
+                            id={item.id}
+                            name={item.name}
+                            subtitle={`${item.states?.length || 0} regions`}
+                            flag={item.flag}
+                            capital={item.capital || (item.states?.find((s: any) => s.cities?.some((c: any) => c.isCapital))?.cities?.find((c: any) => c.isCapital)?.name)}
+                            stats={stats[item.code]}
+                            onClick={() => handleDrillDown(item)}
+                          />
+                        )}
+                        {currentLevel === "country" && (
+                          <LocationCard
+                            id={item.id}
+                            name={item.name}
+                            subtitle={`${item.cities?.length || 0} cities`}
+                            icon={<MapPin className="w-3.5 h-3.5 text-muted-foreground" />}
+                            stats={stats[item.id]}
+                            onClick={() => handleDrillDown(item)}
+                          />
+                        )}
+                        {currentLevel === "state" && (
+                          <LocationCard
+                            id={item.id}
+                            name={item.name}
+                            subtitle={`${item.localities?.length || 0} areas`}
+                            icon={<Building2 className="w-3.5 h-3.5 text-muted-foreground" />}
+                            isCapital={item.isCapital}
+                            stats={stats[item.id]}
+                            onClick={() => handleDrillDown(item)}
+                          />
+                        )}
+                        {currentLevel === "city" && (
+                          <LocationCard
+                            id={item.id}
+                            name={item.name}
+                            type={item.type}
+                            icon={<MapPin className="w-3 h-3 text-muted-foreground" />}
+                            onClick={() => handleDrillDown(item)}
+                          />
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {!isLoading && currentItems.length === 0 && (
+                  <div className="text-center py-12">
+                    <Globe className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="font-medium text-lg mb-2">No data available</h3>
+                    <p className="text-sm text-muted-foreground">
+                      No locations found at this level.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </section>
+
+        {/* Quick Filters */}
+        {currentLevel === "world" && (
+          <section className="py-6 bg-muted/20 border-t border-border/50">
+            <div className="container mx-auto max-w-6xl px-4">
+              <h3 className="text-sm font-medium mb-3">Quick Access - Top Countries</h3>
+              <div className="flex flex-wrap gap-2">
+                {["IN", "US", "GB", "CN", "DE", "FR", "JP", "AU"].map(code => {
+                  const country = GEO_HIERARCHY.flatMap(c => c.countries).find(c => c.code === code);
+                  if (!country) return null;
+                  return (
+                    <Button
+                      key={code}
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => {
+                        // Navigate directly to dedicated pages for India
+                        if (code === "IN") {
+                          navigate("/india");
+                        } else {
+                          navigate(`/world/${code.toLowerCase()}`);
+                        }
+                      }}
+                    >
+                      <span>{country.flag}</span>
+                      {country.name}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Methodology Note */}
+        <section className="py-6">
+          <div className="container mx-auto max-w-6xl px-4">
+            <Card className="bg-muted/30 border-border/50">
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Data Coverage:</span>
+                  {' '}Stories are aggregated from 174 verified sources with real-time updates. 
+                  Geographic classification is based on story origin and topic relevance. 
+                  Drill down from continent → country → state → city → locality for granular news coverage.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

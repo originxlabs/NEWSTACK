@@ -1,0 +1,90 @@
+state_id,state_name,mapping_type,name,publisher,category,language,url
+andaman-nicobar,Andaman & Nicobar Islands,explicit,Google News Andaman & Nicobar,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Andaman+and+Nicobar+Islands+local+news&hl=en-IN&gl=IN&ceid=IN:en
+andhra-pradesh,Andhra Pradesh,inferred,New Indian Express AP,New Indian Express,Local,en,https://www.newindianexpress.com/states/andhra-pradesh/rssfeed
+arunachal-pradesh,Arunachal Pradesh,explicit,Google News Arunachal Pradesh,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Arunachal+Pradesh+local+news&hl=en-IN&gl=IN&ceid=IN:en
+assam,Assam,explicit,Dainik Agradoot Assamese,Dainik Agradoot,Politics,as,https://www.dainikagradoot.in/feed/
+assam,Assam,explicit,Guwahati Plus Assamese,Guwahati Plus,Local,as,https://www.guwahatiplus.com/feed/
+assam,Assam,explicit,Niyomiya Barta Assamese,Niyomiya Barta,World,as,https://www.niyomiyabarta.com/feed/
+assam,Assam,explicit,Sangbad Pratidin Bengali,Sangbad Pratidin,World,bn,https://www.sangbadpratidin.in/feed/
+bihar,Bihar,explicit,Prabhat Khabar Hindi Bihar,Prabhat Khabar,Politics,hi,https://www.prabhatkhabar.com/feed/
+chandigarh,Chandigarh,explicit,Chandigarh TOI,Times of India,Local,en,https://timesofindia.indiatimes.com/rssfeeds/-2128769355.cms
+chandigarh,Chandigarh,explicit,Google News Chandigarh,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Chandigarh+local+news&hl=en-IN&gl=IN&ceid=IN:en
+chhattisgarh,Chhattisgarh,explicit,Google News Chhattisgarh,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Chhattisgarh+local+news&hl=en-IN&gl=IN&ceid=IN:en
+dadra-nagar-haveli-daman-diu,Dadra & Nagar Haveli and Daman & Diu,explicit,Google News DNHDD,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Dadra+Nagar+Haveli+Daman+Diu+local+news&hl=en-IN&gl=IN&ceid=IN:en
+delhi,Delhi,explicit,Amar Ujala Delhi Hindi,Amar Ujala,Local,hi,https://www.amarujala.com/rss/delhi-ncr.xml
+goa,Goa,explicit,Goa Chronicle,Goa Chronicle,Local,en,https://goachronicle.com/feed/
+goa,Goa,explicit,Goa TOI,Times of India,Local,en,https://timesofindia.indiatimes.com/rssfeeds/36692495.cms
+gujarat,Gujarat,explicit,Ahmedabad TOI,Times of India,Local,en,https://timesofindia.indiatimes.com/rssfeeds/52673929.cms
+gujarat,Gujarat,explicit,TV9 Gujarati,TV9 Gujarati,World,gu,https://www.tv9gujarati.com/feed/
+haryana,Haryana,explicit,Google News Haryana,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Haryana+local+news&hl=en-IN&gl=IN&ceid=IN:en
+himachal-pradesh,Himachal Pradesh,explicit,Amar Ujala HP Hindi,Amar Ujala,Local,hi,https://www.amarujala.com/rss/himachal-pradesh.xml
+india-national,India (National),national,Amar Ujala Hindi,Amar Ujala,World,hi,https://www.amarujala.com/rss/india-news.xml
+india-national,India (National),national,BBC Hindi,BBC,World,hi,https://feeds.bbci.co.uk/hindi/india/rss.xml
+india-national,India (National),national,EastMojo,EastMojo,Local,en,https://www.eastmojo.com/feed/
+india-national,India (National),national,Economic Times,Economic Times,Business,en,https://economictimes.indiatimes.com/rssfeedsdefault.cms
+india-national,India (National),national,Firstpost,Firstpost,India,en,https://www.firstpost.com/commonfeeds/v1/mfp/rss/india.xml
+india-national,India (National),national,Hindustan Hindi,HT Media,Politics,hi,https://feed.livehindustan.com/rss/3127
+india-national,India (National),national,Hindustan Times,Hindustan Times,India,en,https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml
+india-national,India (National),national,India Today,India Today,India,en,https://www.indiatoday.in/rss/home
+india-national,India (National),national,Indian Express,Unknown,World,en,https://indianexpress.com/section/india/feed/
+india-national,India (National),national,Indian Express World,Unknown,World,en,https://indianexpress.com/section/world/feed/
+india-national,India (National),national,LiveMint,Unknown,Business,en,https://www.livemint.com/rss/news
+india-national,India (National),national,NDTV,Unknown,World,en,https://feeds.feedburner.com/ndtvnews-top-stories
+india-national,India (National),national,New Indian Express TN,New Indian Express,Local,en,https://www.newindianexpress.com/states/tamil-nadu/rssfeed
+india-national,India (National),national,TOI India,Times of India,India,en,https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms
+india-national,India (National),national,The Hindu,Unknown,World,en,https://www.thehindu.com/news/feeder/default.rss
+india-national,India (National),national,The Hindu Business,Unknown,Business,en,https://www.thehindu.com/business/feeder/default.rss
+india-national,India (National),national,The Hindu National,Unknown,Politics,en,https://www.thehindu.com/news/national/feeder/default.rss
+india-national,India (National),national,Times of India Top,Times of India,India,en,https://timesofindia.indiatimes.com/rssfeedstopstories.cms
+jammu-kashmir,Jammu and Kashmir,explicit,Greater Kashmir,Greater Kashmir,Local,en,https://www.greaterkashmir.com/feed/
+jammu-kashmir,Jammu and Kashmir,explicit,Kashmir Life,Kashmir Life,Local,en,https://kashmirlife.net/feed/
+jammu-kashmir,Jammu and Kashmir,explicit,Kashmir Observer,Kashmir Observer,Local,en,https://kashmirobserver.net/feed/
+jharkhand,Jharkhand,explicit,Google News Jharkhand,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Jharkhand+local+news&hl=en-IN&gl=IN&ceid=IN:en
+karnataka,Karnataka,explicit,Kannada Prabha,Kannada Prabha,Politics,kn,https://www.kannadaprabha.com/feed/
+karnataka,Karnataka,explicit,New Indian Express Karnataka,New Indian Express,Local,en,https://www.newindianexpress.com/states/karnataka/rssfeed
+karnataka,Karnataka,explicit,Prajavani Kannada,Deccan Herald,World,kn,https://www.prajavani.net/feed
+karnataka,Karnataka,explicit,Public TV Kannada,Public TV,Politics,kn,https://www.publictv.in/feed/
+karnataka,Karnataka,explicit,TV9 Kannada,TV9 Kannada,World,kn,https://www.tv9kannada.com/feed/
+kerala,Kerala,explicit,24 News Malayalam,24 News,Politics,ml,https://www.twentyfournews.com/feed/
+kerala,Kerala,explicit,New Indian Express Kerala,New Indian Express,Local,en,https://www.newindianexpress.com/states/kerala/rssfeed
+ladakh,Ladakh,explicit,Google News Ladakh,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Ladakh+local+news&hl=en-IN&gl=IN&ceid=IN:en
+lakshadweep,Lakshadweep,explicit,Google News Lakshadweep,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Lakshadweep+local+news&hl=en-IN&gl=IN&ceid=IN:en
+madhya-pradesh,Madhya Pradesh,explicit,Google News Madhya Pradesh,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Madhya+Pradesh+local+news&hl=en-IN&gl=IN&ceid=IN:en
+maharashtra,Maharashtra,inferred,Nagpur Today,Nagpur Today,Local,en,https://www.nagpurtoday.in/feed/
+maharashtra,Maharashtra,explicit,Pudhari Marathi,Pudhari,Politics,mr,https://www.pudhari.news/feed/
+maharashtra,Maharashtra,explicit,Pune Mirror,Pune Mirror,Local,en,https://punemirror.com/feed/
+maharashtra,Maharashtra,explicit,Saamana Marathi,Saamana,Politics,mr,https://www.saamana.com/feed/
+maharashtra,Maharashtra,explicit,Sakal Marathi,Sakal,World,mr,https://www.esakal.com/feed/
+maharashtra,Maharashtra,explicit,TV9 Marathi,TV9 Marathi,World,mr,https://www.tv9marathi.com/feed/
+manipur,Manipur,explicit,Google News Manipur,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Manipur+local+news&hl=en-IN&gl=IN&ceid=IN:en
+meghalaya,Meghalaya,explicit,The Shillong Times,The Shillong Times,Local,en,https://theshillongtimes.com/feed/
+mizoram,Mizoram,explicit,Google News Mizoram,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Mizoram+local+news&hl=en-IN&gl=IN&ceid=IN:en
+nagaland,Nagaland,explicit,Google News Nagaland,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Nagaland+local+news&hl=en-IN&gl=IN&ceid=IN:en
+odisha,Odisha,explicit,Dharitri Odia,Dharitri,Politics,or,https://dharitri.com/feed/
+odisha,Odisha,explicit,Kalinga TV Odia,Kalinga TV,Politics,or,https://www.kalingatv.com/feed/
+odisha,Odisha,inferred,New Indian Express Odisha,New Indian Express,Local,en,https://www.newindianexpress.com/states/odisha/rssfeed
+odisha,Odisha,explicit,OTV Odia,OTV,World,or,https://www.odishatv.in/feed/
+odisha,Odisha,explicit,Odisha TV Odia,OTV,World,or,https://odishatv.in/feed
+odisha,Odisha,explicit,Pragativadi Odia,Pragativadi,World,or,https://pragativadi.com/feed/
+puducherry,Puducherry,explicit,Google News Puducherry,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Puducherry+local+news&hl=en-IN&gl=IN&ceid=IN:en
+punjab,Punjab,explicit,Google News Punjab,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Punjab+India+local+news&hl=en-IN&gl=IN&ceid=IN:en
+rajasthan,Rajasthan,explicit,Jaipur TOI,Times of India,Local,en,https://timesofindia.indiatimes.com/rssfeeds/-2128807284.cms
+sikkim,Sikkim,explicit,Google News Sikkim,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Sikkim+local+news&hl=en-IN&gl=IN&ceid=IN:en
+tamil-nadu,Tamil Nadu,explicit,BBC Tamil,BBC,World,ta,https://feeds.bbci.co.uk/tamil/rss.xml
+tamil-nadu,Tamil Nadu,explicit,Chennai TOI,Times of India,Local,en,https://timesofindia.indiatimes.com/rssfeeds/2673929.cms
+tamil-nadu,Tamil Nadu,explicit,Puthiya Thalaimurai Tamil,Puthiya Thalaimurai,Politics,ta,https://www.puthiyathalaimurai.com/feed/
+tamil-nadu,Tamil Nadu,explicit,Tamil The Hindu,The Hindu,Politics,ta,https://www.hindutamil.in/feed
+tamil-nadu,Tamil Nadu,explicit,Thanthi TV Tamil,Thanthi TV,World,ta,https://www.thanthitv.com/feed/
+tamil-nadu,Tamil Nadu,explicit,Vikatan Tamil,Vikatan,World,ta,https://www.vikatan.com/feed/
+telangana,Telangana,explicit,10TV Telugu,10TV,World,te,https://www.10tv.in/feed/
+telangana,Telangana,explicit,Hyderabad TOI,Times of India,Local,en,https://timesofindia.indiatimes.com/rssfeeds/-2128833038.cms
+telangana,Telangana,explicit,NTV Telugu,NTV,World,te,https://www.ntvtelugu.com/feed/
+telangana,Telangana,explicit,New Indian Express Telangana,New Indian Express,Local,en,https://www.newindianexpress.com/states/telangana/rssfeed
+telangana,Telangana,explicit,TV9 Telugu,TV9 Network,Politics,te,https://www.tv9telugu.com/feed
+telangana,Telangana,explicit,Telangana Today,Telangana Today,Local,en,https://telanganatoday.com/feed
+tripura,Tripura,explicit,Google News Tripura,Google News (Regional),Local,en,https://news.google.com/rss/search?q=Tripura+local+news&hl=en-IN&gl=IN&ceid=IN:en
+uttar-pradesh,Uttar Pradesh,explicit,Amar Ujala UP Hindi,Amar Ujala,Local,hi,https://www.amarujala.com/rss/uttar-pradesh.xml
+uttar-pradesh,Uttar Pradesh,explicit,Lucknow TOI,Times of India,Local,en,https://timesofindia.indiatimes.com/rssfeeds/-2128816011.cms
+uttarakhand,Uttarakhand,explicit,Amar Ujala Uttarakhand Hindi,Amar Ujala,Local,hi,https://www.amarujala.com/rss/uttarakhand.xml
+west-bengal,West Bengal,explicit,BBC Bengali,BBC,World,bn,https://feeds.bbci.co.uk/bengali/rss.xml
+west-bengal,West Bengal,explicit,Kolkata TOI,Times of India,Local,en,https://timesofindia.indiatimes.com/rssfeeds/52673931.cms

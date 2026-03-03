@@ -1,0 +1,132 @@
+# India RSS Feed Names (20260302)
+
+- Active feeds: 72
+- Media publishers: 45
+
+## Feed Count by Category
+- `Business`: 3
+- `India`: 5
+- `Local`: 28
+- `Politics`: 14
+- `World`: 22
+
+## Media (Publishers)
+- 10TV
+- 24 News
+- Amar Ujala
+- BBC
+- Dainik Agradoot
+- Deccan Herald
+- Dharitri
+- EastMojo
+- Economic Times
+- Firstpost
+- Goa Chronicle
+- Greater Kashmir
+- Guwahati Plus
+- HT Media
+- Hindustan Times
+- India Today
+- Kalinga TV
+- Kannada Prabha
+- Kashmir Life
+- Kashmir Observer
+- NTV
+- Nagpur Today
+- New Indian Express
+- Niyomiya Barta
+- OTV
+- Prabhat Khabar
+- Pragativadi
+- Public TV
+- Pudhari
+- Pune Mirror
+- Puthiya Thalaimurai
+- Saamana
+- Sakal
+- Sangbad Pratidin
+- TV9 Gujarati
+- TV9 Kannada
+- TV9 Marathi
+- TV9 Network
+- Telangana Today
+- Thanthi TV
+- The Hindu
+- The Shillong Times
+- Times of India
+- Unknown
+- Vikatan
+
+## Active RSS Feeds
+- Indian Express | Unknown | IN | World | https://indianexpress.com/section/india/feed/
+- Indian Express World | Unknown | IN | World | https://indianexpress.com/section/world/feed/
+- LiveMint | Unknown | IN | Business | https://www.livemint.com/rss/news
+- NDTV | Unknown | IN | World | https://feeds.feedburner.com/ndtvnews-top-stories
+- The Hindu | Unknown | IN | World | https://www.thehindu.com/news/feeder/default.rss
+- The Hindu Business | Unknown | IN | Business | https://www.thehindu.com/business/feeder/default.rss
+- The Hindu National | Unknown | IN | Politics | https://www.thehindu.com/news/national/feeder/default.rss
+- 10TV Telugu | 10TV | IN | World | https://www.10tv.in/feed/
+- 24 News Malayalam | 24 News | IN | Politics | https://www.twentyfournews.com/feed/
+- Amar Ujala Delhi Hindi | Amar Ujala | IN | Local | https://www.amarujala.com/rss/delhi-ncr.xml
+- Amar Ujala HP Hindi | Amar Ujala | IN | Local | https://www.amarujala.com/rss/himachal-pradesh.xml
+- Amar Ujala Hindi | Amar Ujala | IN | World | https://www.amarujala.com/rss/india-news.xml
+- Amar Ujala UP Hindi | Amar Ujala | IN | Local | https://www.amarujala.com/rss/uttar-pradesh.xml
+- Amar Ujala Uttarakhand Hindi | Amar Ujala | IN | Local | https://www.amarujala.com/rss/uttarakhand.xml
+- BBC Bengali | BBC | IN | World | https://feeds.bbci.co.uk/bengali/rss.xml
+- BBC Hindi | BBC | IN | World | https://feeds.bbci.co.uk/hindi/india/rss.xml
+- BBC Tamil | BBC | IN | World | https://feeds.bbci.co.uk/tamil/rss.xml
+- Dainik Agradoot Assamese | Dainik Agradoot | IN | Politics | https://www.dainikagradoot.in/feed/
+- Prajavani Kannada | Deccan Herald | IN | World | https://www.prajavani.net/feed
+- Dharitri Odia | Dharitri | IN | Politics | https://dharitri.com/feed/
+- EastMojo | EastMojo | IN | Local | https://www.eastmojo.com/feed/
+- Economic Times | Economic Times | IN | Business | https://economictimes.indiatimes.com/rssfeedsdefault.cms
+- Firstpost | Firstpost | IN | India | https://www.firstpost.com/commonfeeds/v1/mfp/rss/india.xml
+- Goa Chronicle | Goa Chronicle | IN | Local | https://goachronicle.com/feed/
+- Greater Kashmir | Greater Kashmir | IN | Local | https://www.greaterkashmir.com/feed/
+- Guwahati Plus Assamese | Guwahati Plus | IN | Local | https://www.guwahatiplus.com/feed/
+- Hindustan Hindi | HT Media | IN | Politics | https://feed.livehindustan.com/rss/3127
+- Hindustan Times | Hindustan Times | IN | India | https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml
+- India Today | India Today | IN | India | https://www.indiatoday.in/rss/home
+- Kalinga TV Odia | Kalinga TV | IN | Politics | https://www.kalingatv.com/feed/
+- Kannada Prabha | Kannada Prabha | IN | Politics | https://www.kannadaprabha.com/feed/
+- Kashmir Life | Kashmir Life | IN | Local | https://kashmirlife.net/feed/
+- Kashmir Observer | Kashmir Observer | IN | Local | https://kashmirobserver.net/feed/
+- NTV Telugu | NTV | IN | World | https://www.ntvtelugu.com/feed/
+- Nagpur Today | Nagpur Today | IN | Local | https://www.nagpurtoday.in/feed/
+- New Indian Express AP | New Indian Express | IN | Local | https://www.newindianexpress.com/states/andhra-pradesh/rssfeed
+- New Indian Express Karnataka | New Indian Express | IN | Local | https://www.newindianexpress.com/states/karnataka/rssfeed
+- New Indian Express Kerala | New Indian Express | IN | Local | https://www.newindianexpress.com/states/kerala/rssfeed
+- New Indian Express Odisha | New Indian Express | IN | Local | https://www.newindianexpress.com/states/odisha/rssfeed
+- New Indian Express TN | New Indian Express | IN | Local | https://www.newindianexpress.com/states/tamil-nadu/rssfeed
+- New Indian Express Telangana | New Indian Express | IN | Local | https://www.newindianexpress.com/states/telangana/rssfeed
+- Niyomiya Barta Assamese | Niyomiya Barta | IN | World | https://www.niyomiyabarta.com/feed/
+- OTV Odia | OTV | IN | World | https://www.odishatv.in/feed/
+- Odisha TV Odia | OTV | IN | World | https://odishatv.in/feed
+- Prabhat Khabar Hindi Bihar | Prabhat Khabar | IN | Politics | https://www.prabhatkhabar.com/feed/
+- Pragativadi Odia | Pragativadi | IN | World | https://pragativadi.com/feed/
+- Public TV Kannada | Public TV | IN | Politics | https://www.publictv.in/feed/
+- Pudhari Marathi | Pudhari | IN | Politics | https://www.pudhari.news/feed/
+- Pune Mirror | Pune Mirror | IN | Local | https://punemirror.com/feed/
+- Puthiya Thalaimurai Tamil | Puthiya Thalaimurai | IN | Politics | https://www.puthiyathalaimurai.com/feed/
+- Saamana Marathi | Saamana | IN | Politics | https://www.saamana.com/feed/
+- Sakal Marathi | Sakal | IN | World | https://www.esakal.com/feed/
+- Sangbad Pratidin Bengali | Sangbad Pratidin | IN | World | https://www.sangbadpratidin.in/feed/
+- TV9 Gujarati | TV9 Gujarati | IN | World | https://www.tv9gujarati.com/feed/
+- TV9 Kannada | TV9 Kannada | IN | World | https://www.tv9kannada.com/feed/
+- TV9 Marathi | TV9 Marathi | IN | World | https://www.tv9marathi.com/feed/
+- TV9 Telugu | TV9 Network | IN | Politics | https://www.tv9telugu.com/feed
+- Telangana Today | Telangana Today | IN | Local | https://telanganatoday.com/feed
+- Thanthi TV Tamil | Thanthi TV | IN | World | https://www.thanthitv.com/feed/
+- Tamil The Hindu | The Hindu | IN | Politics | https://www.hindutamil.in/feed
+- The Shillong Times | The Shillong Times | IN | Local | https://theshillongtimes.com/feed/
+- Ahmedabad TOI | Times of India | IN | Local | https://timesofindia.indiatimes.com/rssfeeds/52673929.cms
+- Chandigarh TOI | Times of India | IN | Local | https://timesofindia.indiatimes.com/rssfeeds/-2128769355.cms
+- Chennai TOI | Times of India | IN | Local | https://timesofindia.indiatimes.com/rssfeeds/2673929.cms
+- Goa TOI | Times of India | IN | Local | https://timesofindia.indiatimes.com/rssfeeds/36692495.cms
+- Hyderabad TOI | Times of India | IN | Local | https://timesofindia.indiatimes.com/rssfeeds/-2128833038.cms
+- Jaipur TOI | Times of India | IN | Local | https://timesofindia.indiatimes.com/rssfeeds/-2128807284.cms
+- Kolkata TOI | Times of India | IN | Local | https://timesofindia.indiatimes.com/rssfeeds/52673931.cms
+- Lucknow TOI | Times of India | IN | Local | https://timesofindia.indiatimes.com/rssfeeds/-2128816011.cms
+- TOI India | Times of India | IN | India | https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms
+- Times of India Top | Times of India | IN | India | https://timesofindia.indiatimes.com/rssfeedstopstories.cms
+- Vikatan Tamil | Vikatan | IN | World | https://www.vikatan.com/feed/

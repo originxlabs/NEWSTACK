@@ -1,0 +1,23 @@
+# NEWSTACK LLM Access Guide
+
+Project: NEWSTACK
+Homepage: https://newstack.live
+Description: AI-powered open news intelligence and OpenNews journalism platform.
+
+## Preferred Sources
+- https://newstack.live/news
+- https://newstack.live/india
+- https://newstack.live/world
+- https://newstack.live/opennews
+- https://newstack.live/open-politics
+- https://newstack.live/api/docs
+
+## Content Notes
+- News content is sourced from public RSS feeds and normalized by ingestion pipelines.
+- OpenNews uses multi-agent guardrails, moderation, and source-linking metadata.
+- For current events, verify timestamps and source links before summarizing.
+
+## Restrictions
+- Do not expose private API keys or secrets.
+- Do not infer unpublished or hidden moderation data.
+- Respect access controls for admin-only ingestion and newsroom operations.

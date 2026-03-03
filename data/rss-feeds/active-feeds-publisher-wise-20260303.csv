@@ -1,0 +1,90 @@
+publisher,name,url,country_code,category,language,reliability_tier,source_type,fetch_interval_minutes,priority
+10TV,10TV Telugu,https://www.10tv.in/feed/,IN,World,te,tier_2,primary,30,2
+24 News,24 News Malayalam,https://www.twentyfournews.com/feed/,IN,Politics,ml,tier_2,primary,30,2
+Amar Ujala,Amar Ujala Delhi Hindi,https://www.amarujala.com/rss/delhi-ncr.xml,IN,Local,hi,tier_1,primary,30,1
+Amar Ujala,Amar Ujala Hindi,https://www.amarujala.com/rss/india-news.xml,IN,World,hi,tier_2,secondary,30,5
+Amar Ujala,Amar Ujala HP Hindi,https://www.amarujala.com/rss/himachal-pradesh.xml,IN,Local,hi,tier_1,primary,30,1
+Amar Ujala,Amar Ujala UP Hindi,https://www.amarujala.com/rss/uttar-pradesh.xml,IN,Local,hi,tier_1,primary,30,1
+Amar Ujala,Amar Ujala Uttarakhand Hindi,https://www.amarujala.com/rss/uttarakhand.xml,IN,Local,hi,tier_1,primary,30,1
+BBC,BBC Bengali,https://feeds.bbci.co.uk/bengali/rss.xml,IN,World,bn,tier_1,secondary,15,8
+BBC,BBC Hindi,https://feeds.bbci.co.uk/hindi/india/rss.xml,IN,World,hi,tier_1,secondary,15,8
+BBC,BBC Tamil,https://feeds.bbci.co.uk/tamil/rss.xml,IN,World,ta,tier_1,secondary,15,8
+Dainik Agradoot,Dainik Agradoot Assamese,https://www.dainikagradoot.in/feed/,IN,Politics,as,tier_2,primary,30,3
+Deccan Herald,Prajavani Kannada,https://www.prajavani.net/feed,IN,World,kn,tier_2,secondary,30,5
+Dharitri,Dharitri Odia,https://dharitri.com/feed/,IN,Politics,or,tier_2,secondary,30,5
+EastMojo,EastMojo,https://www.eastmojo.com/feed/,IN,Local,en,tier_2,secondary,25,74
+Economic Times,Economic Times,https://economictimes.indiatimes.com/rssfeedsdefault.cms,IN,Business,en,tier_1,primary,15,90
+Firstpost,Firstpost,https://www.firstpost.com/commonfeeds/v1/mfp/rss/india.xml,IN,India,en,tier_2,secondary,20,84
+Goa Chronicle,Goa Chronicle,https://goachronicle.com/feed/,IN,Local,en,tier_3,secondary,30,68
+Google News (Regional),Google News Andaman & Nicobar,https://news.google.com/rss/search?q=Andaman+and+Nicobar+Islands+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Arunachal Pradesh,https://news.google.com/rss/search?q=Arunachal+Pradesh+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Chandigarh,https://news.google.com/rss/search?q=Chandigarh+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Chhattisgarh,https://news.google.com/rss/search?q=Chhattisgarh+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News DNHDD,https://news.google.com/rss/search?q=Dadra+Nagar+Haveli+Daman+Diu+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Haryana,https://news.google.com/rss/search?q=Haryana+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Jharkhand,https://news.google.com/rss/search?q=Jharkhand+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Ladakh,https://news.google.com/rss/search?q=Ladakh+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Lakshadweep,https://news.google.com/rss/search?q=Lakshadweep+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Madhya Pradesh,https://news.google.com/rss/search?q=Madhya+Pradesh+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Manipur,https://news.google.com/rss/search?q=Manipur+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Mizoram,https://news.google.com/rss/search?q=Mizoram+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Nagaland,https://news.google.com/rss/search?q=Nagaland+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Puducherry,https://news.google.com/rss/search?q=Puducherry+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Punjab,https://news.google.com/rss/search?q=Punjab+India+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Sikkim,https://news.google.com/rss/search?q=Sikkim+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Google News (Regional),Google News Tripura,https://news.google.com/rss/search?q=Tripura+local+news&hl=en-IN&gl=IN&ceid=IN:en,IN,Local,en,tier_2,aggregator,20,62
+Greater Kashmir,Greater Kashmir,https://www.greaterkashmir.com/feed/,IN,Local,en,tier_2,secondary,25,74
+Guwahati Plus,Guwahati Plus Assamese,https://www.guwahatiplus.com/feed/,IN,Local,as,tier_2,secondary,30,2
+Hindustan Times,Hindustan Times,https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml,IN,India,en,tier_1,primary,15,90
+HT Media,Hindustan Hindi,https://feed.livehindustan.com/rss/3127,IN,Politics,hi,tier_2,secondary,30,5
+India Today,India Today,https://www.indiatoday.in/rss/home,IN,India,en,tier_2,secondary,15,88
+Kalinga TV,Kalinga TV Odia,https://www.kalingatv.com/feed/,IN,Politics,or,tier_2,primary,30,2
+Kannada Prabha,Kannada Prabha,https://www.kannadaprabha.com/feed/,IN,Politics,kn,tier_2,primary,30,2
+Kashmir Life,Kashmir Life,https://kashmirlife.net/feed/,IN,Local,en,tier_3,secondary,30,68
+Kashmir Observer,Kashmir Observer,https://kashmirobserver.net/feed/,IN,Local,en,tier_2,secondary,30,72
+Nagpur Today,Nagpur Today,https://www.nagpurtoday.in/feed/,IN,Local,en,tier_3,secondary,30,3
+New Indian Express,New Indian Express AP,https://www.newindianexpress.com/states/andhra-pradesh/rssfeed,IN,Local,en,tier_1,primary,30,1
+New Indian Express,New Indian Express Karnataka,https://www.newindianexpress.com/states/karnataka/rssfeed,IN,Local,en,tier_1,primary,30,1
+New Indian Express,New Indian Express Kerala,https://www.newindianexpress.com/states/kerala/rssfeed,IN,Local,en,tier_1,primary,30,1
+New Indian Express,New Indian Express Odisha,https://www.newindianexpress.com/states/odisha/rssfeed,IN,Local,en,tier_1,primary,30,1
+New Indian Express,New Indian Express Telangana,https://www.newindianexpress.com/states/telangana/rssfeed,IN,Local,en,tier_1,primary,30,1
+New Indian Express,New Indian Express TN,https://www.newindianexpress.com/states/tamil-nadu/rssfeed,IN,Local,en,tier_1,primary,30,1
+Niyomiya Barta,Niyomiya Barta Assamese,https://www.niyomiyabarta.com/feed/,IN,World,as,tier_2,primary,30,2
+NTV,NTV Telugu,https://www.ntvtelugu.com/feed/,IN,World,te,tier_2,primary,30,2
+OTV,Odisha TV Odia,https://odishatv.in/feed,IN,World,or,tier_2,secondary,30,5
+OTV,OTV Odia,https://www.odishatv.in/feed/,IN,World,or,tier_2,primary,30,2
+Prabhat Khabar,Prabhat Khabar Hindi Bihar,https://www.prabhatkhabar.com/feed/,IN,Politics,hi,tier_2,primary,30,2
+Pragativadi,Pragativadi Odia,https://pragativadi.com/feed/,IN,World,or,tier_3,secondary,30,4
+Public TV,Public TV Kannada,https://www.publictv.in/feed/,IN,Politics,kn,tier_2,primary,30,2
+Pudhari,Pudhari Marathi,https://www.pudhari.news/feed/,IN,Politics,mr,tier_2,primary,30,2
+Pune Mirror,Pune Mirror,https://punemirror.com/feed/,IN,Local,en,tier_2,primary,30,2
+Puthiya Thalaimurai,Puthiya Thalaimurai Tamil,https://www.puthiyathalaimurai.com/feed/,IN,Politics,ta,tier_2,primary,30,2
+Saamana,Saamana Marathi,https://www.saamana.com/feed/,IN,Politics,mr,tier_2,primary,30,2
+Sakal,Sakal Marathi,https://www.esakal.com/feed/,IN,World,mr,tier_1,primary,30,1
+Sangbad Pratidin,Sangbad Pratidin Bengali,https://www.sangbadpratidin.in/feed/,IN,World,bn,tier_2,primary,30,2
+Telangana Today,Telangana Today,https://telanganatoday.com/feed,IN,Local,en,tier_2,primary,30,2
+Thanthi TV,Thanthi TV Tamil,https://www.thanthitv.com/feed/,IN,World,ta,tier_2,primary,30,2
+The Hindu,Tamil The Hindu,https://www.hindutamil.in/feed,IN,Politics,ta,tier_2,secondary,30,5
+The Shillong Times,The Shillong Times,https://theshillongtimes.com/feed/,IN,Local,en,tier_2,secondary,30,72
+Times of India,Ahmedabad TOI,https://timesofindia.indiatimes.com/rssfeeds/52673929.cms,IN,Local,en,tier_1,primary,30,1
+Times of India,Chandigarh TOI,https://timesofindia.indiatimes.com/rssfeeds/-2128769355.cms,IN,Local,en,tier_1,primary,30,1
+Times of India,Chennai TOI,https://timesofindia.indiatimes.com/rssfeeds/2673929.cms,IN,Local,en,tier_1,primary,30,1
+Times of India,Goa TOI,https://timesofindia.indiatimes.com/rssfeeds/36692495.cms,IN,Local,en,tier_1,primary,30,1
+Times of India,Hyderabad TOI,https://timesofindia.indiatimes.com/rssfeeds/-2128833038.cms,IN,Local,en,tier_1,primary,30,1
+Times of India,Jaipur TOI,https://timesofindia.indiatimes.com/rssfeeds/-2128807284.cms,IN,Local,en,tier_1,primary,30,1
+Times of India,Kolkata TOI,https://timesofindia.indiatimes.com/rssfeeds/52673931.cms,IN,Local,en,tier_1,primary,30,1
+Times of India,Lucknow TOI,https://timesofindia.indiatimes.com/rssfeeds/-2128816011.cms,IN,Local,en,tier_1,primary,30,1
+Times of India,Times of India Top,https://timesofindia.indiatimes.com/rssfeedstopstories.cms,IN,India,en,tier_1,primary,15,90
+Times of India,TOI India,https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms,IN,India,en,tier_1,primary,15,90
+TV9 Gujarati,TV9 Gujarati,https://www.tv9gujarati.com/feed/,IN,World,gu,tier_2,primary,30,2
+TV9 Kannada,TV9 Kannada,https://www.tv9kannada.com/feed/,IN,World,kn,tier_2,primary,30,2
+TV9 Marathi,TV9 Marathi,https://www.tv9marathi.com/feed/,IN,World,mr,tier_2,primary,30,2
+TV9 Network,TV9 Telugu,https://www.tv9telugu.com/feed,IN,Politics,te,tier_2,secondary,30,5
+Unknown,Indian Express,https://indianexpress.com/section/india/feed/,IN,World,en,tier_2,secondary,30,80
+Unknown,Indian Express World,https://indianexpress.com/section/world/feed/,IN,World,en,tier_2,secondary,30,70
+Unknown,LiveMint,https://www.livemint.com/rss/news,IN,Business,en,tier_2,secondary,30,75
+Unknown,NDTV,https://feeds.feedburner.com/ndtvnews-top-stories,IN,World,en,tier_2,secondary,30,80
+Unknown,The Hindu,https://www.thehindu.com/news/feeder/default.rss,IN,World,en,tier_2,secondary,30,80
+Unknown,The Hindu Business,https://www.thehindu.com/business/feeder/default.rss,IN,Business,en,tier_2,secondary,30,75
+Unknown,The Hindu National,https://www.thehindu.com/news/national/feeder/default.rss,IN,Politics,en,tier_2,secondary,30,85
+Vikatan,Vikatan Tamil,https://www.vikatan.com/feed/,IN,World,ta,tier_1,primary,30,1

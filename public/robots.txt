@@ -1,0 +1,76 @@
+# NEWSTACK - AI News Intelligence Platform
+# https://newstack.live
+
+# Default rules for all crawlers
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /functions/
+Disallow: /profile
+Disallow: /saved
+
+# Sitemaps
+Sitemap: https://newstack.live/sitemap.xml
+# LLM crawler guidance
+# See: https://newstack.live/llms.txt
+
+# Search engine specific rules
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# Social media crawlers
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Pinterestbot
+Allow: /
+
+# AI crawlers - allow for AI search optimization
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Cohere-AI
+Allow: /
+
+# News aggregator bots
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: AdsBot-Google
+Allow: /
+
+# Cache control hints
+# Recommend re-crawling news pages frequently
+# Host: newstack.live

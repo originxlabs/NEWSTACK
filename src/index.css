@@ -1,0 +1,343 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Premium Intelligence Platform - Light Mode */
+    --background: 210 20% 98%;
+    --foreground: 220 25% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 10%;
+
+    /* Slate blue - authoritative, calm */
+    --primary: 215 25% 27%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 15% 93%;
+    --secondary-foreground: 220 25% 15%;
+
+    --muted: 210 15% 95%;
+    --muted-foreground: 215 15% 45%;
+
+    /* Subtle teal accent - trust, clarity */
+    --accent: 175 35% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 60% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 220 25% 10%;
+
+    --border: 210 15% 88%;
+    --input: 210 15% 88%;
+    --ring: 215 25% 27%;
+
+    --radius: 0.5rem;
+
+    /* Intelligence Platform Tokens */
+    --gradient-hero: linear-gradient(180deg, hsl(210 20% 98%) 0%, hsl(210 25% 96%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 99%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(175 35% 45%) 0%, hsl(195 40% 50%) 100%);
+    
+    --glass-bg: hsl(0 0% 100% / 0.95);
+    --glass-border: hsl(210 15% 85% / 0.6);
+    
+    --shadow-soft: 0 1px 3px hsl(220 25% 10% / 0.04), 0 4px 12px hsl(220 25% 10% / 0.03);
+    --shadow-card: 0 1px 2px hsl(220 25% 10% / 0.03), 0 2px 8px hsl(220 25% 10% / 0.02);
+    --shadow-elevated: 0 4px 24px hsl(220 25% 10% / 0.08);
+
+    --sidebar-background: 210 20% 98%;
+    --sidebar-foreground: 220 25% 15%;
+    --sidebar-primary: 215 25% 27%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 15% 95%;
+    --sidebar-accent-foreground: 220 25% 15%;
+    --sidebar-border: 210 15% 90%;
+    --sidebar-ring: 215 25% 27%;
+  }
+
+  .dark {
+    /* Premium Intelligence Platform - Dark Mode (Default) */
+    --background: 220 20% 7%;
+    --foreground: 210 15% 95%;
+
+    --card: 220 18% 10%;
+    --card-foreground: 210 15% 95%;
+
+    --popover: 220 18% 10%;
+    --popover-foreground: 210 15% 95%;
+
+    /* Muted slate - authoritative, calm */
+    --primary: 210 15% 75%;
+    --primary-foreground: 220 20% 7%;
+
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 210 15% 90%;
+
+    --muted: 220 15% 13%;
+    --muted-foreground: 210 10% 55%;
+
+    /* Teal accent - trust, clarity */
+    --accent: 175 40% 55%;
+    --accent-foreground: 220 20% 7%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 60% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 220 20% 7%;
+
+    --border: 220 15% 16%;
+    --input: 220 15% 16%;
+    --ring: 210 15% 75%;
+
+    --gradient-hero: linear-gradient(180deg, hsl(220 20% 7%) 0%, hsl(220 18% 9%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(220 18% 10%) 0%, hsl(220 18% 11%) 100%);
+    
+    --glass-bg: hsl(220 18% 11% / 0.9);
+    --glass-border: hsl(210 15% 25% / 0.4);
+    
+    --shadow-soft: 0 1px 3px hsl(0 0% 0% / 0.2), 0 4px 12px hsl(0 0% 0% / 0.15);
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.15), 0 2px 8px hsl(0 0% 0% / 0.1);
+    --shadow-elevated: 0 4px 24px hsl(0 0% 0% / 0.3);
+
+    --sidebar-background: 220 18% 9%;
+    --sidebar-foreground: 210 15% 90%;
+    --sidebar-primary: 210 15% 75%;
+    --sidebar-primary-foreground: 220 20% 7%;
+    --sidebar-accent: 220 15% 14%;
+    --sidebar-accent-foreground: 210 15% 90%;
+    --sidebar-border: 220 15% 15%;
+    --sidebar-ring: 210 15% 75%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-feature-settings: 'ss01' on, 'cv01' on;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  /* Typography rhythm */
+  p {
+    line-height: 1.65;
+  }
+
+  /* Monospace for data */
+  .font-mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+}
+
+@layer components {
+  /* Glass card - subtle, premium */
+  .glass-card {
+    @apply backdrop-blur-lg border rounded-lg;
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Intelligence card - for data displays */
+  .intel-card {
+    @apply border rounded-lg bg-card;
+    box-shadow: var(--shadow-soft);
+    border-color: var(--glass-border);
+  }
+
+  /* Gradient text - subtle */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(175 40% 50%) 0%, hsl(195 45% 55%) 100%);
+  }
+
+  .dark .gradient-text {
+    background-image: linear-gradient(135deg, hsl(175 45% 55%) 0%, hsl(195 50% 60%) 100%);
+  }
+
+  /* Hero background */
+  .gradient-hero-bg {
+    background: var(--gradient-hero);
+  }
+
+  /* Subtle glow */
+  .glow-accent {
+    box-shadow: 0 0 20px hsl(175 40% 50% / 0.15);
+  }
+
+  /* Signal indicators */
+  .signal-breaking {
+    @apply bg-red-500/10 text-red-600 border-red-500/20;
+  }
+  
+  .signal-developing {
+    @apply bg-amber-500/10 text-amber-600 border-amber-500/20;
+  }
+  
+  .signal-stabilized {
+    @apply bg-blue-500/10 text-blue-600 border-blue-500/20;
+  }
+  
+  .signal-resolved {
+    @apply bg-emerald-500/10 text-emerald-600 border-emerald-500/20;
+  }
+
+  /* Confidence levels */
+  .confidence-low {
+    @apply bg-amber-500/10 text-amber-600;
+  }
+  
+  .confidence-medium {
+    @apply bg-blue-500/10 text-blue-600;
+  }
+  
+  .confidence-high {
+    @apply bg-emerald-500/10 text-emerald-600;
+  }
+
+  /* Intelligence strip */
+  .intel-strip {
+    @apply py-3 px-4 border-b bg-muted/30;
+    border-color: var(--glass-border);
+  }
+
+  /* Cluster card */
+  .cluster-card {
+    @apply p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors cursor-pointer;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .cluster-card:hover {
+    box-shadow: var(--shadow-elevated);
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Subtle scrollbar */
+  .scrollbar-subtle::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-subtle::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-subtle::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 3px;
+  }
+  .scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+  }
+  
+  /* Safe area padding for mobile PWA */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left, 0);
+  }
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right, 0);
+  }
+
+  /* Text balance for headlines */
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes source-marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+.animate-source-marquee {
+  animation: source-marquee var(--source-marquee-duration, 42s) linear infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.08) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-labelledby="title desc">
+  <title id="title">NEWSTACK iOS QR Coming Soon</title>
+  <desc id="desc">QR style placeholder for future App Store download.</desc>
+  <rect width="220" height="220" fill="#ffffff"/>
+  <rect x="8" y="8" width="204" height="204" fill="none" stroke="#0f172a" stroke-width="4"/>
+  <rect x="20" y="20" width="44" height="44" fill="#0f172a"/>
+  <rect x="28" y="28" width="28" height="28" fill="#ffffff"/>
+  <rect x="36" y="36" width="12" height="12" fill="#0f172a"/>
+  <rect x="156" y="20" width="44" height="44" fill="#0f172a"/>
+  <rect x="164" y="28" width="28" height="28" fill="#ffffff"/>
+  <rect x="172" y="36" width="12" height="12" fill="#0f172a"/>
+  <rect x="20" y="156" width="44" height="44" fill="#0f172a"/>
+  <rect x="28" y="164" width="28" height="28" fill="#ffffff"/>
+  <rect x="36" y="172" width="12" height="12" fill="#0f172a"/>
+  <rect x="86" y="22" width="8" height="8" fill="#0f172a"/>
+  <rect x="102" y="22" width="8" height="8" fill="#0f172a"/>
+  <rect x="118" y="22" width="8" height="8" fill="#0f172a"/>
+  <rect x="134" y="22" width="8" height="8" fill="#0f172a"/>
+  <rect x="86" y="38" width="8" height="8" fill="#0f172a"/>
+  <rect x="118" y="38" width="8" height="8" fill="#0f172a"/>
+  <rect x="134" y="38" width="8" height="8" fill="#0f172a"/>
+  <rect x="74" y="84" width="8" height="8" fill="#0f172a"/>
+  <rect x="90" y="84" width="8" height="8" fill="#0f172a"/>
+  <rect x="106" y="84" width="8" height="8" fill="#0f172a"/>
+  <rect x="122" y="84" width="8" height="8" fill="#0f172a"/>
+  <rect x="138" y="84" width="8" height="8" fill="#0f172a"/>
+  <rect x="74" y="100" width="8" height="8" fill="#0f172a"/>
+  <rect x="106" y="100" width="8" height="8" fill="#0f172a"/>
+  <rect x="138" y="100" width="8" height="8" fill="#0f172a"/>
+  <rect x="74" y="116" width="8" height="8" fill="#0f172a"/>
+  <rect x="90" y="116" width="8" height="8" fill="#0f172a"/>
+  <rect x="122" y="116" width="8" height="8" fill="#0f172a"/>
+  <rect x="138" y="116" width="8" height="8" fill="#0f172a"/>
+  <rect x="74" y="132" width="8" height="8" fill="#0f172a"/>
+  <rect x="106" y="132" width="8" height="8" fill="#0f172a"/>
+  <rect x="122" y="132" width="8" height="8" fill="#0f172a"/>
+  <rect x="138" y="132" width="8" height="8" fill="#0f172a"/>
+  <rect x="88" y="156" width="8" height="8" fill="#0f172a"/>
+  <rect x="104" y="156" width="8" height="8" fill="#0f172a"/>
+  <rect x="120" y="156" width="8" height="8" fill="#0f172a"/>
+  <rect x="136" y="156" width="8" height="8" fill="#0f172a"/>
+  <rect x="152" y="156" width="8" height="8" fill="#0f172a"/>
+  <rect x="168" y="156" width="8" height="8" fill="#0f172a"/>
+  <rect x="88" y="172" width="8" height="8" fill="#0f172a"/>
+  <rect x="120" y="172" width="8" height="8" fill="#0f172a"/>
+  <rect x="152" y="172" width="8" height="8" fill="#0f172a"/>
+  <rect x="184" y="172" width="8" height="8" fill="#0f172a"/>
+  <rect x="88" y="188" width="8" height="8" fill="#0f172a"/>
+  <rect x="104" y="188" width="8" height="8" fill="#0f172a"/>
+  <rect x="136" y="188" width="8" height="8" fill="#0f172a"/>
+  <rect x="152" y="188" width="8" height="8" fill="#0f172a"/>
+  <rect x="168" y="188" width="8" height="8" fill="#0f172a"/>
+  <text x="110" y="214" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#0f172a">APP STORE SOON</text>
+</svg>
