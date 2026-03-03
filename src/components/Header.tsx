@@ -27,7 +27,7 @@ const navLinks = [
   { name: "Places", href: "/places", icon: MapPin },
   { name: "Politics", href: "/open-politics", icon: Building2 },
   { name: "Grievances", href: "/public-grievances", icon: MessageSquareWarning },
-  { name: "ReelWire", href: "/video-wire", icon: Clapperboard },
+  { name: "ReelWire", href: "/reelwire", icon: Clapperboard },
 ];
 
 export function Header() {

@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "/video-wire",
+      "destination": "/reelwire",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/opennews/:path*",

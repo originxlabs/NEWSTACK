@@ -187,7 +187,7 @@ function AppContent() {
             <Route path="thread/:postId" element={<OpenNewsThreadPage />} />
           </Route>
           <Route path="/discussions" element={<DiscussionsPage />} />
-          <Route path="/video-wire" element={<VideoWire />} />
+          <Route path="/reelwire" element={<VideoWire />} />
           <Route path="/trending" element={<VideoWire />} />
           <Route path="/politicians" element={<OpenPoliticsPage />} />
           <Route path="/opennews/admin" element={<OpenNewsAdminStandalonePage />} />

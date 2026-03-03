@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ExternalLink, Film, Home, PlayCircle, Radio, ShieldCheck, Volume2, VolumeX, Youtube } from "lucide-react";
+import { CheckCircle2, ExternalLink, Film, Home, PlayCircle, Radio, ShieldCheck, Volume2, VolumeX, Youtube } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ interface VideoWireItem {
   title: string;
   link: string;
   source: string;
-  platform: "youtube" | "publisher";
+  platform: "youtube" | "publisher" | "x" | "threads" | "facebook" | "instagram";
   published_at: string;
   thumbnail: string | null;
   video_id?: string | null;
@@ -26,6 +26,9 @@ interface VideoWireItem {
   is_short?: boolean;
   is_trending?: boolean;
   duration_seconds?: number | null;
+  is_verified_source?: boolean;
+  media_type?: "video" | "image" | "post";
+  source_url?: string;
 }
 
 interface RenderReel extends VideoWireItem {
@@ -41,8 +44,65 @@ interface ReactionState {
   user?: ReactionType;
 }
 
+type VideoWireRaw = Partial<VideoWireItem> | null | undefined;
+
 const CACHE_KEY = "newstack_reelwire_cached_videos";
 const REACTION_KEY = "newstack_reelwire_reactions";
+
+const OFFICIAL_SOCIAL_POSTS: VideoWireItem[] = [
+  {
+    title: "Reuters official updates",
+    link: "https://x.com/Reuters",
+    source: "Reuters (X)",
+    source_url: "https://x.com/Reuters",
+    platform: "x",
+    published_at: new Date().toISOString(),
+    thumbnail: "https://images.ctfassets.net/pjshm78m9jt4/56rjMSg7n1kVHRwuYHqLob/44a7d09eeb57f4f0f8204cde95e6af19/reuters-logo.png",
+    is_trending: true,
+    is_short: true,
+    is_verified_source: true,
+    media_type: "image",
+  },
+  {
+    title: "BBC News official social stream",
+    link: "https://www.facebook.com/bbcnews",
+    source: "BBC News (Facebook)",
+    source_url: "https://www.facebook.com/bbcnews",
+    platform: "facebook",
+    published_at: new Date().toISOString(),
+    thumbnail: "https://static.files.bbci.co.uk/ws/simorgh-assets/public/news/images/metadata/poster-1024x576.png",
+    is_trending: true,
+    is_short: true,
+    is_verified_source: true,
+    media_type: "image",
+  },
+  {
+    title: "India Today official quick updates",
+    link: "https://www.instagram.com/indiatoday/",
+    source: "India Today (Instagram)",
+    source_url: "https://www.instagram.com/indiatoday/",
+    platform: "instagram",
+    published_at: new Date().toISOString(),
+    thumbnail: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/600px-Instagram_logo_2016.svg.png",
+    is_trending: true,
+    is_short: true,
+    is_verified_source: true,
+    media_type: "post",
+  },
+  {
+    title: "Al Jazeera newsroom updates",
+    link: "https://www.threads.net/@aljazeeraenglish",
+    source: "Al Jazeera (Threads)",
+    source_url: "https://www.threads.net/@aljazeeraenglish",
+    platform: "threads",
+    published_at: new Date().toISOString(),
+    thumbnail: "https://upload.wikimedia.org/wikipedia/commons/8/81/Threads_%28app%29_logo.svg",
+    is_trending: true,
+    is_short: true,
+    is_verified_source: true,
+    media_type: "post",
+  },
+];
 
 const CHANNEL_LOGOS = [
   { name: "BBC", src: "/media-logos/bbc.svg", href: "https://www.youtube.com/@BBCNews" },
@@ -62,6 +122,8 @@ const CHANNEL_LOGOS = [
   { name: "ABP", src: "/media-logos/abpnews.svg", href: "https://www.youtube.com/@ABPNEWS" },
   { name: "Zee News", src: "/media-logos/zeenews.svg", href: "https://www.youtube.com/@zeenews" },
 ];
+
+const CHANNEL_LOGO_DETAILS = [...CHANNEL_LOGOS, ...CHANNEL_LOGOS];
 
 const CHANNEL_EMBED_BY_SOURCE: Record<string, string> = {
   "BBC": "https://www.youtube-nocookie.com/embed/videoseries?list=UU16niRr50-MSBwiO3YDb3RA",
@@ -292,14 +354,103 @@ const FALLBACK_VIDEOS: VideoWireItem[] = [
 ];
 
 function normalizeToTwenty(items: VideoWireItem[]): VideoWireItem[] {
-  if (items.length >= 20) return items;
-  const out = [...items];
+  const compact = items.filter((item): item is VideoWireItem => Boolean(item));
+  if (compact.length === 0) return [];
+  if (compact.length >= 20) return compact;
+  const out = [...compact];
   let pointer = 0;
   while (out.length < 20) {
-    out.push(items[pointer % items.length]);
+    const next = compact[pointer % compact.length];
+    if (!next) break;
+    out.push(next);
     pointer += 1;
   }
   return out;
+}
+
+function mixSocialAndImageReels(items: VideoWireItem[]): VideoWireItem[] {
+  const compact = items.filter((item): item is VideoWireItem => Boolean(item));
+  if (compact.length === 0) return OFFICIAL_SOCIAL_POSTS;
+
+  const isVideoItem = (item: VideoWireItem) =>
+    item.media_type === "video" ||
+    item.platform === "youtube" ||
+    Boolean(item.video_id) ||
+    Boolean(item.embed_url);
+
+  const shortVideos = compact.filter((item) => isVideoItem(item) && item.is_short);
+  const otherVideos = compact.filter((item) => isVideoItem(item) && !item.is_short);
+  const nonVideos = compact.filter((item) => !isVideoItem(item));
+  const ordered = [...shortVideos, ...otherVideos, ...nonVideos];
+
+  const mixed: VideoWireItem[] = [];
+  for (let i = 0; i < ordered.length; i += 1) {
+    const current = ordered[i];
+    if (current) mixed.push(current);
+
+    if ((i + 1) % 8 === 0) {
+      const social = OFFICIAL_SOCIAL_POSTS[Math.floor(i / 8) % OFFICIAL_SOCIAL_POSTS.length];
+      mixed.push(social);
+    }
+  }
+  return mixed;
+}
+
+function buildReliableMixedPool(liveItems: VideoWireItem[], cached: VideoWireItem[]): VideoWireItem[] {
+  const base = liveItems.length > 0 ? liveItems : cached;
+  const seed = [...base, ...FALLBACK_VIDEOS, ...OFFICIAL_SOCIAL_POSTS];
+  const dedupe = new Set<string>();
+  const unique = seed.filter((item) => {
+    const key = `${item.platform}:${item.link}`;
+    if (dedupe.has(key)) return false;
+    dedupe.add(key);
+    return true;
+  });
+  return mixSocialAndImageReels(unique);
+}
+
+function sanitizeVideoItems(items: VideoWireRaw[]): VideoWireItem[] {
+  return items
+    .filter((item): item is Partial<VideoWireItem> => Boolean(item && typeof item === "object"))
+    .map((item) => {
+      const platform = item.platform;
+      const safePlatform: VideoWireItem["platform"] =
+        platform === "youtube" ||
+        platform === "publisher" ||
+        platform === "x" ||
+        platform === "threads" ||
+        platform === "facebook" ||
+        platform === "instagram"
+          ? platform
+          : "publisher";
+
+      return {
+        title: typeof item.title === "string" && item.title.trim().length > 0 ? item.title : "Untitled",
+        link: typeof item.link === "string" ? item.link : "",
+        source: typeof item.source === "string" && item.source.trim().length > 0 ? item.source : "Verified Source",
+        platform: safePlatform,
+        published_at: typeof item.published_at === "string" ? item.published_at : new Date().toISOString(),
+        thumbnail: typeof item.thumbnail === "string" ? item.thumbnail : null,
+        video_id: typeof item.video_id === "string" ? item.video_id : null,
+        embed_url: typeof item.embed_url === "string" ? item.embed_url : null,
+        is_short: Boolean(item.is_short),
+        is_trending: item.is_trending ?? true,
+        duration_seconds: typeof item.duration_seconds === "number" ? item.duration_seconds : null,
+        is_verified_source: item.is_verified_source ?? true,
+        media_type: item.media_type,
+        source_url: typeof item.source_url === "string" ? item.source_url : undefined,
+      };
+    })
+    .filter((item) => item.link.length > 0);
+}
+
+function platformLabel(platform: VideoWireItem["platform"]): string {
+  if (platform === "x") return "X";
+  if (platform === "threads") return "Threads";
+  if (platform === "facebook") return "Facebook";
+  if (platform === "instagram") return "Instagram";
+  if (platform === "youtube") return "YouTube";
+  return "Publisher Feed";
 }
 
 function parseYoutubeId(link: string): string | null {
@@ -328,11 +479,15 @@ function fallbackEmbedBySource(sourceName: string): string | null {
 }
 
 async function fetchVideoWire() {
+  if (import.meta.env.DEV) {
+    return [];
+  }
+
   try {
     const { data, error } = await supabase.functions.invoke("video-wire-feed", {
       body: {
         limit: 80,
-        platform: "youtube",
+        platform: "all",
         verifiedOnly: true,
         maxDurationSeconds: 300,
         strictDuration: true,
@@ -344,7 +499,7 @@ async function fetchVideoWire() {
       return [];
     }
 
-    return (data?.videos ?? []) as VideoWireItem[];
+    return sanitizeVideoItems((data?.videos ?? []) as VideoWireRaw[]);
   } catch (error) {
     console.warn("video-wire-feed request failed, using fallback", error);
     return [];
@@ -363,11 +518,11 @@ function timeAgo(isoDate: string): string {
   return `${days}d ago`;
 }
 
-function postYoutubeCommand(iframe: HTMLIFrameElement | null, func: string) {
+function postYoutubeCommand(iframe: HTMLIFrameElement | null, func: string, args: unknown[] = []) {
   if (!iframe?.contentWindow) return;
   try {
     iframe.contentWindow.postMessage(
-      JSON.stringify({ event: "command", func, args: [] }),
+      JSON.stringify({ event: "command", func, args }),
       "*",
     );
   } catch {
@@ -381,12 +536,15 @@ export default function VideoWire() {
   const reelRefs = useRef<(HTMLElement | null)[]>([]);
   const iframeRefs = useRef<(HTMLIFrameElement | null)[]>([]);
   const sourcePoolRef = useRef<VideoWireItem[]>([]);
+  const sourcePoolKeyRef = useRef<string>("");
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [cachedVideos, setCachedVideos] = useState<VideoWireItem[]>([]);
   const [renderedReels, setRenderedReels] = useState<RenderReel[]>([]);
   const [reactions, setReactions] = useState<Record<string, ReactionState>>({});
   const [isOffline, setIsOffline] = useState<boolean>(typeof navigator !== "undefined" ? !navigator.onLine : false);
+  const [isAutoScroll, setIsAutoScroll] = useState(true);
+  const [audioEnabledByUser, setAudioEnabledByUser] = useState(false);
 
   const {
     data: videos = [],
@@ -407,9 +565,9 @@ export default function VideoWire() {
     try {
       const raw = localStorage.getItem(CACHE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as VideoWireItem[];
+        const parsed = JSON.parse(raw) as VideoWireRaw[];
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setCachedVideos(parsed);
+          setCachedVideos(sanitizeVideoItems(parsed));
         }
       }
       const storedReactions = localStorage.getItem(REACTION_KEY);
@@ -434,7 +592,7 @@ export default function VideoWire() {
 
   useEffect(() => {
     if (videos.length === 0) return;
-    const latest = normalizeToTwenty(videos).slice(0, 50);
+    const latest = normalizeToTwenty(buildReliableMixedPool(sanitizeVideoItems(videos), []).slice(0, 50));
     setCachedVideos(latest);
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify(latest));
@@ -444,28 +602,43 @@ export default function VideoWire() {
   }, [videos]);
 
   const sourcePool = useMemo(() => {
-    if (videos.length > 0) return normalizeToTwenty(videos);
-    if (cachedVideos.length > 0) return normalizeToTwenty(cachedVideos);
-    return normalizeToTwenty(FALLBACK_VIDEOS);
+    const pool = buildReliableMixedPool(sanitizeVideoItems(videos), sanitizeVideoItems(cachedVideos));
+    if (pool.length > 0) return normalizeToTwenty(pool);
+    return normalizeToTwenty(mixSocialAndImageReels(FALLBACK_VIDEOS));
   }, [videos, cachedVideos]);
 
-  const sourceCount = useMemo(() => new Set(sourcePool.map((item) => item.source)).size, [sourcePool]);
+  const sourceCount = useMemo(
+    () => new Set(sourcePool.filter((item) => Boolean(item?.source)).map((item) => item.source)).size,
+    [sourcePool],
+  );
+  const sourcePoolKey = useMemo(
+    () => sourcePool.filter((item) => Boolean(item?.link)).slice(0, 20).map((item) => item.link).join("|"),
+    [sourcePool],
+  );
   const isFallback = videos.length === 0;
+  const visibleCount = sourcePool.length >= 20 ? "20+" : String(sourcePool.length);
 
   useEffect(() => {
     sourcePoolRef.current = sourcePool;
   }, [sourcePool]);
 
   useEffect(() => {
-    const initial = sourcePool.slice(0, 20).map((item, idx) => ({
-      ...item,
-      reel_key: `${item.link}-${idx}-0`,
-    }));
+    if (sourcePool.length === 0) return;
+    if (sourcePoolKeyRef.current === sourcePoolKey && renderedReels.length > 0) return;
+
+    sourcePoolKeyRef.current = sourcePoolKey;
+    const initial = sourcePool
+      .filter((item): item is VideoWireItem => Boolean(item && item.link))
+      .slice(0, 20)
+      .map((item, idx) => ({
+        ...item,
+        reel_key: `${item.link}-${idx}-0`,
+      }));
     setRenderedReels(initial);
     setActiveIndex(0);
     reelRefs.current = [];
     iframeRefs.current = [];
-  }, [sourcePool]);
+  }, [sourcePool, sourcePoolKey, renderedReels.length]);
 
   useEffect(() => {
     if (sourcePoolRef.current.length === 0 || renderedReels.length === 0) return;
@@ -478,6 +651,7 @@ export default function VideoWire() {
       const start = prev.length;
       for (let i = 0; i < 10; i += 1) {
         const base = pool[(start + i) % pool.length];
+        if (!base?.link) continue;
         next.push({
           ...base,
           reel_key: `${base.link}-${start + i}-${Math.floor((start + i) / pool.length)}`,
@@ -559,14 +733,55 @@ export default function VideoWire() {
   useEffect(() => {
     const iframe = iframeRefs.current[activeIndex];
     if (!iframe) return;
-    postYoutubeCommand(iframe, isMuted ? "mute" : "unMute");
-  }, [activeIndex, isMuted]);
+    const shouldMute = !audioEnabledByUser || isMuted;
+    postYoutubeCommand(iframe, shouldMute ? "mute" : "unMute");
+    if (!shouldMute) {
+      postYoutubeCommand(iframe, "setVolume", [100]);
+    }
+  }, [activeIndex, isMuted, audioEnabledByUser]);
 
-  const toggleMute = () => setIsMuted((prev) => !prev);
+  useEffect(() => {
+    const container = reelContainerRef.current;
+    if (!container || audioEnabledByUser) return;
+
+    const unlock = () => {
+      setAudioEnabledByUser(true);
+      setIsMuted(false);
+    };
+
+    container.addEventListener("pointerdown", unlock, { once: true });
+    container.addEventListener("touchstart", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+
+    return () => {
+      container.removeEventListener("pointerdown", unlock);
+      container.removeEventListener("touchstart", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, [audioEnabledByUser]);
+
+  useEffect(() => {
+    if (!isAutoScroll || renderedReels.length === 0) return;
+
+    const timer = window.setInterval(() => {
+      const nextIndex = activeIndex + 1;
+      const nextReel = reelRefs.current[nextIndex];
+      if (nextReel) {
+        nextReel.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 9000);
+
+    return () => window.clearInterval(timer);
+  }, [isAutoScroll, activeIndex, renderedReels.length]);
+
+  const toggleMute = () => {
+    setAudioEnabledByUser(true);
+    setIsMuted((prev) => !prev);
+  };
 
   const breadcrumbItems: BreadcrumbItem[] = [
     { id: "home", label: "Home", path: "/", type: "home", icon: <Home className="w-3.5 h-3.5" /> },
-    { id: "reelwire", label: "ReelWire", path: "/video-wire", type: "locality", icon: <Film className="w-3.5 h-3.5" /> },
+    { id: "reelwire", label: "ReelWire", path: "/reelwire", type: "locality", icon: <Film className="w-3.5 h-3.5" /> },
   ];
 
   const handleReact = (reelKey: string, reaction: ReactionType) => {
@@ -613,21 +828,24 @@ export default function VideoWire() {
         </div>
       </div>
 
-      <div className="hidden lg:block border-b border-border/30 bg-background/90">
-        <div className="container mx-auto max-w-6xl px-4 py-2 overflow-x-auto scrollbar-hide">
-          <div className="flex items-center gap-5 min-w-max">
-            {CHANNEL_LOGOS.map((logo) => (
-              <a
-                key={logo.name}
-                href={logo.href}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="opacity-70 hover:opacity-100 transition-opacity shrink-0"
-                title={logo.name}
-              >
-                <img src={logo.src} alt={logo.name} className="h-5 w-auto object-contain" loading="lazy" />
-              </a>
-            ))}
+      <div className="border-b border-border/30 bg-background/90 overflow-hidden">
+        <div className="container mx-auto max-w-6xl px-4 py-2">
+          <div className="group overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
+            <div className="animate-source-marquee flex w-max items-center gap-6 py-1">
+              {CHANNEL_LOGO_DETAILS.map((logo, idx) => (
+                <a
+                  key={`${logo.name}-${idx}`}
+                  href={logo.href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center gap-2 opacity-75 hover:opacity-100 transition-opacity shrink-0"
+                  title={logo.name}
+                >
+                  <img src={logo.src} alt={logo.name} className="h-5 w-auto object-contain" loading="lazy" />
+                  <span className="text-[11px] sm:text-xs text-muted-foreground whitespace-nowrap">{logo.name} • Verified</span>
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -637,42 +855,47 @@ export default function VideoWire() {
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <Badge variant="outline" className="gap-1.5">
             <Film className="h-3.5 w-3.5" />
-            Trending Latest Videos
+            Trending Latest Reels
           </Badge>
           <Badge variant="secondary" className="gap-1.5">
             <Radio className="h-3.5 w-3.5" />
-            ReelWire Reels
+            Auto + Manual Scroll
           </Badge>
           <Badge variant="outline" className="gap-1.5">
             <Youtube className="h-3.5 w-3.5 text-red-500" />
-            News Channel Shorts
+            Video + Image + Official Posts
           </Badge>
         </div>
 
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-1">
-          ReelWire — Auto-play News Reels
+          ReelWire — Verified News Reels
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl">
-          Scroll down for the next reel. Active video auto-plays muted. Tap mute/unmute anytime.
+          Scroll manually or use auto mode. Open any verified badge to jump directly to the official source.
         </p>
       </section>
 
       <section className="pb-4">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div className="text-sm text-muted-foreground">
-            {isLoading
+            {isLoading && sourcePool.length === 0
               ? "Loading live video feed..."
+              : isLoading && sourcePool.length > 0
+                ? `Showing ${visibleCount} ready reels while live feed connects`
               : isFallback
-                ? `Showing ${sourcePool.length >= 20 ? "20+" : sourcePool.length} ready reels`
+                ? `Showing ${visibleCount} ready reels`
                 : `${videos.length} latest reels from ${sourceCount} news channels`}
           </div>
           <div className="flex items-center gap-2">
+            <Button variant={isAutoScroll ? "default" : "outline"} size="sm" onClick={() => setIsAutoScroll((prev) => !prev)}>
+              {isAutoScroll ? "Auto Scroll" : "Manual Scroll"}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
               {isFetching ? "Refreshing..." : "Refresh"}
             </Button>
             <Button variant="outline" size="sm" onClick={toggleMute}>
               {isMuted ? <VolumeX className="h-4 w-4 mr-1.5" /> : <Volume2 className="h-4 w-4 mr-1.5" />}
-              {isMuted ? "Muted" : "Sound On"}
+              {!audioEnabledByUser ? "Enable Audio" : isMuted ? "Muted" : "Audio On"}
             </Button>
           </div>
         </div>
@@ -684,12 +907,20 @@ export default function VideoWire() {
           {renderedReels.map((video, index) => {
             const videoId = video.video_id || parseYoutubeId(video.link);
             const sourceEmbed = fallbackEmbedBySource(video.source);
+            const mediaType = video.media_type ?? ((videoId || video.embed_url || sourceEmbed) ? "video" : video.thumbnail ? "image" : "post");
+            const canEmbedVideo = mediaType === "video";
+            const sourceLink = video.source_url || video.link;
+            const normalizedEmbed = video.embed_url?.includes("live_stream") && sourceEmbed ? sourceEmbed : video.embed_url;
+            const isActuallyMuted = !audioEnabledByUser || isMuted;
+            const origin = typeof window !== "undefined" ? window.location.origin : "https://newstack.live";
 
-            const embedUrl = video.embed_url || (videoId
-              ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${index === activeIndex ? 1 : 0}&mute=${isMuted ? 1 : 0}&playsinline=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=${videoId}&enablejsapi=1`
-              : sourceEmbed
-                ? `${sourceEmbed}&autoplay=${index === activeIndex ? 1 : 0}&mute=${isMuted ? 1 : 0}&playsinline=1&controls=0&modestbranding=1&rel=0&enablejsapi=1`
-                : null);
+            const embedUrl = canEmbedVideo
+              ? (normalizedEmbed || (videoId
+                  ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${index === activeIndex ? 1 : 0}&mute=${isActuallyMuted ? 1 : 0}&playsinline=1&controls=1&modestbranding=1&rel=0&loop=1&playlist=${videoId}&enablejsapi=1&origin=${encodeURIComponent(origin)}`
+                  : sourceEmbed
+                    ? `${sourceEmbed}&autoplay=${index === activeIndex ? 1 : 0}&mute=${isActuallyMuted ? 1 : 0}&playsinline=1&controls=1&modestbranding=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(origin)}`
+                    : null))
+              : null;
 
             const reaction = reactions[video.reel_key] ?? { love: 0, like: 0, dislike: 0 };
 
@@ -723,8 +954,11 @@ export default function VideoWire() {
                         loading="lazy"
                       />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center text-white/70">
-                        <PlayCircle className="h-12 w-12" />
+                      <div className="absolute inset-0 flex items-center justify-center text-white/90 px-5 text-center bg-gradient-to-b from-black/70 to-black/90">
+                        <div>
+                          <PlayCircle className="h-12 w-12 mx-auto mb-3" />
+                          <p className="text-sm sm:text-base font-medium">Open verified source post</p>
+                        </div>
                       </div>
                     )}
 
@@ -737,15 +971,25 @@ export default function VideoWire() {
                           <Badge variant="secondary" className="bg-white/15 text-white border-white/20">Short Reel</Badge>
                         )}
                         <Badge variant="outline" className="border-white/30 text-white/90">
-                          {video.source}
+                          {platformLabel(video.platform)}
                         </Badge>
+                        {(video.is_verified_source ?? true) && (
+                          <a href={sourceLink} target="_blank" rel="noreferrer noopener" className="inline-flex">
+                            <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-100 border border-emerald-300/40 hover:bg-emerald-500/30">
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                              Verified
+                            </Badge>
+                          </a>
+                        )}
                       </div>
                       <p className="text-base sm:text-lg font-semibold leading-snug line-clamp-3 mb-1">{video.title}</p>
                       <div className="text-xs sm:text-sm text-white/80 flex items-center gap-2 mb-3">
                         <span>{timeAgo(video.published_at)}</span>
                         <span>•</span>
+                        <span>Source: {video.source}</span>
+                        <span>•</span>
                         <a
-                          href={video.link}
+                          href={sourceLink}
                           target="_blank"
                           rel="noreferrer noopener"
                           className="inline-flex items-center gap-1 hover:text-white"
@@ -795,7 +1039,7 @@ export default function VideoWire() {
 
         <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground flex items-start gap-2">
           <ShieldCheck className="h-4 w-4 mt-0.5 text-emerald-600" />
-          ReelWire always prioritizes latest channel videos, caches reels for offline mode, and continues infinite scrolling across sources.
+          ReelWire shows verified source reels with clear platform labels, mixes video and image/post cards, and opens each source directly.
         </div>
       </section>
       </main>
