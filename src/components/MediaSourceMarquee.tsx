@@ -1,5 +1,4 @@
 import type { CSSProperties } from "react";
-import { Badge } from "@/components/ui/badge";
 
 interface MediaSource {
   name: string;
@@ -7,35 +6,54 @@ interface MediaSource {
   homepage: string;
 }
 
+// ── Global Sources ──
 const GLOBAL_SOURCES: MediaSource[] = [
-  { name: "BBC News", logo: "/media-logos/bbc.svg", homepage: "https://www.bbc.com/news" },
-  { name: "Reuters", logo: "/media-logos/reuters.svg", homepage: "https://www.reuters.com/world/" },
-  { name: "CNN", logo: "/media-logos/cnn.svg", homepage: "https://edition.cnn.com/world" },
-  { name: "The Guardian", logo: "/media-logos/theguardian.svg", homepage: "https://www.theguardian.com/world" },
-  { name: "The New York Times", logo: "/media-logos/nytimes.svg", homepage: "https://www.nytimes.com/section/world" },
-  { name: "Washington Post", logo: "/media-logos/washingtonpost.svg", homepage: "https://www.washingtonpost.com/world/" },
-  { name: "Bloomberg", logo: "/media-logos/bloomberg.svg", homepage: "https://www.bloomberg.com/" },
-  { name: "NPR", logo: "/media-logos/npr.svg", homepage: "https://www.npr.org/sections/news/" },
-  { name: "WSJ", logo: "/media-logos/wsj.svg", homepage: "https://www.wsj.com/" },
-  { name: "Financial Times", logo: "/media-logos/ft.svg", homepage: "https://www.ft.com/world" },
+  { name: "BBC News", logo: "https://logo.clearbit.com/bbc.com", homepage: "https://www.bbc.com/news" },
+  { name: "Reuters", logo: "https://logo.clearbit.com/reuters.com", homepage: "https://www.reuters.com/world/" },
+  { name: "CNN", logo: "https://logo.clearbit.com/cnn.com", homepage: "https://edition.cnn.com/world" },
+  { name: "The Guardian", logo: "https://logo.clearbit.com/theguardian.com", homepage: "https://www.theguardian.com/world" },
+  { name: "The New York Times", logo: "https://logo.clearbit.com/nytimes.com", homepage: "https://www.nytimes.com/section/world" },
+  { name: "Washington Post", logo: "https://logo.clearbit.com/washingtonpost.com", homepage: "https://www.washingtonpost.com/world/" },
+  { name: "Bloomberg", logo: "https://logo.clearbit.com/bloomberg.com", homepage: "https://www.bloomberg.com/" },
+  { name: "NPR", logo: "https://logo.clearbit.com/npr.org", homepage: "https://www.npr.org/sections/news/" },
+  { name: "WSJ", logo: "https://logo.clearbit.com/wsj.com", homepage: "https://www.wsj.com/" },
+  { name: "Financial Times", logo: "https://logo.clearbit.com/ft.com", homepage: "https://www.ft.com/world" },
+  { name: "Associated Press", logo: "https://logo.clearbit.com/apnews.com", homepage: "https://apnews.com/" },
+  { name: "Al Jazeera", logo: "https://logo.clearbit.com/aljazeera.com", homepage: "https://www.aljazeera.com/" },
+  { name: "ABC News", logo: "https://logo.clearbit.com/abcnews.go.com", homepage: "https://abcnews.go.com/" },
+  { name: "Forbes", logo: "https://logo.clearbit.com/forbes.com", homepage: "https://www.forbes.com/" },
+  { name: "The Economist", logo: "https://logo.clearbit.com/economist.com", homepage: "https://www.economist.com/" },
+  { name: "Sky News", logo: "https://logo.clearbit.com/news.sky.com", homepage: "https://news.sky.com/" },
+  { name: "DW News", logo: "https://logo.clearbit.com/dw.com", homepage: "https://www.dw.com/en/" },
+  { name: "France 24", logo: "https://logo.clearbit.com/france24.com", homepage: "https://www.france24.com/en/" },
 ];
 
+// ── India Sources ──
 const INDIA_SOURCES: MediaSource[] = [
-  { name: "NDTV", logo: "/media-logos/ndtv.svg", homepage: "https://www.ndtv.com/" },
-  { name: "India Today", logo: "/media-logos/indiatoday.svg", homepage: "https://www.indiatoday.in/" },
-  { name: "The Hindu", logo: "/media-logos/thehindu.svg", homepage: "https://www.thehindu.com/" },
-  { name: "The Indian Express", logo: "/media-logos/indianexpress.svg", homepage: "https://indianexpress.com/" },
-  { name: "Hindustan Times", logo: "/media-logos/hindustantimes.svg", homepage: "https://www.hindustantimes.com/" },
-  { name: "Times of India", logo: "/media-logos/timesofindia.svg", homepage: "https://timesofindia.indiatimes.com/" },
-  { name: "Aaj Tak", logo: "/media-logos/aajtak.svg", homepage: "https://www.aajtak.in/" },
-  { name: "ABP News", logo: "/media-logos/abpnews.svg", homepage: "https://news.abplive.com/" },
-  { name: "Zee News", logo: "/media-logos/zeenews.svg", homepage: "https://zeenews.india.com/" },
+  { name: "NDTV", logo: "https://logo.clearbit.com/ndtv.com", homepage: "https://www.ndtv.com/" },
+  { name: "India Today", logo: "https://logo.clearbit.com/indiatoday.in", homepage: "https://www.indiatoday.in/" },
+  { name: "The Hindu", logo: "https://logo.clearbit.com/thehindu.com", homepage: "https://www.thehindu.com/" },
+  { name: "The Indian Express", logo: "https://logo.clearbit.com/indianexpress.com", homepage: "https://indianexpress.com/" },
+  { name: "Hindustan Times", logo: "https://logo.clearbit.com/hindustantimes.com", homepage: "https://www.hindustantimes.com/" },
+  { name: "Times of India", logo: "https://logo.clearbit.com/timesofindia.indiatimes.com", homepage: "https://timesofindia.indiatimes.com/" },
+  { name: "Aaj Tak", logo: "https://logo.clearbit.com/aajtak.in", homepage: "https://www.aajtak.in/" },
+  { name: "ABP News", logo: "https://logo.clearbit.com/abplive.com", homepage: "https://news.abplive.com/" },
+  { name: "Zee News", logo: "https://logo.clearbit.com/zeenews.india.com", homepage: "https://zeenews.india.com/" },
+  { name: "Republic World", logo: "https://logo.clearbit.com/republicworld.com", homepage: "https://www.republicworld.com/" },
+  { name: "News18", logo: "https://logo.clearbit.com/news18.com", homepage: "https://www.news18.com/" },
+  { name: "The Wire", logo: "https://logo.clearbit.com/thewire.in", homepage: "https://thewire.in/" },
+  { name: "Scroll.in", logo: "https://logo.clearbit.com/scroll.in", homepage: "https://scroll.in/" },
+  { name: "Mint", logo: "https://logo.clearbit.com/livemint.com", homepage: "https://www.livemint.com/" },
+  { name: "Economic Times", logo: "https://logo.clearbit.com/economictimes.indiatimes.com", homepage: "https://economictimes.indiatimes.com/" },
+  { name: "Deccan Herald", logo: "https://logo.clearbit.com/deccanherald.com", homepage: "https://www.deccanherald.com/" },
+  { name: "The Quint", logo: "https://logo.clearbit.com/thequint.com", homepage: "https://www.thequint.com/" },
+  { name: "WION", logo: "https://logo.clearbit.com/wionews.com", homepage: "https://www.wionews.com/" },
 ];
 
 function SourceRow({
   items,
   reverse = false,
-  speedSeconds = 44,
+  speedSeconds = 50,
 }: {
   items: MediaSource[];
   reverse?: boolean;
@@ -44,9 +62,9 @@ function SourceRow({
   const repeated = [...items, ...items];
 
   return (
-    <div className="group overflow-hidden">
+    <div className="group overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
       <div
-        className="animate-source-marquee flex w-max min-w-full shrink-0 py-1 group-hover:[animation-play-state:paused]"
+        className="animate-source-marquee flex w-max shrink-0 items-center gap-10 sm:gap-14 py-3 group-hover:[animation-play-state:paused]"
         style={
           {
             ["--source-marquee-duration" as string]: `${speedSeconds}s`,
@@ -60,19 +78,20 @@ function SourceRow({
             href={source.homepage}
             target="_blank"
             rel="noreferrer noopener"
-            className="group/item relative mx-2 flex h-[74px] w-[116px] shrink-0 items-center justify-center rounded-2xl border border-border/40 bg-background/50 px-3 backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-background/70"
+            className="shrink-0 opacity-50 grayscale transition-all duration-300 hover:opacity-100 hover:grayscale-0 hover:scale-110"
             aria-label={source.name}
             title={source.name}
           >
             <img
               src={source.logo}
-              alt={`${source.name} logo`}
+              alt={source.name}
               loading="lazy"
-              className="max-h-9 w-auto max-w-[82px] object-contain"
+              className="h-6 sm:h-7 w-auto object-contain"
+              onError={(e) => {
+                // Hide broken images gracefully
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
             />
-            <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 rounded-md border border-border/60 bg-background/90 px-2 py-1 text-center text-[10px] text-foreground opacity-0 shadow-sm transition-all group-hover/item:-translate-y-1 group-hover/item:opacity-100 whitespace-nowrap">
-              {source.name}
-            </span>
           </a>
         ))}
       </div>
@@ -82,17 +101,15 @@ function SourceRow({
 
 export function MediaSourceMarquee() {
   return (
-    <section className="px-4 py-7 border-y border-border/50 bg-muted/20">
-      <div className="container mx-auto max-w-6xl space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">Primary RSS Sources</Badge>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Major media houses used in NEWSTACK ingestion across India and global coverage.
-          </p>
+    <section className="py-8 border-y border-border/30">
+      <div className="container mx-auto max-w-6xl px-4">
+        <p className="text-center text-[11px] uppercase tracking-[0.2em] text-muted-foreground/60 font-medium mb-5">
+          Trusted sources powering NEWSTACK intelligence
+        </p>
+        <div className="space-y-5">
+          <SourceRow items={GLOBAL_SOURCES} speedSeconds={55} />
+          <SourceRow items={INDIA_SOURCES} reverse speedSeconds={60} />
         </div>
-
-        <SourceRow items={GLOBAL_SOURCES} speedSeconds={42} />
-        <SourceRow items={INDIA_SOURCES} reverse speedSeconds={48} />
       </div>
     </section>
   );

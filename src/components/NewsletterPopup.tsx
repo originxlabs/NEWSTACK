@@ -130,11 +130,11 @@ export function NewsletterPopup() {
     }
   };
 
-  const handleClose = async () => {
+  const handleClose = () => {
+    setIsOpen(false); // Close immediately — don't block on analytics
     if (!isSubscribed) {
-      await trackPopupEvent('close');
+      trackPopupEvent('close').catch(() => {}); // fire-and-forget
     }
-    setIsOpen(false);
   };
 
   return (

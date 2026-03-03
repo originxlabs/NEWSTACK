@@ -69,9 +69,8 @@ export function LocationPermission({ onComplete }: LocationPermissionProps) {
     onComplete();
   };
 
-  const handleSkip = async () => {
-    // Use IP-based detection as fallback
-    await detectLocation();
+  const handleSkip = () => {
+    // Close immediately — detect location in background (non-blocking)
     localStorage.setItem(LOCATION_PERMISSION_KEY, JSON.stringify({
       enabled: false,
       method: "ip",
@@ -79,6 +78,7 @@ export function LocationPermission({ onComplete }: LocationPermissionProps) {
     }));
     setIsVisible(false);
     onComplete();
+    detectLocation().catch(() => {}); // fire-and-forget
   };
 
   if (!isVisible) return null;

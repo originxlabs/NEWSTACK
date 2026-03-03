@@ -103,7 +103,7 @@ export function InterestsOnboarding({ isOpen, onComplete }: InterestsOnboardingP
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleSkip(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
