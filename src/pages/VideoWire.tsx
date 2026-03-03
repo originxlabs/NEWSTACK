@@ -494,7 +494,7 @@ async function fetchVideoWire() {
         limit: 80,
         platform: "all",
         verifiedOnly: true,
-        maxDurationSeconds: 300,
+        maxDurationSeconds: 120,
         strictDuration: true,
       },
     });
@@ -913,7 +913,9 @@ export default function VideoWire() {
             const videoId = video.video_id || parseYoutubeId(video.link);
             const sourceEmbed = fallbackEmbedBySource(video.source);
             const mediaType = video.media_type ?? ((videoId || video.embed_url || sourceEmbed) ? "video" : video.thumbnail ? "image" : "post");
-            const canEmbedVideo = mediaType === "video";
+            const withinDuration = typeof video.duration_seconds === "number" ? video.duration_seconds <= 120 : false;
+            const shortLike = Boolean(video.is_short) || withinDuration;
+            const canEmbedVideo = mediaType === "video" && Boolean(videoId) && shortLike && withinDuration;
             const shouldMountPlayer = canEmbedVideo && Math.abs(index - activeIndex) <= 1;
             const sourceLink = video.source_url || video.link;
             const normalizedEmbed = video.embed_url?.includes("live_stream") && sourceEmbed ? sourceEmbed : video.embed_url;

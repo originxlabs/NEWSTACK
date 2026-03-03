@@ -256,7 +256,6 @@ async function fetchAndParseFeed(source: FeedSource): Promise<VideoItem[]> {
 }
 
 function shouldKeepByDuration(item: VideoItem, maxDurationSeconds: number, strictDuration: boolean): boolean {
-  if (item.is_short) return true;
   if (item.duration_seconds !== null) return item.duration_seconds <= maxDurationSeconds;
   return !strictDuration;
 }
@@ -284,7 +283,7 @@ serve(async (req) => {
     const {
       limit = 60,
       platform = "all",
-      maxDurationSeconds = 300,
+      maxDurationSeconds = 120,
       verifiedOnly = true,
       strictDuration = true,
     } = await req.json().catch(() => ({}));
