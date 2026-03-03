@@ -478,6 +478,11 @@ function fallbackEmbedBySource(sourceName: string): string | null {
   return CHANNEL_EMBED_BY_SOURCE[key];
 }
 
+function fallbackThumbnailBySource(sourceName: string): string {
+  const logo = CHANNEL_LOGOS.find((item) => sourceName.toLowerCase().includes(item.name.toLowerCase()));
+  return logo?.src ?? "/logo.svg";
+}
+
 async function fetchVideoWire() {
   if (import.meta.env.DEV) {
     return [];
@@ -909,12 +914,16 @@ export default function VideoWire() {
             const sourceEmbed = fallbackEmbedBySource(video.source);
             const mediaType = video.media_type ?? ((videoId || video.embed_url || sourceEmbed) ? "video" : video.thumbnail ? "image" : "post");
             const canEmbedVideo = mediaType === "video";
+            const shouldMountPlayer = canEmbedVideo && Math.abs(index - activeIndex) <= 1;
             const sourceLink = video.source_url || video.link;
             const normalizedEmbed = video.embed_url?.includes("live_stream") && sourceEmbed ? sourceEmbed : video.embed_url;
             const isActuallyMuted = !audioEnabledByUser || isMuted;
             const origin = typeof window !== "undefined" ? window.location.origin : "https://newstack.live";
+            const posterSrc = canEmbedVideo
+              ? fallbackThumbnailBySource(video.source)
+              : (video.thumbnail || fallbackThumbnailBySource(video.source));
 
-            const embedUrl = canEmbedVideo
+            const embedUrl = shouldMountPlayer
               ? (normalizedEmbed || (videoId
                   ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${index === activeIndex ? 1 : 0}&mute=${isActuallyMuted ? 1 : 0}&playsinline=1&controls=1&modestbranding=1&rel=0&loop=1&playlist=${videoId}&enablejsapi=1&origin=${encodeURIComponent(origin)}`
                   : sourceEmbed
@@ -932,6 +941,9 @@ export default function VideoWire() {
                   reelRefs.current[index] = el;
                 }}
                 className="reel-item snap-start h-[calc(100vh-17rem)] md:h-[calc(100vh-18rem)] py-2"
+                onClick={() => {
+                  setActiveIndex(index);
+                }}
               >
                 <Card className="border-border/60 overflow-hidden h-full bg-black/90">
                   <div className="relative h-full w-full">
@@ -943,21 +955,35 @@ export default function VideoWire() {
                         title={video.title}
                         src={embedUrl}
                         className="absolute inset-0 h-full w-full"
-                        allow="autoplay; encrypted-media; picture-in-picture"
+                        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                        referrerPolicy="strict-origin-when-cross-origin"
                         allowFullScreen
                       />
-                    ) : video.thumbnail ? (
+                    ) : posterSrc ? (
                       <img
-                        src={video.thumbnail}
+                        src={posterSrc}
                         alt={video.title}
-                        className="absolute inset-0 h-full w-full object-cover"
+                        className="absolute inset-0 h-full w-full object-cover bg-black"
                         loading="lazy"
+                        onError={(event) => {
+                          const img = event.currentTarget;
+                          if (img.src.endsWith("/logo.svg")) return;
+                          img.src = "/logo.svg";
+                        }}
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-white/90 px-5 text-center bg-gradient-to-b from-black/70 to-black/90">
                         <div>
                           <PlayCircle className="h-12 w-12 mx-auto mb-3" />
                           <p className="text-sm sm:text-base font-medium">Open verified source post</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {!embedUrl && canEmbedVideo && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                        <div className="rounded-full bg-black/60 p-3 text-white">
+                          <PlayCircle className="h-8 w-8" />
                         </div>
                       </div>
                     )}
