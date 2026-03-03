@@ -933,9 +933,11 @@ export default function VideoWire() {
             const sourceLink = video.source_url || video.link;
             const isActuallyMuted = !audioEnabledByUser || isMuted;
             const origin = typeof window !== "undefined" ? window.location.origin : "https://newstack.live";
+            const rawThumbnail = typeof video.thumbnail === "string" ? video.thumbnail : "";
+            const safeThumbnail = rawThumbnail.includes("i.ytimg.com/") ? "" : rawThumbnail;
             const posterSrc = mediaType === "video"
-              ? (video.thumbnail || fallbackThumbnailBySource(video.source))
-              : (video.thumbnail || fallbackThumbnailBySource(video.source));
+              ? fallbackThumbnailBySource(video.source)
+              : (safeThumbnail || fallbackThumbnailBySource(video.source));
 
             const embedUrl = shouldMountPlayer
               ? (normalizedEmbed || (videoId
