@@ -921,7 +921,7 @@ export default function VideoWire() {
             const normalizedEmbed = video.embed_url?.includes("live_stream") && sourceEmbed ? sourceEmbed : video.embed_url;
             const isActuallyMuted = !audioEnabledByUser || isMuted;
             const origin = typeof window !== "undefined" ? window.location.origin : "https://newstack.live";
-            const posterSrc = canEmbedVideo
+            const posterSrc = mediaType === "video"
               ? fallbackThumbnailBySource(video.source)
               : (video.thumbnail || fallbackThumbnailBySource(video.source));
 
@@ -942,13 +942,17 @@ export default function VideoWire() {
                 ref={(el) => {
                   reelRefs.current[index] = el;
                 }}
-                className="reel-item snap-start h-[calc(100vh-17rem)] md:h-[calc(100vh-18rem)] py-2"
+                className="reel-item snap-start h-[calc(100vh-17rem)] md:h-[calc(100vh-18rem)] py-1"
                 onClick={() => {
                   setActiveIndex(index);
                 }}
               >
-                <Card className="border-border/60 overflow-hidden h-full bg-black/90">
+                <Card className="border-border/40 overflow-hidden h-full bg-black/95 max-w-[520px] mx-auto rounded-2xl">
                   <div className="relative h-full w-full">
+                    <div className="absolute top-2 left-2 right-2 z-20 h-1 rounded-full bg-white/20 overflow-hidden">
+                      <div className={`h-full transition-all duration-500 ${index === activeIndex ? "w-full bg-white" : "w-0 bg-white/40"}`} />
+                    </div>
+
                     {embedUrl ? (
                       <iframe
                         ref={(el) => {
@@ -990,7 +994,56 @@ export default function VideoWire() {
                       </div>
                     )}
 
-                    <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/85 to-transparent text-white">
+                    <div className="absolute right-3 bottom-16 z-20 flex flex-col items-center gap-2 text-white">
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleReact(video.reel_key, "love");
+                        }}
+                        className={`h-10 w-10 rounded-full border flex items-center justify-center text-sm ${reaction.user === "love" ? "bg-pink-500/35 border-pink-300/70" : "bg-black/45 border-white/35"}`}
+                        title="Love"
+                      >
+                        ❤️
+                      </button>
+                      <span className="text-[11px] text-white/85 -mt-1">{reaction.love}</span>
+
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleReact(video.reel_key, "like");
+                        }}
+                        className={`h-10 w-10 rounded-full border flex items-center justify-center text-sm ${reaction.user === "like" ? "bg-emerald-500/35 border-emerald-300/70" : "bg-black/45 border-white/35"}`}
+                        title="Like"
+                      >
+                        👍
+                      </button>
+                      <span className="text-[11px] text-white/85 -mt-1">{reaction.like}</span>
+
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleReact(video.reel_key, "dislike");
+                        }}
+                        className={`h-10 w-10 rounded-full border flex items-center justify-center text-sm ${reaction.user === "dislike" ? "bg-red-500/35 border-red-300/70" : "bg-black/45 border-white/35"}`}
+                        title="Dislike"
+                      >
+                        👎
+                      </button>
+                      <span className="text-[11px] text-white/85 -mt-1">{reaction.dislike}</span>
+
+                      <a
+                        href={sourceLink}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        onClick={(event) => event.stopPropagation()}
+                        className="h-10 w-10 rounded-full border bg-black/45 border-white/35 flex items-center justify-center"
+                        title="Open source"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </div>
+
+                    <div className="absolute inset-x-0 bottom-0 p-4 pr-16 bg-gradient-to-t from-black/90 via-black/60 to-transparent text-white">
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
                         {(video.is_trending ?? true) && (
                           <Badge className="bg-red-600 text-white hover:bg-red-600">Trending</Badge>
@@ -1025,27 +1078,6 @@ export default function VideoWire() {
                           Open source
                           <ExternalLink className="h-3.5 w-3.5" />
                         </a>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleReact(video.reel_key, "love")}
-                          className={`px-2.5 py-1 rounded-full text-xs border ${reaction.user === "love" ? "bg-pink-500/25 border-pink-300/60" : "bg-black/25 border-white/25"}`}
-                        >
-                          ❤️ {reaction.love}
-                        </button>
-                        <button
-                          onClick={() => handleReact(video.reel_key, "like")}
-                          className={`px-2.5 py-1 rounded-full text-xs border ${reaction.user === "like" ? "bg-emerald-500/25 border-emerald-300/60" : "bg-black/25 border-white/25"}`}
-                        >
-                          👍 {reaction.like}
-                        </button>
-                        <button
-                          onClick={() => handleReact(video.reel_key, "dislike")}
-                          className={`px-2.5 py-1 rounded-full text-xs border ${reaction.user === "dislike" ? "bg-red-500/25 border-red-300/60" : "bg-black/25 border-white/25"}`}
-                        >
-                          👎 {reaction.dislike}
-                        </button>
                       </div>
                     </div>
                   </div>
