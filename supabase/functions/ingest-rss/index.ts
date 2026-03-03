@@ -869,6 +869,46 @@ function getCategoryFromKeywords(text: string): { primary: string | null; second
   };
 }
 
+const CATEGORY_ALIASES: Record<string, string> = {
+  ai: "AI",
+  business: "Business",
+  finance: "Finance",
+  politics: "Politics",
+  political: "Politics",
+  startups: "Startups",
+  startup: "Startups",
+  technology: "Technology",
+  tech: "Technology",
+  climate: "Climate",
+  environment: "Climate",
+  health: "Health",
+  healthcare: "Health",
+  sports: "Sports",
+  sport: "Sports",
+  entertainment: "Entertainment",
+  science: "Science",
+  world: "World",
+  international: "World",
+  india: "India",
+  national: "India",
+  local: "Local",
+};
+
+function normalizeCategoryValue(rawCategory: string | null | undefined, fallback = "World"): string {
+  if (!rawCategory) return fallback;
+
+  const trimmed = rawCategory.trim();
+  if (!trimmed) return fallback;
+
+  const exact = VALID_CATEGORIES.find((c) => c.toLowerCase() === trimmed.toLowerCase());
+  if (exact) return exact;
+
+  const alias = CATEGORY_ALIASES[trimmed.toLowerCase()];
+  if (alias && VALID_CATEGORIES.includes(alias)) return alias;
+
+  return fallback;
+}
+
 // STEP 3: Determine region scope with full location hierarchy
 interface LocationResult {
   scope: "Local" | "India" | "World";
@@ -969,13 +1009,13 @@ function classifyStory(
   district: string | null;
   locality: string | null;
 } {
-  let primaryCategory = feed.category || "World";
+  let primaryCategory = normalizeCategoryValue(feed.category, "World");
   let secondaryCategories: string[] = [];
 
   // STEP 1: Check URL path
   const urlCategory = getCategoryFromURL(url);
   if (urlCategory) {
-    primaryCategory = urlCategory;
+    primaryCategory = normalizeCategoryValue(urlCategory, primaryCategory);
   }
 
   // STEP 2: Check keywords (can override or add secondary)
@@ -990,22 +1030,34 @@ function classifyStory(
     if (keywordPrecedence !== -1 && (keywordPrecedence < urlPrecedence || urlPrecedence === -1)) {
       // Keyword category is higher precedence
       if (primaryCategory !== keywordResult.primary) {
-        secondaryCategories.push(primaryCategory);
+        secondaryCategories.push(normalizeCategoryValue(primaryCategory, "World"));
       }
-      primaryCategory = keywordResult.primary;
+      primaryCategory = normalizeCategoryValue(keywordResult.primary, primaryCategory);
     } else if (keywordResult.primary !== primaryCategory) {
-      secondaryCategories.push(keywordResult.primary);
+      secondaryCategories.push(normalizeCategoryValue(keywordResult.primary, "World"));
     }
   }
 
   // Add remaining secondary categories
   secondaryCategories = [
     ...secondaryCategories,
-    ...keywordResult.secondary.filter(c => c !== primaryCategory && !secondaryCategories.includes(c))
+    ...keywordResult.secondary
+      .map((c) => normalizeCategoryValue(c, "World"))
+      .filter((c) => c !== primaryCategory && !secondaryCategories.includes(c))
   ].slice(0, 2);
 
   // STEP 3: Determine region scope with full location hierarchy
   const locationResult = getRegionScope(headline, feed.country_code, feed.name);
+
+  if (primaryCategory === "World" && (locationResult.scope === "India" || locationResult.scope === "Local")) {
+    primaryCategory = locationResult.scope;
+  }
+
+  primaryCategory = normalizeCategoryValue(primaryCategory, "World");
+  secondaryCategories = secondaryCategories
+    .map((c) => normalizeCategoryValue(c, "World"))
+    .filter((c, index, arr) => c !== primaryCategory && arr.indexOf(c) === index)
+    .slice(0, 2);
 
   return {
     primary_category: primaryCategory,

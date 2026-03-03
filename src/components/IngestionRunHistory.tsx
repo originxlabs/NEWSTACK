@@ -21,7 +21,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, subHours } from "date-fns";
+
+function normalizeRunStatus(status: string | null | undefined): "completed" | "failed" | "running" | "unknown" {
+  if (!status) return "unknown";
+  const normalized = status.toLowerCase();
+  if (normalized === "completed" || normalized === "success") return "completed";
+  if (normalized === "failed" || normalized === "error" || normalized === "partial") return "failed";
+  if (normalized === "running") return "running";
+  return "unknown";
+}
 
 interface IngestionRun {
   id: string;
@@ -38,12 +47,14 @@ interface IngestionRunHistoryProps {
   className?: string;
   defaultCollapsed?: boolean;
   maxRuns?: number;
+  windowHours?: number;
 }
 
 export function IngestionRunHistory({
   className,
   defaultCollapsed = false, // Default to expanded to show data
   maxRuns = 10,
+  windowHours = 24,
 }: IngestionRunHistoryProps) {
   const [runs, setRuns] = useState<IngestionRun[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,9 +63,11 @@ export function IngestionRunHistory({
   const fetchRuns = useCallback(async () => {
     setIsLoading(true);
     try {
+      const cutoff = subHours(new Date(), windowHours);
       const { data, error } = await supabase
         .from("ingestion_runs")
         .select("id,started_at,completed_at,status,total_feeds_processed,total_stories_created,total_stories_merged,error_message")
+        .gte("started_at", cutoff.toISOString())
         .order("started_at", { ascending: false })
         .limit(maxRuns);
 
@@ -65,10 +78,20 @@ export function IngestionRunHistory({
     } finally {
       setIsLoading(false);
     }
-  }, [maxRuns]);
+  }, [maxRuns, windowHours]);
 
   useEffect(() => {
     fetchRuns();
+  }, [fetchRuns]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchRuns();
+      }
+    }, 60 * 1000);
+
+    return () => clearInterval(interval);
   }, [fetchRuns]);
 
   // Subscribe to realtime updates with error handling
@@ -104,11 +127,10 @@ export function IngestionRunHistory({
   }, [fetchRuns]);
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
+    switch (normalizeRunStatus(status)) {
       case "completed":
         return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />;
       case "failed":
-      case "error":
         return <XCircle className="w-3.5 h-3.5 text-red-500" />;
       case "running":
         return <RefreshCw className="w-3.5 h-3.5 text-blue-500 animate-spin" />;
@@ -118,11 +140,10 @@ export function IngestionRunHistory({
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (normalizeRunStatus(status)) {
       case "completed":
         return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
       case "failed":
-      case "error":
         return "bg-red-500/10 text-red-600 border-red-500/20";
       case "running":
         return "bg-blue-500/10 text-blue-600 border-blue-500/20";
@@ -202,7 +223,7 @@ export function IngestionRunHistory({
             ) : runs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No ingestion runs yet</p>
+                <p className="text-sm">No ingestion runs in last {windowHours} hours</p>
               </div>
             ) : (
               <ScrollArea className="h-[320px]">
@@ -211,8 +232,9 @@ export function IngestionRunHistory({
                     {runs.map((run, index) => {
                       const triggerType = getTriggerType(run, index, runs);
                       const duration = getDuration(run);
+                      const normalizedStatus = normalizeRunStatus(run.status);
                       const noNewNews =
-                        run.status === "completed" &&
+                        normalizedStatus === "completed" &&
                         (run.total_stories_created || 0) === 0 &&
                         (run.total_stories_merged || 0) === 0;
 
@@ -225,7 +247,7 @@ export function IngestionRunHistory({
                           transition={{ delay: index * 0.03 }}
                           className={cn(
                             "p-3 rounded-lg border transition-colors",
-                            run.status === "running"
+                            normalizedStatus === "running"
                               ? "border-blue-500/30 bg-blue-500/5"
                               : "border-border/50 hover:bg-muted/30"
                           )}
@@ -247,6 +269,16 @@ export function IngestionRunHistory({
                               )}
                             </div>
 
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                "text-[9px] h-4 px-1.5 gap-0.5",
+                                getStatusColor(run.status)
+                              )}
+                            >
+                              {getStatusIcon(run.status)}
+                              {normalizedStatus}
+                            </Badge>
                             <Badge
                               variant="secondary"
                               className={cn(
@@ -309,7 +341,7 @@ export function IngestionRunHistory({
                               </Badge>
                             )}
 
-                            {run.status === "failed" && run.error_message && (
+                            {normalizedStatus === "failed" && run.error_message && (
                               <Badge
                                 variant="outline"
                                 className="text-[9px] h-4 px-1.5 bg-red-500/10 text-red-600 border-red-500/20 max-w-[200px] truncate"

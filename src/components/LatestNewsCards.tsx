@@ -161,7 +161,7 @@ export function LatestNewsCards({ articles, isLoading }: LatestNewsCardsProps) {
               <button
                 key={article.id}
                 className="news-card group text-left rounded-xl border border-border/60 bg-card hover:border-primary/30 hover:bg-card/90 transition-colors duration-200 p-5 cursor-pointer shadow-sm relative overflow-hidden min-h-[218px] flex flex-col"
-                onClick={() => navigate(`/news?story=${article.id}`)}
+                onClick={() => navigate(`/news/${article.id}`)}
               >
                 {/* Subtle gradient accent top */}
                 <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary/0 via-primary/40 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

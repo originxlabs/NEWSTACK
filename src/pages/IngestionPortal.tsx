@@ -37,7 +37,8 @@ interface IngestionRun {
 export default function IngestionPortal() {
   const AUTO_INTERVAL_MINUTES = 15;
   const AUTO_INTERVAL_MS = AUTO_INTERVAL_MINUTES * 60 * 1000;
-  const STATUS_POLL_INTERVAL_MS = 120000;
+  const STATUS_POLL_INTERVAL_MS = AUTO_INTERVAL_MS;
+  const SCHEDULER_DELAY_THRESHOLD_MINUTES = 30;
 
   const { user } = useAuth();
   const { isAdmin } = useNewsroomRole();
@@ -144,6 +145,11 @@ export default function IngestionPortal() {
 
   const latestStartedAt = latestRun?.started_at ? new Date(latestRun.started_at) : null;
   const nextAutoRefreshAt = latestStartedAt ? new Date(latestStartedAt.getTime() + AUTO_INTERVAL_MS) : null;
+  const lastRunAgeMinutes = latestStartedAt
+    ? Math.floor((Date.now() - latestStartedAt.getTime()) / (60 * 1000))
+    : null;
+  const isSchedulerDelayed =
+    lastRunAgeMinutes !== null && lastRunAgeMinutes > SCHEDULER_DELAY_THRESHOLD_MINUTES;
   const autoModeLabel = latestStartedAt
     ? `Next auto run ${formatDistanceToNow(nextAutoRefreshAt as Date, { addSuffix: true })}`
     : "Waiting for first scheduler run";
@@ -277,6 +283,23 @@ export default function IngestionPortal() {
           </p>
         </div>
 
+        {isSchedulerDelayed && (
+          <Card className="mb-6 border-red-500/40 bg-red-500/5">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-red-600">Scheduler delayed</p>
+                  <p className="text-sm text-red-600/90 mt-1">
+                    Last ingestion run started {lastRunAgeMinutes} minutes ago.
+                    Expected cadence is every {AUTO_INTERVAL_MINUTES} minutes.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Access Status */}
         <Card className="mb-6">
           <CardContent className="pt-6">
@@ -376,7 +399,7 @@ export default function IngestionPortal() {
                 {lastStatusSyncAt && (
                   <>
                     <span>•</span>
-                    <span>Status synced {formatDistanceToNow(lastStatusSyncAt, { addSuffix: true })}</span>
+                    <span>Status checked every 15 min • last sync {formatDistanceToNow(lastStatusSyncAt, { addSuffix: true })}</span>
                   </>
                 )}
               </div>
@@ -462,7 +485,7 @@ export default function IngestionPortal() {
         <IngestionTimelineChart defaultExpanded={true} />
 
         {/* Run History */}
-        <IngestionRunHistory defaultCollapsed={false} maxRuns={10} />
+        <IngestionRunHistory defaultCollapsed={false} maxRuns={48} windowHours={24} />
       </main>
 
       <Footer />

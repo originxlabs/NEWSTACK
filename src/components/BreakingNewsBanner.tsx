@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, X, ExternalLink, Bell, BellOff } from "lucide-react";
+import { AlertCircle, X, ExternalLink, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useBreakingNewsNotifications } from "@/hooks/use-breaking-news";
+import { useNavigate } from "react-router-dom";
 
 interface BreakingNews {
   id: string;
@@ -17,9 +18,19 @@ interface BreakingNews {
 }
 
 export function BreakingNewsBanner() {
+  const navigate = useNavigate();
   const [breakingNews, setBreakingNews] = useState<BreakingNews | null>(null);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [resolvedStoryId, setResolvedStoryId] = useState<string | null>(null);
   const { isSupported, permission, requestPermission } = useBreakingNewsNotifications();
+
+  const normalizeHeadlineForSearch = (headline: string) =>
+    headline
+      .toLowerCase()
+      .replace(/["'`]/g, "")
+      .replace(/[^a-z0-9\s-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
   useEffect(() => {
     // Fetch current breaking news
@@ -91,6 +102,64 @@ export function BreakingNewsBanner() {
     await requestPermission();
   };
 
+  const handleOpenBreakingStory = () => {
+    if (resolvedStoryId) {
+      navigate(`/news/${resolvedStoryId}`);
+      return;
+    }
+
+    if (breakingNews?.source_url) {
+      window.open(breakingNews.source_url, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  useEffect(() => {
+    const resolveStoryId = async () => {
+      if (!breakingNews) {
+        setResolvedStoryId(null);
+        return;
+      }
+
+      try {
+        if (breakingNews.source_url) {
+          const { data: sourceMatch } = await supabase
+            .from("story_sources")
+            .select("story_id, published_at")
+            .eq("source_url", breakingNews.source_url)
+            .order("published_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (sourceMatch?.story_id) {
+            setResolvedStoryId(sourceMatch.story_id);
+            return;
+          }
+        }
+
+        const normalizedHeadline = normalizeHeadlineForSearch(breakingNews.headline);
+        if (!normalizedHeadline) {
+          setResolvedStoryId(null);
+          return;
+        }
+
+        const headlinePrefix = normalizedHeadline.slice(0, 80);
+        const { data: headlineMatch } = await supabase
+          .from("stories")
+          .select("id, first_published_at")
+          .ilike("headline", `%${headlinePrefix}%`)
+          .order("first_published_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        setResolvedStoryId(headlineMatch?.id ?? null);
+      } catch {
+        setResolvedStoryId(null);
+      }
+    };
+
+    resolveStoryId();
+  }, [breakingNews]);
+
   if (!breakingNews) return null;
 
   return (
@@ -114,18 +183,23 @@ export function BreakingNewsBanner() {
               <span className="font-semibold text-xs sm:text-sm uppercase tracking-wider shrink-0">
                 Breaking
               </span>
-              <span className="truncate text-xs sm:text-sm font-medium">
+              <button
+                type="button"
+                onClick={handleOpenBreakingStory}
+                className="truncate text-left text-xs sm:text-sm font-medium hover:underline underline-offset-2"
+                title={resolvedStoryId ? "Open story details" : "Open source"}
+              >
                 {breakingNews.headline}
-              </span>
-              {breakingNews.source_url && (
-                <a
-                  href={breakingNews.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+              </button>
+              {breakingNews.source_url && !resolvedStoryId && (
+                <button
+                  type="button"
+                  onClick={handleOpenBreakingStory}
                   className="shrink-0 hover:opacity-80 transition-opacity hidden sm:block"
+                  title="Open source article"
                 >
                   <ExternalLink className="h-4 w-4" />
-                </a>
+                </button>
               )}
             </div>
             

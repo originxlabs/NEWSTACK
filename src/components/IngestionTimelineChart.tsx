@@ -31,7 +31,19 @@ import {
 } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { format, subHours, differenceInMinutes } from "date-fns";
+import { format, subHours } from "date-fns";
+
+const SCHEDULER_INTERVAL_MINUTES = 15;
+const SCHEDULER_INTERVAL_MS = SCHEDULER_INTERVAL_MINUTES * 60 * 1000;
+
+function normalizeRunStatus(status: string | null | undefined): "completed" | "failed" | "running" | "unknown" {
+  if (!status) return "unknown";
+  const normalized = status.toLowerCase();
+  if (normalized === "completed" || normalized === "success") return "completed";
+  if (normalized === "failed" || normalized === "error" || normalized === "partial") return "failed";
+  if (normalized === "running") return "running";
+  return "unknown";
+}
 
 interface IngestionRun {
   id: string;
@@ -73,6 +85,10 @@ export function IngestionTimelineChart({
     successRate: 0,
     avgDuration: 0,
     totalStories: 0,
+    completedRuns: 0,
+    failedRuns: 0,
+    runningRuns: 0,
+    schedulerHealthy: false,
   });
 
   const fetchRuns = useCallback(async () => {
@@ -117,13 +133,17 @@ export function IngestionTimelineChart({
       let totalDurationMs = 0;
       let completedCount = 0;
 
+      let failedCount = 0;
+      let runningCount = 0;
+
       (data || []).forEach((run) => {
         const runTime = new Date(run.started_at);
         const hourKey = format(runTime, "yyyy-MM-dd-HH");
+        const normalizedStatus = normalizeRunStatus(run.status);
 
         if (!hourlyMap[hourKey]) return;
 
-        if (run.status === "completed") {
+        if (normalizedStatus === "completed") {
           hourlyMap[hourKey].completed += 1;
           completedCount += 1;
 
@@ -132,10 +152,12 @@ export function IngestionTimelineChart({
               new Date(run.completed_at).getTime() - runTime.getTime();
             totalDurationMs += duration;
           }
-        } else if (run.status === "failed" || run.status === "error") {
+        } else if (normalizedStatus === "failed") {
           hourlyMap[hourKey].failed += 1;
-        } else if (run.status === "running") {
+          failedCount += 1;
+        } else if (normalizedStatus === "running") {
           hourlyMap[hourKey].running += 1;
+          runningCount += 1;
         }
 
         hourlyMap[hourKey].storiesCreated += run.total_stories_created || 0;
@@ -157,12 +179,14 @@ export function IngestionTimelineChart({
 
       // Calculate overall stats
       const totalRuns = (data || []).length;
-      const failedRuns = (data || []).filter(
-        (r) => r.status === "failed" || r.status === "error"
-      ).length;
+      const latestRun = (data || []).at(-1);
+      const lastRunAgeMs = latestRun
+        ? Date.now() - new Date(latestRun.started_at).getTime()
+        : Number.POSITIVE_INFINITY;
+      const schedulerHealthy = lastRunAgeMs <= SCHEDULER_INTERVAL_MS * 2;
       const successRate =
         totalRuns > 0
-          ? Math.round(((totalRuns - failedRuns) / totalRuns) * 100)
+          ? Math.round((completedCount / totalRuns) * 100)
           : 0;
       const avgDuration =
         completedCount > 0
@@ -178,6 +202,10 @@ export function IngestionTimelineChart({
         successRate,
         avgDuration,
         totalStories,
+        completedRuns: completedCount,
+        failedRuns: failedCount,
+        runningRuns: runningCount,
+        schedulerHealthy,
       });
     } catch (err) {
       console.error("Error fetching ingestion runs:", err);
@@ -188,6 +216,16 @@ export function IngestionTimelineChart({
 
   useEffect(() => {
     fetchRuns();
+  }, [fetchRuns]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchRuns();
+      }
+    }, SCHEDULER_INTERVAL_MS);
+
+    return () => clearInterval(interval);
   }, [fetchRuns]);
 
   // Subscribe to realtime updates with error handling
@@ -288,6 +326,17 @@ export function IngestionTimelineChart({
                 <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                 {stats.successRate}% success
               </Badge>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px]",
+                  stats.schedulerHealthy
+                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                    : "bg-red-500/10 text-red-600 border-red-500/20"
+                )}
+              >
+                Scheduler {stats.schedulerHealthy ? "healthy" : "delayed"}
+              </Badge>
               <Badge variant="outline" className="text-[10px] gap-1">
                 <Clock className="w-3 h-3" />
                 ~{stats.avgDuration}s avg
@@ -372,21 +421,21 @@ export function IngestionTimelineChart({
                         <Bar
                           dataKey="completed"
                           name="Completed"
-                          fill="hsl(var(--chart-2))"
+                          fill="#10b981"
                           radius={[2, 2, 0, 0]}
                           stackId="status"
                         />
                         <Bar
                           dataKey="failed"
                           name="Failed"
-                          fill="hsl(var(--destructive))"
+                          fill="#ef4444"
                           radius={[2, 2, 0, 0]}
                           stackId="status"
                         />
                         <Bar
                           dataKey="running"
                           name="Running"
-                          fill="hsl(var(--chart-1))"
+                          fill="#3b82f6"
                           radius={[2, 2, 0, 0]}
                           stackId="status"
                         />

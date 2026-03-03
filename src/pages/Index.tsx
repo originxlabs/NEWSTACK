@@ -278,7 +278,7 @@ const Index = () => {
                   >
                     <StoryCluster
                       {...cluster}
-                      onReadMore={() => navigate(`/news?story=${cluster.id}`)}
+                      onReadMore={() => navigate(`/news/${cluster.id}`)}
                     />
                   </motion.div>
                 ))}

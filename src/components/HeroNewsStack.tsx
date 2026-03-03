@@ -143,7 +143,7 @@ export function HeroNewsStack({ articles, isLoading }: HeroNewsStackProps) {
   }, [isLoading, total]);
 
   const handleCardClick = useCallback((id: string) => {
-    navigate(`/news?story=${id}`);
+    navigate(`/news/${id}`);
   }, [navigate]);
 
   const goNext = () => setActiveIdx((i) => (i + 1) % total);
