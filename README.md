@@ -110,6 +110,7 @@ flowchart TD
 
 ## Documentation
 
+- Full architecture blueprint: [docs/architecture.md](docs/architecture.md)
 - Full migration and infra guide: [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)
 - OpenNews social module notes: [docs/opennews-social.md](docs/opennews-social.md)
 - OpenNews module directory: [modules/opennews/README.md](modules/opennews/README.md)
@@ -135,6 +136,14 @@ npm run dev
 ```bash
 npm run build
 ```
+
+### Vercel Deployment (Recommended)
+Use:
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Install Command: `npm install`
+
+If routes work locally but not on Vercel, check `vercel.json` SPA fallback + static asset exclusions.
 
 ### Preview
 ```bash

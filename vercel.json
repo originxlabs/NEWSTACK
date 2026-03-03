@@ -24,7 +24,10 @@
       "source": "/v1/health",
       "destination": "https://cpdxgnrpboreraiwcqgl.supabase.co/functions/v1/api-health"
     },
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/((?!api/opennews|v1|assets/|icons/|media-logos/|qr/|favicon\\.svg|logo\\.svg|manifest\\.json|robots\\.txt|sitemap\\.xml|sw\\.js|openapi\\.yaml|llms\\.txt|.*\\..*).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
