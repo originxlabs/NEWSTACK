@@ -20,17 +20,33 @@ interface VideoItem {
   platform: "youtube" | "publisher";
   published_at: string;
   thumbnail: string | null;
+  video_id: string | null;
+  embed_url: string | null;
+  is_short: boolean;
+  is_trending: boolean;
 }
 
 const FALLBACK_FEEDS: FeedSource[] = [
   { name: "BBC News (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?user=BBCNews", platform: "youtube" },
   { name: "CNN (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?user=CNN", platform: "youtube" },
   { name: "Al Jazeera English (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?user=AlJazeeraEnglish", platform: "youtube" },
+  { name: "Reuters (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UChqUTb7kYRX8-EiaN3XFrSQ", platform: "youtube" },
+  { name: "Sky News (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?user=SkyNews", platform: "youtube" },
+  { name: "France 24 (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?user=FRANCE24English", platform: "youtube" },
+  { name: "DW News (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCknLrEdhRCp1aegoMqRaCZg", platform: "youtube" },
   { name: "NDTV (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?user=ndtv", platform: "youtube", country: "IN" },
+  { name: "India Today (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCYPvAwZP8pZhSMW8qs7cVCw", platform: "youtube", country: "IN" },
   { name: "Aaj Tak (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?user=aajtak", platform: "youtube", country: "IN" },
+  { name: "ABP News (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCmphdqZNmqL72WJ2uyiNw5w", platform: "youtube", country: "IN" },
   { name: "WION (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?user=WION", platform: "youtube", country: "IN" },
+  { name: "News18 India (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCef1-8eOpJgud7szVPlZQA", platform: "youtube", country: "IN" },
+  { name: "Republic World (YouTube)", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCwqusr8YDwM-3mEYTDeJHzw", platform: "youtube", country: "IN" },
   { name: "BBC Video RSS", url: "https://feeds.bbci.co.uk/news/video_and_audio/world/rss.xml", platform: "publisher" },
   { name: "NYT Video RSS", url: "https://rss.nytimes.com/services/xml/rss/nyt/Video.xml", platform: "publisher" },
+];
+
+const TRENDING_KEYWORDS = [
+  "breaking", "live", "just in", "alert", "explained", "analysis", "exclusive", "shorts", "viral",
 ];
 
 function stripCdata(input: string): string {
@@ -63,6 +79,26 @@ function extractAttr(xml: string, tag: string, attr: string): string | null {
   return match?.[1] ?? null;
 }
 
+function extractYoutubeId(link: string): string | null {
+  try {
+    const parsed = new URL(link);
+    if (parsed.hostname.includes("youtube.com")) {
+      return parsed.searchParams.get("v");
+    }
+    if (parsed.hostname.includes("youtu.be")) {
+      return parsed.pathname.split("/").filter(Boolean)[0] ?? null;
+    }
+  } catch {
+    // no-op
+  }
+  return null;
+}
+
+function toEmbedUrl(videoId: string | null): string | null {
+  if (!videoId) return null;
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&playsinline=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=${videoId}&enablejsapi=1`;
+}
+
 function guessYoutubeThumb(url: string): string | null {
   try {
     const parsed = new URL(url);
@@ -85,6 +121,18 @@ function looksLikeVideo(item: { link?: string | null; title?: string | null; med
   return ["youtube.com/watch", "youtu.be/", "/video", "/videos", "watch", "live", "media:", "enclosure"].some((token) => merged.includes(token));
 }
 
+function isTrendingVideo(title: string, publishedAt: string): boolean {
+  const lower = title.toLowerCase();
+  const keywordHit = TRENDING_KEYWORDS.some((k) => lower.includes(k));
+  const ageHours = Math.max(0, (Date.now() - new Date(publishedAt).getTime()) / (1000 * 60 * 60));
+  return keywordHit || ageHours <= 10;
+}
+
+function looksShort(title: string, link: string): boolean {
+  const lower = `${title} ${link}`.toLowerCase();
+  return lower.includes("short") || lower.includes("reel") || lower.includes("/shorts/");
+}
+
 function parseAtomEntries(xml: string, source: FeedSource): VideoItem[] {
   const entries = xml.match(/<entry[\s\S]*?<\/entry>/gi) ?? [];
   return entries
@@ -92,7 +140,13 @@ function parseAtomEntries(xml: string, source: FeedSource): VideoItem[] {
       const title = extractTag(entry, "title") ?? "Untitled";
       const link = extractAttr(entry, "link", "href") ?? "";
       const published = extractTag(entry, "published") ?? extractTag(entry, "updated") ?? new Date().toISOString();
-      const thumbnail = extractAttr(entry, "media:thumbnail", "url") ?? extractAttr(entry, "media:content", "url") ?? guessYoutubeThumb(link);
+      const fromEntryVideoId = extractTag(entry, "yt:videoId");
+      const fromLinkVideoId = extractYoutubeId(link);
+      const videoId = fromEntryVideoId || fromLinkVideoId;
+      const thumbnail =
+        extractAttr(entry, "media:thumbnail", "url") ??
+        extractAttr(entry, "media:content", "url") ??
+        (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : guessYoutubeThumb(link));
 
       if (!link || !looksLikeVideo({ link, title, media: thumbnail })) return null;
 
@@ -103,6 +157,10 @@ function parseAtomEntries(xml: string, source: FeedSource): VideoItem[] {
         platform: source.platform,
         published_at: published,
         thumbnail,
+        video_id: videoId,
+        embed_url: source.platform === "youtube" ? toEmbedUrl(videoId) : null,
+        is_short: looksShort(title, link),
+        is_trending: isTrendingVideo(title, published),
       } as VideoItem;
     })
     .filter((item): item is VideoItem => Boolean(item));
@@ -115,11 +173,12 @@ function parseRssItems(xml: string, source: FeedSource): VideoItem[] {
       const title = extractTag(item, "title") ?? "Untitled";
       const link = extractTag(item, "link") ?? "";
       const published = extractTag(item, "pubDate") ?? new Date().toISOString();
+      const videoId = extractYoutubeId(link);
       const thumbnail =
         extractAttr(item, "media:thumbnail", "url") ??
         extractAttr(item, "media:content", "url") ??
         extractAttr(item, "enclosure", "url") ??
-        guessYoutubeThumb(link);
+        (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : guessYoutubeThumb(link));
 
       if (!link || !looksLikeVideo({ link, title, media: thumbnail })) return null;
 
@@ -130,6 +189,10 @@ function parseRssItems(xml: string, source: FeedSource): VideoItem[] {
         platform: source.platform,
         published_at: published,
         thumbnail,
+        video_id: videoId,
+        embed_url: source.platform === "youtube" ? toEmbedUrl(videoId) : null,
+        is_short: looksShort(title, link),
+        is_trending: isTrendingVideo(title, published),
       } as VideoItem;
     })
     .filter((item): item is VideoItem => Boolean(item));
@@ -166,7 +229,7 @@ serve(async (req) => {
   }
 
   try {
-    const { limit = 30 } = await req.json().catch(() => ({}));
+    const { limit = 60, platform = "all" } = await req.json().catch(() => ({}));
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -176,8 +239,8 @@ serve(async (req) => {
       .from("rss_feeds")
       .select("name, url, country_code")
       .eq("is_active", true)
-      .or("url.ilike.%youtube.com/feeds/videos.xml%,url.ilike.%/video%,url.ilike.%/videos%,name.ilike.%video%")
-      .limit(24);
+      .or("url.ilike.%youtube.com/feeds/videos.xml%,url.ilike.%youtu.be%,url.ilike.%/video%,url.ilike.%/videos%,name.ilike.%video%,name.ilike.%youtube%")
+      .limit(80);
 
     const dynamicFeeds: FeedSource[] = (feedRows ?? []).map((row) => ({
       name: row.name,
@@ -187,19 +250,35 @@ serve(async (req) => {
     }));
 
     const seen = new Set<string>();
-    const allFeeds = [...dynamicFeeds, ...FALLBACK_FEEDS].filter((feed) => {
+    const allFeeds = [...dynamicFeeds, ...FALLBACK_FEEDS]
+      .filter((feed) => {
+        if (platform === "youtube") return feed.platform === "youtube";
+        if (platform === "publisher") return feed.platform === "publisher";
+        return true;
+      })
+      .filter((feed) => {
       const key = `${feed.name}::${feed.url}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
-    });
+      });
 
     const settled = await Promise.allSettled(allFeeds.map((feed) => fetchAndParseFeed(feed)));
 
     const allItems = settled
       .flatMap((result) => (result.status === "fulfilled" ? result.value : []))
       .filter((item) => item.link && item.title)
-      .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+      .sort((a, b) => {
+        const aTime = new Date(a.published_at).getTime();
+        const bTime = new Date(b.published_at).getTime();
+        const aTrend = a.is_trending ? 1 : 0;
+        const bTrend = b.is_trending ? 1 : 0;
+        const aShort = a.is_short ? 1 : 0;
+        const bShort = b.is_short ? 1 : 0;
+        const aScore = aTrend * 3 + aShort * 2 + aTime / 1e12;
+        const bScore = bTrend * 3 + bShort * 2 + bTime / 1e12;
+        return bScore - aScore;
+      });
 
     const uniqueItems: VideoItem[] = [];
     const dedupe = new Set<string>();
@@ -216,6 +295,7 @@ serve(async (req) => {
         success: true,
         count: uniqueItems.length,
         sources_scanned: allFeeds.length,
+        platform,
         videos: uniqueItems,
       }),
       {

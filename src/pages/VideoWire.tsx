@@ -1,10 +1,14 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Film, PlayCircle, Radio, ShieldCheck, Youtube } from "lucide-react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ExternalLink, Film, PlayCircle, Radio, ShieldCheck, Volume2, VolumeX, Youtube } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface VideoWireItem {
   title: string;
@@ -13,6 +17,10 @@ interface VideoWireItem {
   platform: "youtube" | "publisher";
   published_at: string;
   thumbnail: string | null;
+  video_id?: string | null;
+  embed_url?: string | null;
+  is_short?: boolean;
+  is_trending?: boolean;
 }
 
 const FALLBACK_VIDEOS: VideoWireItem[] = [
@@ -45,7 +53,7 @@ const FALLBACK_VIDEOS: VideoWireItem[] = [
 async function fetchVideoWire() {
   try {
     const { data, error } = await supabase.functions.invoke("video-wire-feed", {
-      body: { limit: 36 },
+      body: { limit: 80, platform: "youtube" },
     });
 
     if (error) {
@@ -73,6 +81,12 @@ function timeAgo(isoDate: string): string {
 }
 
 export default function VideoWire() {
+  const reelContainerRef = useRef<HTMLDivElement | null>(null);
+  const reelRefs = useRef<(HTMLElement | null)[]>([]);
+  const iframeRefs = useRef<(HTMLIFrameElement | null)[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
+
   const {
     data: videos = [],
     isLoading,
@@ -91,101 +105,234 @@ export default function VideoWire() {
   const displayVideos = videos.length > 0 ? videos : FALLBACK_VIDEOS;
   const isFallback = videos.length === 0;
 
+  useEffect(() => {
+    const container = reelContainerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let bestIndex = activeIndex;
+        let bestRatio = 0;
+
+        entries.forEach((entry) => {
+          const index = Number((entry.target as HTMLElement).dataset.index);
+          if (entry.isIntersecting && entry.intersectionRatio > bestRatio) {
+            bestRatio = entry.intersectionRatio;
+            bestIndex = index;
+          }
+        });
+
+        if (bestIndex !== activeIndex) {
+          setActiveIndex(bestIndex);
+        }
+      },
+      { root: container, threshold: [0.5, 0.7, 0.85] },
+    );
+
+    reelRefs.current.forEach((node) => {
+      if (node) observer.observe(node);
+    });
+
+    return () => observer.disconnect();
+  }, [displayVideos.length, activeIndex]);
+
+  useEffect(() => {
+    if (!reelContainerRef.current) return;
+
+    const ctx = gsap.context(() => {
+      reelRefs.current.forEach((node) => {
+        if (!node) return;
+        gsap.fromTo(
+          node,
+          { opacity: 0.55, y: 50, scale: 0.98 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.6,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: node,
+              scroller: reelContainerRef.current,
+              start: "top 85%",
+              end: "bottom 15%",
+              scrub: false,
+            },
+          },
+        );
+      });
+    }, reelContainerRef);
+
+    return () => ctx.revert();
+  }, [displayVideos.length]);
+
+  useEffect(() => {
+    iframeRefs.current.forEach((iframe, index) => {
+      if (!iframe) return;
+      const command = index === activeIndex ? "playVideo" : "pauseVideo";
+      iframe.contentWindow?.postMessage(
+        JSON.stringify({ event: "command", func: command, args: [] }),
+        "https://www.youtube.com",
+      );
+    });
+  }, [activeIndex, displayVideos.length]);
+
+  useEffect(() => {
+    const iframe = iframeRefs.current[activeIndex];
+    if (!iframe) return;
+    iframe.contentWindow?.postMessage(
+      JSON.stringify({ event: "command", func: isMuted ? "mute" : "unMute", args: [] }),
+      "https://www.youtube.com",
+    );
+  }, [activeIndex, isMuted]);
+
+  const toggleMute = () => setIsMuted((prev) => !prev);
+
   return (
-    <main className="min-h-screen bg-background">
-      <section className="container mx-auto max-w-6xl px-4 pt-24 pb-8">
-        <div className="flex flex-wrap items-center gap-3 mb-4">
+    <main className="h-screen bg-background overflow-hidden">
+      <section className="container mx-auto max-w-6xl px-4 pt-20 pb-3">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
           <Badge variant="outline" className="gap-1.5">
             <Film className="h-3.5 w-3.5" />
-            Video Intelligence
+            Trending Latest Videos
           </Badge>
           <Badge variant="secondary" className="gap-1.5">
             <Radio className="h-3.5 w-3.5" />
-            ReelWire
+            ReelWire Reels
+          </Badge>
+          <Badge variant="outline" className="gap-1.5">
+            <Youtube className="h-3.5 w-3.5 text-red-500" />
+            News Channel Shorts
           </Badge>
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-3">
-          ReelWire — Video Based News
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-1">
+          ReelWire — Auto-play News Reels
         </h1>
-        <p className="text-muted-foreground max-w-3xl">
-          ReelWire aggregates fresh videos from YouTube news channels and trusted publisher video feeds in one stream.
+        <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl">
+          Scroll down for the next reel. Active video auto-plays muted. Tap mute/unmute anytime.
         </p>
       </section>
 
-      <section className="container mx-auto max-w-6xl px-4 pb-16">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <section className="container mx-auto max-w-6xl px-4 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div className="text-sm text-muted-foreground">
             {isLoading
               ? "Loading live video feed..."
               : isFallback
-                ? "Showing fallback video sources until live feed is ready"
+                ? "Showing fallback sources until edge function is deployed"
                 : `${videos.length} videos from ${sourceCount} sources`}
           </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            {isFetching ? "Refreshing..." : "Refresh"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+              {isFetching ? "Refreshing..." : "Refresh"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={toggleMute}>
+              {isMuted ? <VolumeX className="h-4 w-4 mr-1.5" /> : <Volume2 className="h-4 w-4 mr-1.5" />}
+              {isMuted ? "Muted" : "Sound On"}
+            </Button>
+          </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {displayVideos.map((video) => (
-            <Card key={video.link} className="border-border/60 overflow-hidden">
-              <a href={video.link} target="_blank" rel="noreferrer noopener" className="block">
-                <div className="aspect-video bg-muted/40 overflow-hidden">
-                  {video.thumbnail ? (
-                    <img
-                      src={video.thumbnail}
-                      alt={video.title}
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-                      <PlayCircle className="h-8 w-8" />
+        <div
+          ref={reelContainerRef}
+          className="h-[calc(100vh-12.5rem)] overflow-y-auto snap-y snap-mandatory scroll-smooth"
+        >
+          {displayVideos.map((video, index) => {
+            const videoId = video.video_id || (() => {
+              try {
+                const url = new URL(video.link);
+                if (url.hostname.includes("youtube.com")) return url.searchParams.get("v");
+                return null;
+              } catch {
+                return null;
+              }
+            })();
+
+            const embedUrl = video.embed_url || (videoId
+              ? `https://www.youtube.com/embed/${videoId}?autoplay=${index === activeIndex ? 1 : 0}&mute=${isMuted ? 1 : 0}&playsinline=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=${videoId}&enablejsapi=1`
+              : null);
+
+            return (
+              <div
+                key={`${video.link}-${index}`}
+                data-index={index}
+                ref={(el) => {
+                  reelRefs.current[index] = el;
+                }}
+                className="reel-item snap-start h-[calc(100vh-12.5rem)] py-2"
+              >
+                <Card className="border-border/60 overflow-hidden h-full bg-black/90">
+                  <div className="relative h-full w-full">
+                    {embedUrl ? (
+                      <iframe
+                        ref={(el) => {
+                          iframeRefs.current[index] = el;
+                        }}
+                        title={video.title}
+                        src={embedUrl}
+                        className="absolute inset-0 h-full w-full"
+                        allow="autoplay; encrypted-media; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : video.thumbnail ? (
+                      <img
+                        src={video.thumbnail}
+                        alt={video.title}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-white/70">
+                        <PlayCircle className="h-12 w-12" />
+                      </div>
+                    )}
+
+                    <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/85 to-transparent text-white">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        {(video.is_trending ?? true) && (
+                          <Badge className="bg-red-600 text-white hover:bg-red-600">Trending</Badge>
+                        )}
+                        {video.is_short && (
+                          <Badge variant="secondary" className="bg-white/15 text-white border-white/20">Short Reel</Badge>
+                        )}
+                        <Badge variant="outline" className="border-white/30 text-white/90">
+                          {video.source}
+                        </Badge>
+                      </div>
+                      <p className="text-base sm:text-lg font-semibold leading-snug line-clamp-3 mb-1">{video.title}</p>
+                      <div className="text-xs sm:text-sm text-white/80 flex items-center gap-2">
+                        <span>{timeAgo(video.published_at)}</span>
+                        <span>•</span>
+                        <a
+                          href={video.link}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="inline-flex items-center gap-1 hover:text-white"
+                        >
+                          Open source
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </a>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm leading-5 line-clamp-2">{video.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 flex items-center justify-between gap-2">
-                <div className="text-xs text-muted-foreground flex items-center gap-2 min-w-0">
-                  {video.platform === "youtube" ? (
-                    <Youtube className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                  ) : (
-                    <PlayCircle className="h-3.5 w-3.5 text-primary shrink-0" />
-                  )}
-                  <span className="truncate">{video.source}</span>
-                  <span>•</span>
-                  <span className="shrink-0">{timeAgo(video.published_at)}</span>
-                </div>
-                <a
-                  href={video.link}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={`Open ${video.title}`}
-                  title="Open video"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </CardContent>
-            </Card>
-          ))}
+                  </div>
+                </Card>
+              </div>
+            );
+          })}
         </div>
 
         {!isLoading && isFallback && (
-          <Card className="border-border/60 mt-4">
+          <Card className="border-border/60 mt-3">
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Live scraped feeds are initializing. Fallback video channels are shown for now.
+              Live scraping pipeline is not deployed on this environment yet. Fallback reels are shown.
             </CardContent>
           </Card>
         )}
 
-        <div className="mt-6 rounded-lg border border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground flex items-start gap-2">
+        <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground flex items-start gap-2">
           <ShieldCheck className="h-4 w-4 mt-0.5 text-emerald-600" />
-          Feed quality and source trust checks remain enabled for all incoming video stories from YouTube and publisher RSS streams.
+          ReelWire uses YouTube RSS and publisher video feeds, ranks latest + trending items, and presents them as short reels-style playback.
         </div>
       </section>
     </main>
