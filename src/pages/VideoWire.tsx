@@ -728,22 +728,33 @@ export default function VideoWire() {
   }, [renderedReels.length]);
 
   useEffect(() => {
+    const shouldMuteActive = !audioEnabledByUser || isMuted;
+
     iframeRefs.current.forEach((iframe, index) => {
       if (!iframe) return;
-      const command = index === activeIndex ? "playVideo" : "pauseVideo";
-      postYoutubeCommand(iframe, command);
-    });
-  }, [activeIndex, renderedReels.length]);
 
-  useEffect(() => {
-    const iframe = iframeRefs.current[activeIndex];
-    if (!iframe) return;
-    const shouldMute = !audioEnabledByUser || isMuted;
-    postYoutubeCommand(iframe, shouldMute ? "mute" : "unMute");
-    if (!shouldMute) {
-      postYoutubeCommand(iframe, "setVolume", [100]);
-    }
-  }, [activeIndex, isMuted, audioEnabledByUser]);
+      if (index === activeIndex) {
+        postYoutubeCommand(iframe, "playVideo");
+        postYoutubeCommand(iframe, shouldMuteActive ? "mute" : "unMute");
+        postYoutubeCommand(iframe, "setVolume", [shouldMuteActive ? 0 : 100]);
+      } else {
+        postYoutubeCommand(iframe, "pauseVideo");
+        postYoutubeCommand(iframe, "mute");
+        postYoutubeCommand(iframe, "setVolume", [0]);
+      }
+    });
+
+    const activeIframe = iframeRefs.current[activeIndex];
+    if (!activeIframe) return;
+
+    const timer = window.setTimeout(() => {
+      postYoutubeCommand(activeIframe, "playVideo");
+      postYoutubeCommand(activeIframe, shouldMuteActive ? "mute" : "unMute");
+      postYoutubeCommand(activeIframe, "setVolume", [shouldMuteActive ? 0 : 100]);
+    }, 220);
+
+    return () => window.clearTimeout(timer);
+  }, [activeIndex, renderedReels.length, isMuted, audioEnabledByUser]);
 
   useEffect(() => {
     const container = reelContainerRef.current;
