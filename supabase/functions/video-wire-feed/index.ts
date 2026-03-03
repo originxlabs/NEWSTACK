@@ -257,6 +257,7 @@ async function fetchAndParseFeed(source: FeedSource): Promise<VideoItem[]> {
 
 function shouldKeepByDuration(item: VideoItem, maxDurationSeconds: number, strictDuration: boolean): boolean {
   if (item.duration_seconds !== null) return item.duration_seconds <= maxDurationSeconds;
+  if (item.is_short) return true;
   return !strictDuration;
 }
 

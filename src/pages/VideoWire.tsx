@@ -912,17 +912,18 @@ export default function VideoWire() {
           {renderedReels.map((video, index) => {
             const videoId = video.video_id || parseYoutubeId(video.link);
             const sourceEmbed = fallbackEmbedBySource(video.source);
+            const normalizedEmbed = video.embed_url?.includes("live_stream") && sourceEmbed ? sourceEmbed : video.embed_url;
             const mediaType = video.media_type ?? ((videoId || video.embed_url || sourceEmbed) ? "video" : video.thumbnail ? "image" : "post");
             const withinDuration = typeof video.duration_seconds === "number" ? video.duration_seconds <= 120 : false;
-            const shortLike = Boolean(video.is_short) || withinDuration;
-            const canEmbedVideo = mediaType === "video" && Boolean(videoId) && shortLike && withinDuration;
-            const shouldMountPlayer = canEmbedVideo && Math.abs(index - activeIndex) <= 1;
+            const shortLike = withinDuration || (video.duration_seconds == null && Boolean(video.is_short));
+            const hasPlayableVideoSource = Boolean(videoId || normalizedEmbed || sourceEmbed);
+            const canEmbedVideo = mediaType === "video" && shortLike && hasPlayableVideoSource;
+            const shouldMountPlayer = canEmbedVideo && Math.abs(index - activeIndex) <= 2;
             const sourceLink = video.source_url || video.link;
-            const normalizedEmbed = video.embed_url?.includes("live_stream") && sourceEmbed ? sourceEmbed : video.embed_url;
             const isActuallyMuted = !audioEnabledByUser || isMuted;
             const origin = typeof window !== "undefined" ? window.location.origin : "https://newstack.live";
             const posterSrc = mediaType === "video"
-              ? fallbackThumbnailBySource(video.source)
+              ? (video.thumbnail || fallbackThumbnailBySource(video.source))
               : (video.thumbnail || fallbackThumbnailBySource(video.source));
 
             const embedUrl = shouldMountPlayer
