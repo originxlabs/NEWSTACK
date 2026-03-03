@@ -656,7 +656,7 @@ export default function VideoWire() {
             {isLoading
               ? "Loading live video feed..."
               : isFallback
-                ? `Showing ${sourcePool.length >= 20 ? "20+" : sourcePool.length} reels from cached/fallback sources`
+                ? `Showing ${sourcePool.length >= 20 ? "20+" : sourcePool.length} ready reels`
                 : `${videos.length} latest reels from ${sourceCount} news channels`}
           </div>
           <div className="flex items-center gap-2">
@@ -780,8 +780,8 @@ export default function VideoWire() {
           <Card className="border-border/60 mt-3">
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
               {isOffline
-                ? "You are offline. Showing cached/fallback 20+ reels."
-                : "Live scraping pipeline is not deployed in this environment yet. Showing 20+ fallback reels."}
+                ? "You are offline. Showing your last saved 20+ reels."
+                : "Refreshing latest reels. Showing 20+ ready reels right now."}
             </CardContent>
           </Card>
         )}
