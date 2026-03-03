@@ -75,6 +75,7 @@ const RATE_LIMIT_KEY = "pipeline_last_success";
 const RATE_LIMIT_FAILURE_KEY = "pipeline_last_failure";
 const SUCCESS_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
 const FAILURE_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+const SCHEDULER_MONITOR_POLL_MS = 60 * 1000; // 1 minute lightweight monitor
 
 interface IngestionPipelineViewerProps {
   onIngestionComplete?: () => void;
@@ -113,6 +114,8 @@ export function IngestionPipelineViewer({
   const [lastTrigger, setLastTrigger] = useState<RunTrigger>("manual");
   const [lastRunNote, setLastRunNote] = useState<string | null>(null);
   const [lastFetched, setLastFetched] = useState<FetchedStory[]>([]);
+  const [lastSchedulerRunAt, setLastSchedulerRunAt] = useState<string | null>(null);
+  const [schedulerStatus, setSchedulerStatus] = useState<string | null>(null);
   const [stats, setStats] = useState({
     feedsProcessed: 0,
     storiesCreated: 0,
@@ -255,6 +258,30 @@ export function IngestionPipelineViewer({
     if (error) throw error;
     setLastFetched((data || []) as FetchedStory[]);
   }, []);
+
+  const refreshSchedulerStatus = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("ingestion_runs")
+      .select("started_at,status")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Failed to monitor scheduler status:", error);
+      return;
+    }
+
+    if (!data?.started_at) return;
+
+    setLastSchedulerRunAt(data.started_at);
+    setSchedulerStatus(data.status || null);
+
+    const lastRunTs = new Date(data.started_at).getTime();
+    const nextTs = lastRunTs + autoRefreshInterval;
+    const nextIn = Math.max(0, Math.floor((nextTs - Date.now()) / 1000));
+    setNextRefreshIn(nextIn);
+  }, [autoRefreshInterval]);
 
   // Run the ingestion with visual pipeline
   const runIngestion = useCallback(
@@ -462,24 +489,25 @@ export function IngestionPipelineViewer({
 
   // Auto-refresh polling with countdown
   useEffect(() => {
-    if (!canManualIngest || !autoRefreshEnabled || autoRefreshInterval <= 0) return;
+    if (!autoRefreshEnabled || autoRefreshInterval <= 0) return;
 
-    setNextRefreshIn(autoRefreshInterval / 1000);
+    refreshSchedulerStatus();
+
+    const monitorInterval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        refreshSchedulerStatus();
+      }
+    }, SCHEDULER_MONITOR_POLL_MS);
 
     const countdownInterval = setInterval(() => {
-      setNextRefreshIn((prev) => {
-        if (prev <= 1) {
-          if (!isRunning && cooldownRemaining === 0) {
-            runIngestion("auto");
-          }
-          return autoRefreshInterval / 1000;
-        }
-        return prev - 1;
-      });
+      setNextRefreshIn((prev) => (prev <= 0 ? 0 : prev - 1));
     }, 1000);
 
-    return () => clearInterval(countdownInterval);
-  }, [canManualIngest, autoRefreshEnabled, autoRefreshInterval, isRunning, runIngestion, cooldownRemaining]);
+    return () => {
+      clearInterval(monitorInterval);
+      clearInterval(countdownInterval);
+    };
+  }, [autoRefreshEnabled, autoRefreshInterval, refreshSchedulerStatus]);
 
   const getStepColor = (status: PipelineStep["status"]) => {
     switch (status) {
@@ -553,9 +581,8 @@ export function IngestionPipelineViewer({
               {showAutoRefreshControls && (
                 <button
                   onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-                  disabled={!canManualIngest}
                   className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                    "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors",
                     autoRefreshEnabled
                       ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
                       : "bg-muted text-muted-foreground border border-border"
@@ -567,7 +594,7 @@ export function IngestionPipelineViewer({
                     <ToggleLeft className="w-3.5 h-3.5" />
                   )}
                   <span className="hidden sm:inline">Auto</span>
-                  {autoRefreshEnabled && !isRunning && cooldownRemaining === 0 && (
+                  {autoRefreshEnabled && (
                     <span className="flex items-center gap-0.5 text-[10px]">
                       <Timer className="w-3 h-3" />
                       {Math.floor(nextRefreshIn / 60)}:{String(nextRefreshIn % 60).padStart(2, "0")}
@@ -785,6 +812,22 @@ export function IngestionPipelineViewer({
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {lastSchedulerRunAt && (
+                <div className="mt-3 p-3 rounded-lg border border-border/50 bg-muted/20">
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <Badge variant="outline" className="text-[10px]">Auto scheduler • 15 min</Badge>
+                    <span className="text-muted-foreground">
+                      Last refreshed {new Date(lastSchedulerRunAt).toLocaleString()}
+                    </span>
+                    {schedulerStatus && (
+                      <Badge variant="secondary" className="text-[10px] capitalize">
+                        {schedulerStatus}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Stats row */}
               <AnimatePresence>

@@ -35,6 +35,10 @@ interface IngestionRun {
 }
 
 export default function IngestionPortal() {
+  const AUTO_INTERVAL_MINUTES = 15;
+  const AUTO_INTERVAL_MS = AUTO_INTERVAL_MINUTES * 60 * 1000;
+  const STATUS_POLL_INTERVAL_MS = 120000;
+
   const { user } = useAuth();
   const { isAdmin } = useNewsroomRole();
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
@@ -42,7 +46,7 @@ export default function IngestionPortal() {
   const [latestRun, setLatestRun] = useState<IngestionRun | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTriggering, setIsTriggering] = useState(false);
-  const [isRealtime, setIsRealtime] = useState(false);
+  const [lastStatusSyncAt, setLastStatusSyncAt] = useState<Date | null>(null);
   const [selectedState, setSelectedState] = useState<string>("all");
   const [sessionTimeLeft, setSessionTimeLeft] = useState<number | null>(null);
 
@@ -107,11 +111,6 @@ export default function IngestionPortal() {
   }, [canManualIngest]);
 
   const fetchLatestRun = useCallback(async () => {
-    if (!canManualIngest) {
-      setLatestRun(null);
-      setIsLoading(false);
-      return;
-    }
     try {
       const { data, error } = await supabase
         .from("ingestion_runs")
@@ -121,37 +120,33 @@ export default function IngestionPortal() {
 
       if (error) throw error;
       setLatestRun((data?.[0] as IngestionRun) || null);
+      setLastStatusSyncAt(new Date());
     } catch (err) {
       console.error("Failed to fetch latest run:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [canManualIngest]);
+  }, []);
 
   useEffect(() => {
-    if (!canManualIngest) {
-      return;
-    }
-
     fetchLatestRun();
 
-    // Real-time subscription
-    const channel = supabase
-      .channel("ingestion-portal-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "ingestion_runs" },
-        () => {
-          setIsRealtime(true);
-          fetchLatestRun();
-        }
-      )
-      .subscribe();
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchLatestRun();
+      }
+    }, STATUS_POLL_INTERVAL_MS);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
-  }, [canManualIngest, fetchLatestRun]);
+  }, [fetchLatestRun]);
+
+  const latestStartedAt = latestRun?.started_at ? new Date(latestRun.started_at) : null;
+  const nextAutoRefreshAt = latestStartedAt ? new Date(latestStartedAt.getTime() + AUTO_INTERVAL_MS) : null;
+  const autoModeLabel = latestStartedAt
+    ? `Next auto run ${formatDistanceToNow(nextAutoRefreshAt as Date, { addSuffix: true })}`
+    : "Waiting for first scheduler run";
 
   const handleAccessSuccess = (userId: string) => {
     if (!canManualIngest) return;
@@ -271,12 +266,10 @@ export default function IngestionPortal() {
           <div className="flex items-center justify-center gap-3 mb-4">
             <Rss className="w-8 h-8 text-primary" />
             <h1 className="text-3xl font-bold">RSS Ingestion Portal</h1>
-            {isRealtime && (
-              <Badge variant="outline" className="text-emerald-500 border-emerald-500/30">
-                <Radio className="w-3 h-3 mr-1 animate-pulse" />
-                Live
-              </Badge>
-            )}
+            <Badge variant="outline" className="text-emerald-600 border-emerald-500/30">
+              <Radio className="w-3 h-3 mr-1 animate-pulse" />
+              Auto Mode • Every 15 min
+            </Badge>
           </div>
           <p className="text-muted-foreground max-w-xl mx-auto">
             Trigger news ingestion, monitor pipeline status, and view real-time activity.
@@ -370,6 +363,22 @@ export default function IngestionPortal() {
                   {getStatusIcon(latestRun.status)}
                   <span className="ml-1">{latestRun.status}</span>
                 </Badge>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-2">
+                <Badge variant="outline" className="text-[10px]">
+                  Auto Scheduler: Active (15 min)
+                </Badge>
+                <span>
+                  Last refreshed {formatDistanceToNow(new Date(latestRun.started_at), { addSuffix: true })}
+                </span>
+                <span>•</span>
+                <span>{autoModeLabel}</span>
+                {lastStatusSyncAt && (
+                  <>
+                    <span>•</span>
+                    <span>Status synced {formatDistanceToNow(lastStatusSyncAt, { addSuffix: true })}</span>
+                  </>
+                )}
               </div>
             </CardHeader>
             <CardContent>
