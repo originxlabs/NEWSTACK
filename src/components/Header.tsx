@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   Newspaper,
   Flag,
@@ -8,10 +8,8 @@ import {
   Building2,
   MessageSquareWarning,
   Code2,
-  Flame,
+  Clapperboard,
   Radio,
-  Pin,
-  PinOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +19,6 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { UserMenu } from "@/components/UserMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NLogoSquare } from "@/components/NLogo";
-import { TrendingHeaderSlider } from "@/components/TrendingHeaderSlider";
 
 const navLinks = [
   { name: "News", href: "/news", icon: Newspaper },
@@ -30,14 +27,11 @@ const navLinks = [
   { name: "Places", href: "/places", icon: MapPin },
   { name: "Politics", href: "/open-politics", icon: Building2 },
   { name: "Grievances", href: "/public-grievances", icon: MessageSquareWarning },
-  { name: "Trending", href: "/trending", icon: Flame },
+  { name: "ReelWire", href: "/video-wire", icon: Clapperboard },
 ];
 
 export function Header() {
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showTrendingPanel, setShowTrendingPanel] = useState(false);
-  const [pinTrendingPanel, setPinTrendingPanel] = useState(false);
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -46,15 +40,6 @@ export function Header() {
     return location.pathname.startsWith(href);
   };
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const pointer = window.matchMedia("(pointer: coarse)");
-    const apply = () => setIsTouchDevice(pointer.matches);
-    apply();
-    pointer.addEventListener("change", apply);
-    return () => pointer.removeEventListener("change", apply);
-  }, []);
-
   return (
     <>
       <motion.header
@@ -62,9 +47,6 @@ export function Header() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4 }}
         className="fixed top-0 left-0 right-0 z-50"
-        onMouseLeave={() => {
-          if (!pinTrendingPanel) setShowTrendingPanel(false);
-        }}
       >
         <div className="bg-background/80 backdrop-blur-xl border-b border-border/40">
           <div className="container mx-auto max-w-6xl px-3 sm:px-4">
@@ -91,21 +73,6 @@ export function Header() {
                       <Link
                         key={link.name}
                         to={link.href}
-                        onClick={() => {
-                          if (link.name === "Trending" && isTouchDevice) {
-                            setShowTrendingPanel(true);
-                          }
-                        }}
-                        onMouseEnter={() => {
-                          if (link.name === "Trending") {
-                            setShowTrendingPanel(true);
-                          }
-                        }}
-                        onFocus={() => {
-                          if (link.name === "Trending") {
-                            setShowTrendingPanel(true);
-                          }
-                        }}
                         className={`inline-flex items-center gap-1 px-1.5 sm:px-2 lg:px-2.5 py-1.5 text-[11px] sm:text-[12px] lg:text-[13px] rounded-md transition-colors shrink-0 ${
                           isActive(link.href)
                             ? "text-foreground font-medium bg-muted/50"
@@ -113,7 +80,7 @@ export function Header() {
                         }`}
                         title={link.name}
                       >
-                        <Icon className={`w-3.5 h-3.5 shrink-0 ${link.name === "Trending" ? "text-orange-500" : ""}`} />
+                        <Icon className={`w-3.5 h-3.5 shrink-0 ${link.name === "ReelWire" ? "text-orange-500" : ""}`} />
                         <span className="hidden sm:inline">{link.name}</span>
                       </Link>
                     );
@@ -125,29 +92,6 @@ export function Header() {
                 <Button asChild size="sm" variant="outline" className="hidden lg:inline-flex h-7 px-2 text-xs">
                   <Link to="/opennews">Open News</Link>
                 </Button>
-                {isTouchDevice && (
-                  <Button
-                    size="sm"
-                    variant={showTrendingPanel ? "default" : "outline"}
-                    className="h-7 px-2 text-[11px] sm:hidden"
-                    onClick={() => setShowTrendingPanel((value) => !value)}
-                  >
-                    <Flame className="w-3.5 h-3.5 mr-1 text-orange-500" />
-                    Pulse
-                  </Button>
-                )}
-                {showTrendingPanel && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="hidden lg:inline-flex h-7 w-7"
-                    onClick={() => setPinTrendingPanel((value) => !value)}
-                    aria-label={pinTrendingPanel ? "Unpin trending panel" : "Pin trending panel"}
-                    title={pinTrendingPanel ? "Unpin trending panel" : "Pin trending panel"}
-                  >
-                    {pinTrendingPanel ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
-                  </Button>
-                )}
                 <Badge variant="outline" className="hidden md:flex gap-1.5 h-6 px-2 text-[10px] bg-emerald-500/5 text-emerald-600 border-emerald-500/20">
                   <Radio className="w-2 h-2 animate-pulse" />
                   LIVE
@@ -186,22 +130,6 @@ export function Header() {
             </div>
           </div>
         </div>
-
-        <AnimatePresence>
-          {showTrendingPanel && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.24, ease: "easeOut" }}
-              className="border-b border-border/50 bg-background/85 backdrop-blur-xl"
-            >
-              <div className="container mx-auto max-w-6xl px-4 py-3">
-                <TrendingHeaderSlider />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.header>
 
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />

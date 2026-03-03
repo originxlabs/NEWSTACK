@@ -81,7 +81,7 @@ const OpenNewsPoliticalTrackerPage = lazy(() => import("./pages/opennews/OpenNew
 const OpenNewsVerifiedJournalistsPage = lazy(() => import("./pages/opennews/OpenNewsSubRoutes").then(m => ({ default: m.OpenNewsVerifiedJournalistsPage })));
 const DiscussionsPage = lazy(() => import("./pages/opennews/OpenNewsStandalone").then(m => ({ default: m.DiscussionsPage })));
 const OpenNewsAdminStandalonePage = lazy(() => import("./pages/opennews/OpenNewsStandalone").then(m => ({ default: m.OpenNewsAdminStandalonePage })));
-const TrendingPage = lazy(() => import("./pages/opennews/OpenNewsStandalone").then(m => ({ default: m.TrendingPage })));
+const VideoWire = lazy(() => import("./pages/VideoWire"));
 
 // Minimal skeleton shown while lazy chunks load
 function PageSkeleton() {
@@ -187,7 +187,8 @@ function AppContent() {
             <Route path="thread/:postId" element={<OpenNewsThreadPage />} />
           </Route>
           <Route path="/discussions" element={<DiscussionsPage />} />
-          <Route path="/trending" element={<TrendingPage />} />
+          <Route path="/video-wire" element={<VideoWire />} />
+          <Route path="/trending" element={<VideoWire />} />
           <Route path="/politicians" element={<OpenPoliticsPage />} />
           <Route path="/opennews/admin" element={<OpenNewsAdminStandalonePage />} />
           <Route path="/open-politics" element={<OpenPoliticsPage />} />
