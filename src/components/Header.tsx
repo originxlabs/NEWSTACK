@@ -83,8 +83,8 @@ export function Header() {
                 </div>
               </Link>
 
-              <nav className="flex-1 min-w-0">
-                <div className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto scrollbar-hide whitespace-nowrap pr-2">
+              <nav className="flex-1 min-w-0 overflow-x-auto scrollbar-hide">
+                <div className="flex items-center gap-0.5 whitespace-nowrap pr-2">
                   {navLinks.map((link) => {
                     const Icon = link.icon;
                     return (
@@ -106,14 +106,15 @@ export function Header() {
                             setShowTrendingPanel(true);
                           }
                         }}
-                        className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 text-[12px] sm:text-sm rounded-md transition-colors shrink-0 ${
+                        className={`inline-flex items-center gap-1 px-1.5 sm:px-2 lg:px-2.5 py-1.5 text-[11px] sm:text-[12px] lg:text-[13px] rounded-md transition-colors shrink-0 ${
                           isActive(link.href)
                             ? "text-foreground font-medium bg-muted/50"
                             : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                         }`}
+                        title={link.name}
                       >
-                        <Icon className={`w-3.5 h-3.5 ${link.name === "Trending" ? "text-orange-500" : ""}`} />
-                        {link.name}
+                        <Icon className={`w-3.5 h-3.5 shrink-0 ${link.name === "Trending" ? "text-orange-500" : ""}`} />
+                        <span className="hidden sm:inline">{link.name}</span>
                       </Link>
                     );
                   })}
@@ -121,7 +122,7 @@ export function Header() {
               </nav>
 
               <div className="flex items-center gap-2 shrink-0">
-                <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex h-7 px-2 text-xs">
+                <Button asChild size="sm" variant="outline" className="hidden lg:inline-flex h-7 px-2 text-xs">
                   <Link to="/opennews">Open News</Link>
                 </Button>
                 {isTouchDevice && (
@@ -147,12 +148,12 @@ export function Header() {
                     {pinTrendingPanel ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
                   </Button>
                 )}
-                <Badge variant="outline" className="hidden sm:flex gap-1.5 h-6 px-2 text-[10px] bg-emerald-500/5 text-emerald-600 border-emerald-500/20">
+                <Badge variant="outline" className="hidden md:flex gap-1.5 h-6 px-2 text-[10px] bg-emerald-500/5 text-emerald-600 border-emerald-500/20">
                   <Radio className="w-2 h-2 animate-pulse" />
                   LIVE
                 </Badge>
                 <ThemeToggle />
-                <div className="hidden md:flex items-center gap-2 ml-1">
+                <div className="hidden lg:flex items-center gap-2 ml-1">
                   {loading ? (
                     <div className="h-8 w-16 bg-muted animate-pulse rounded-md" />
                   ) : user ? (
@@ -173,7 +174,7 @@ export function Header() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="md:hidden h-8 w-8"
+                    className="lg:hidden h-8 w-8"
                     onClick={() => setShowAuthModal(true)}
                     aria-label="Enterprise Sign In"
                     title="Enterprise Sign In"
