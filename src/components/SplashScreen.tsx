@@ -189,41 +189,22 @@ export function SplashScreen({ onComplete, duration = 2500, countryCode }: Splas
     }
   };
 
-  // Start prefetch immediately when splash screen mounts
+  // Start prefetch in background (non-blocking)
   useEffect(() => {
-    const startPrefetch = async () => {
-      try {
-        await prefetch(countryCode);
-        setPrefetchComplete(true);
-      } catch (err) {
-        console.error("Prefetch failed:", err);
-        setPrefetchComplete(true);
-      }
-    };
-    
-    startPrefetch();
+    prefetch(countryCode).catch((err) => {
+      console.error("Prefetch failed:", err);
+    });
   }, [prefetch, countryCode]);
 
-  // Complete splash screen after both prefetch and minimum duration
+  // Complete splash screen after minimum duration only (don't wait for prefetch)
   useEffect(() => {
-    const minDurationTimer = setTimeout(() => {
-      if (prefetchComplete) {
-        setIsVisible(false);
-        onComplete?.();
-      }
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+      onComplete?.();
     }, duration);
 
-    return () => clearTimeout(minDurationTimer);
-  }, [duration, onComplete, prefetchComplete]);
-
-  useEffect(() => {
-    if (prefetchComplete) {
-      const timer = setTimeout(() => {
-        setIsVisible(false);
-        onComplete?.();
-      }, Math.max(0, duration - 300));
-    }
-  }, [prefetchComplete, duration, onComplete]);
+    return () => clearTimeout(timer);
+  }, [duration, onComplete]);
 
   const getStatusText = () => {
     switch (status) {

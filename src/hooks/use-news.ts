@@ -102,11 +102,12 @@ export function useNews(params: FetchNewsParams = {}) {
   return useQuery({
     queryKey: ["news", params],
     queryFn: () => fetchNews(params),
-    staleTime: 1 * 60 * 1000, // 1 minute for fresher data
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes — show cached data instantly, refetch in background
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes for instant loads
     retry: 2,
-    refetchOnWindowFocus: true, // Refetch when user focuses window
+    refetchOnWindowFocus: false, // Don't refetch on every tab focus (cache handles freshness)
     refetchInterval: params.refetchIntervalMs || false,
+    placeholderData: (previousData) => previousData, // Show previous data while fetching new
   });
 }
 
@@ -122,9 +123,9 @@ export function useInfiniteNews(params: Omit<FetchNewsParams, "page"> = {}) {
       return undefined;
     },
     initialPageParam: 1,
-    staleTime: 1 * 60 * 1000, // 1 minute for fresher data
-    gcTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes — instant from cache
+    gcTime: 30 * 60 * 1000, // 30 minutes in cache
     retry: 2,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }

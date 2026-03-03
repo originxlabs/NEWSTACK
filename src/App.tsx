@@ -13,81 +13,96 @@ import { NewsletterPopup } from "@/components/NewsletterPopup";
 import { MobileAppWrapper } from "@/components/mobile/MobileAppWrapper";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useBreakingPush } from "@/hooks/use-breaking-push";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, lazy, Suspense } from "react";
+
+// === Eagerly loaded: Index (home) + News (most visited) ===
 import Index from "./pages/Index";
 import News from "./pages/News";
-import Listen from "./pages/Listen";
-import World from "./pages/World";
-import Places from "./pages/Places";
-import Topics from "./pages/Topics";
-import Features from "./pages/Features";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-import RefundPolicy from "./pages/RefundPolicy";
-import NotFound from "./pages/NotFound";
-import StoryDetail from "./pages/StoryDetail";
-import ApiLanding from "./pages/ApiLanding";
-import ApiPricing from "./pages/ApiPricing";
-import Sources from "./pages/Sources";
-import IndiaStates from "./pages/IndiaStates";
-import StatePage from "./pages/StatePage";
-import CountryPage from "./pages/CountryPage";
-import ProvincePage from "./pages/ProvincePage";
-import ContinentPage from "./pages/ContinentPage";
-import ApiDocs from "./pages/ApiDocs";
-import ApiDashboard from "./pages/ApiDashboard";
-import EnterpriseDashboard from "./pages/EnterpriseDashboard";
-import Contact from "./pages/Contact";
-import NewsroomLayout from "./pages/newsroom/NewsroomLayout";
-import NewsroomLogin from "./pages/newsroom/NewsroomLogin";
-import NewsroomDashboard from "./pages/newsroom/NewsroomDashboard";
-import NewsroomApiHealth from "./pages/newsroom/NewsroomApiHealth";
-import NewsroomApiKeys from "./pages/newsroom/NewsroomApiKeys";
-import NewsroomWebhooks from "./pages/newsroom/NewsroomWebhooks";
-import NewsroomIngestion from "./pages/newsroom/NewsroomIngestion";
-import NewsroomFeeds from "./pages/newsroom/NewsroomFeeds";
-import NewsroomStories from "./pages/newsroom/NewsroomStories";
-import NewsroomTrust from "./pages/newsroom/NewsroomTrust";
-import NewsroomAlerts from "./pages/newsroom/NewsroomAlerts";
-import NewsroomIntegrations from "./pages/newsroom/NewsroomIntegrations";
-import NewsroomSettings from "./pages/newsroom/NewsroomSettings";
-import NewsroomAnalytics from "./pages/newsroom/NewsroomAnalytics";
-import NewsroomOwnerSetup from "./pages/newsroom/NewsroomOwnerSetup";
-import NewsroomOwnerLogin from "./pages/newsroom/NewsroomOwnerLogin";
-import NewsroomAuditLogs from "./pages/newsroom/NewsroomAuditLogs";
-import NewsroomIngestionStatus from "./pages/newsroom/NewsroomIngestionStatus";
-import NewsroomIngestionLogs from "./pages/newsroom/NewsroomIngestionLogs";
-import NewsroomIngestionMonitor from "./pages/newsroom/NewsroomIngestionMonitor";
-import NewsroomAccessUsers from "./pages/newsroom/NewsroomAccessUsers";
-import IngestionPortal from "./pages/IngestionPortal";
+
+// === Lazy loaded: everything else (loaded on demand for fast initial load) ===
+const Listen = lazy(() => import("./pages/Listen"));
+const World = lazy(() => import("./pages/World"));
+const Places = lazy(() => import("./pages/Places"));
+const Topics = lazy(() => import("./pages/Topics"));
+const Features = lazy(() => import("./pages/Features"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const StoryDetail = lazy(() => import("./pages/StoryDetail"));
+const ApiLanding = lazy(() => import("./pages/ApiLanding"));
+const ApiPricing = lazy(() => import("./pages/ApiPricing"));
+const Sources = lazy(() => import("./pages/Sources"));
+const IndiaStates = lazy(() => import("./pages/IndiaStates"));
+const StatePage = lazy(() => import("./pages/StatePage"));
+const CountryPage = lazy(() => import("./pages/CountryPage"));
+const ProvincePage = lazy(() => import("./pages/ProvincePage"));
+const ContinentPage = lazy(() => import("./pages/ContinentPage"));
+const ApiDocs = lazy(() => import("./pages/ApiDocs"));
+const ApiDashboard = lazy(() => import("./pages/ApiDashboard"));
+const EnterpriseDashboard = lazy(() => import("./pages/EnterpriseDashboard"));
+const Contact = lazy(() => import("./pages/Contact"));
+const NewsroomLayout = lazy(() => import("./pages/newsroom/NewsroomLayout"));
+const NewsroomLogin = lazy(() => import("./pages/newsroom/NewsroomLogin"));
+const NewsroomDashboard = lazy(() => import("./pages/newsroom/NewsroomDashboard"));
+const NewsroomApiHealth = lazy(() => import("./pages/newsroom/NewsroomApiHealth"));
+const NewsroomApiKeys = lazy(() => import("./pages/newsroom/NewsroomApiKeys"));
+const NewsroomWebhooks = lazy(() => import("./pages/newsroom/NewsroomWebhooks"));
+const NewsroomIngestion = lazy(() => import("./pages/newsroom/NewsroomIngestion"));
+const NewsroomFeeds = lazy(() => import("./pages/newsroom/NewsroomFeeds"));
+const NewsroomStories = lazy(() => import("./pages/newsroom/NewsroomStories"));
+const NewsroomTrust = lazy(() => import("./pages/newsroom/NewsroomTrust"));
+const NewsroomAlerts = lazy(() => import("./pages/newsroom/NewsroomAlerts"));
+const NewsroomIntegrations = lazy(() => import("./pages/newsroom/NewsroomIntegrations"));
+const NewsroomSettings = lazy(() => import("./pages/newsroom/NewsroomSettings"));
+const NewsroomAnalytics = lazy(() => import("./pages/newsroom/NewsroomAnalytics"));
+const NewsroomOwnerSetup = lazy(() => import("./pages/newsroom/NewsroomOwnerSetup"));
+const NewsroomOwnerLogin = lazy(() => import("./pages/newsroom/NewsroomOwnerLogin"));
+const NewsroomAuditLogs = lazy(() => import("./pages/newsroom/NewsroomAuditLogs"));
+const NewsroomIngestionStatus = lazy(() => import("./pages/newsroom/NewsroomIngestionStatus"));
+const NewsroomIngestionLogs = lazy(() => import("./pages/newsroom/NewsroomIngestionLogs"));
+const NewsroomIngestionMonitor = lazy(() => import("./pages/newsroom/NewsroomIngestionMonitor"));
+const NewsroomAccessUsers = lazy(() => import("./pages/newsroom/NewsroomAccessUsers"));
+const IngestionPortal = lazy(() => import("./pages/IngestionPortal"));
 import { AdminRouteGuard } from "./components/newsroom/AdminRouteGuard";
-import OpenNewsLayoutPage from "./pages/opennews/OpenNewsLayoutPage";
-import OpenNewsOverviewPage from "./pages/opennews/OpenNewsOverviewPage";
-import OpenNewsThreadPage from "./pages/opennews/OpenNewsThreadPage";
-import OpenPoliticsPage from "./pages/OpenPolitics";
-import PublicGrievances from "./pages/PublicGrievances";
-import SupportOpenNews from "./pages/SupportOpenNews";
-import {
-  OpenNewsAnonymousReportsPage,
-  OpenNewsDebateArenaPage,
-  OpenNewsInvestigationsPage,
-  OpenNewsLatestPage,
-  OpenNewsPoliticalTrackerPage,
-  OpenNewsVerifiedJournalistsPage,
-} from "./pages/opennews/OpenNewsSubRoutes";
-import {
-  DiscussionsPage,
-  OpenNewsAdminStandalonePage,
-  TrendingPage,
-} from "./pages/opennews/OpenNewsStandalone";
+const OpenNewsLayoutPage = lazy(() => import("./pages/opennews/OpenNewsLayoutPage"));
+const OpenNewsOverviewPage = lazy(() => import("./pages/opennews/OpenNewsOverviewPage"));
+const OpenNewsThreadPage = lazy(() => import("./pages/opennews/OpenNewsThreadPage"));
+const OpenPoliticsPage = lazy(() => import("./pages/OpenPolitics"));
+const PublicGrievances = lazy(() => import("./pages/PublicGrievances"));
+const SupportOpenNews = lazy(() => import("./pages/SupportOpenNews"));
+
+// Named-export lazy wrappers
+const OpenNewsAnonymousReportsPage = lazy(() => import("./pages/opennews/OpenNewsSubRoutes").then(m => ({ default: m.OpenNewsAnonymousReportsPage })));
+const OpenNewsDebateArenaPage = lazy(() => import("./pages/opennews/OpenNewsSubRoutes").then(m => ({ default: m.OpenNewsDebateArenaPage })));
+const OpenNewsInvestigationsPage = lazy(() => import("./pages/opennews/OpenNewsSubRoutes").then(m => ({ default: m.OpenNewsInvestigationsPage })));
+const OpenNewsLatestPage = lazy(() => import("./pages/opennews/OpenNewsSubRoutes").then(m => ({ default: m.OpenNewsLatestPage })));
+const OpenNewsPoliticalTrackerPage = lazy(() => import("./pages/opennews/OpenNewsSubRoutes").then(m => ({ default: m.OpenNewsPoliticalTrackerPage })));
+const OpenNewsVerifiedJournalistsPage = lazy(() => import("./pages/opennews/OpenNewsSubRoutes").then(m => ({ default: m.OpenNewsVerifiedJournalistsPage })));
+const DiscussionsPage = lazy(() => import("./pages/opennews/OpenNewsStandalone").then(m => ({ default: m.DiscussionsPage })));
+const OpenNewsAdminStandalonePage = lazy(() => import("./pages/opennews/OpenNewsStandalone").then(m => ({ default: m.OpenNewsAdminStandalonePage })));
+const TrendingPage = lazy(() => import("./pages/opennews/OpenNewsStandalone").then(m => ({ default: m.TrendingPage })));
+
+// Minimal skeleton shown while lazy chunks load
+function PageSkeleton() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex items-center gap-2 text-muted-foreground text-sm">
+        <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        Loading...
+      </div>
+    </div>
+  );
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000, // 1 minute
-      gcTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000, // 5 minutes — show cached data instantly
+      gcTime: 30 * 60 * 1000, // 30 minutes — keep in memory for fast back-navigation
       retry: 2,
-      refetchOnWindowFocus: false, // Prevent aggressive refetching
+      refetchOnWindowFocus: false, // Don't spam refetch on tab focus
+      refetchOnMount: true, // Refetch when component mounts if stale
     },
   },
 });
@@ -111,45 +126,21 @@ function ThemeInitializer() {
   return null;
 }
 
-// Splash screen manager component - Shows N logo animation on EVERY navigation/refresh (no caching)
+// Splash screen manager component - Only shows on initial cold start, NOT on navigation
 function SplashManager() {
-  const location = useLocation();
   const [showSplash, setShowSplash] = useState(true);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const previousPath = useRef<string>(location.pathname);
-  const navigationKey = useRef(Date.now()); // Force unique key on each render
-
-  // Always show splash on initial render
-  useEffect(() => {
-    setShowSplash(true);
-    setIsInitialLoad(true);
-    navigationKey.current = Date.now();
-  }, []);
-
-  // Show splash on ALL route changes (navigation) - no caching
-  useEffect(() => {
-    if (previousPath.current !== location.pathname) {
-      navigationKey.current = Date.now(); // New key to force re-render
-      setShowSplash(true);
-      setIsInitialLoad(false);
-    }
-    previousPath.current = location.pathname;
-  }, [location.pathname]);
 
   const handleSplashComplete = () => {
     setShowSplash(false);
   };
 
+  if (!showSplash) return null;
+
   return (
-    <>
-      {showSplash && (
-        <SplashScreen 
-          key={navigationKey.current} // Force fresh instance each time
-          onComplete={handleSplashComplete} 
-          duration={isInitialLoad ? 2000 : 1000} 
-        />
-      )}
-    </>
+    <SplashScreen
+      onComplete={handleSplashComplete}
+      duration={1500}
+    />
   );
 }
 
@@ -165,6 +156,7 @@ function AppContent() {
       <OpenNewsPromoRibbon />
       <NewsletterPopup />
       <MobileAppWrapper>
+        <Suspense fallback={<PageSkeleton />}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/news" element={<News />} />
@@ -238,6 +230,7 @@ function AppContent() {
           <Route path="/licenses" element={<TermsOfService />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </MobileAppWrapper>
     </>
   );

@@ -51,33 +51,26 @@ const Index = () => {
   }, []);
   const primaryInterest = selectedInterests[0];
   
-  // Personalized latest stories (refresh every 1 hour)
+  // Personalized latest stories — cached for 5 min, refresh on page revisit when stale
   const { data: latestNewsData, isLoading } = useNews({
     feedType: user ? "foryou" : "recent",
     pageSize: 20,
     sortBy: "latest",
     country: country?.code,
     topic: primaryInterest,
-    refetchIntervalMs: 60 * 60 * 1000,
   });
 
-  // Trending stories for pulse strip and cluster grouping
-  const { data: trendingNewsData } = useNews({
-    feedType: "trending",
-    pageSize: 20,
-    country: country?.code,
-    refetchIntervalMs: 5 * 60 * 1000,
-  });
-
-  // Fetch top 20 global/world stories for Hero card stack (refreshes every 4 hours)
-  const { data: worldNewsData, isLoading: isLoadingWorldNews } = useNews({
+  // Trending stories for pulse strip, cluster grouping, AND hero card stack
+  const { data: trendingNewsData, isLoading: isLoadingTrending } = useNews({
     feedType: "trending",
     pageSize: 20,
     sortBy: "sources",
+    country: country?.code,
   });
 
+  // Reuse trending data for hero cards (eliminates a separate API call)
   const worldNewsArticles = useMemo(() =>
-    (worldNewsData?.articles || []).map(a => ({
+    (trendingNewsData?.articles || []).map(a => ({
       id: a.id,
       headline: a.headline,
       summary: a.summary || a.ai_analysis || "",
@@ -86,7 +79,7 @@ const Index = () => {
       publishedAt: a.published_at,
       sourceCount: a.source_count,
     })),
-    [worldNewsData]
+    [trendingNewsData]
   );
   
   const trendingStories = useMemo(() => 
@@ -186,7 +179,7 @@ const Index = () => {
             </div>
           </section>
         ) : (
-          <HeroSection worldNews={worldNewsArticles} isLoadingNews={isLoadingWorldNews} />
+          <HeroSection worldNews={worldNewsArticles} isLoadingNews={isLoadingTrending} />
         )}
 
         <MediaSourceMarquee />

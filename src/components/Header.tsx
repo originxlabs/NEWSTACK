@@ -107,7 +107,7 @@ export function Header() {
                             setShowTrendingPanel(true);
                           }
                         }}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] sm:text-sm rounded-md transition-colors ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] sm:text-sm rounded-md transition-colors shrink-0 ${
                           isActive(link.href)
                             ? "text-foreground font-medium bg-muted/50"
                             : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
